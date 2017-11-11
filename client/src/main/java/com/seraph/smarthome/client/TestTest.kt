@@ -11,4 +11,3 @@ class TestTest {
         Test()
     }
 }
-ё
