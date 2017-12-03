@@ -1,0 +1,22 @@
+{
+  "list": [
+    {
+      "from": {
+        "block": {
+          "hash": "device_with_output"
+        },
+        "endpoint": {
+          "hash": "integer_output"
+        }
+      },
+      "to": {
+        "block": {
+          "hash": "device_with_input"
+        },
+        "endpoint": {
+          "hash": "integer_input"
+        }
+      }
+    }
+  ]
+}
