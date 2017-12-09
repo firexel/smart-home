@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Smart Home Client</string>
+    <string name="title_activity_add_broker">New broker</string>
+    <string name="title_activity_brokers">Available brokers</string>
+    <string name="add_broker">Add broker</string>
+    <string name="hostname">Hostname</string>
+    <string name="port">Port</string>
+    <string name="check_and_add">Check &amp; add</string>
 </resources>
