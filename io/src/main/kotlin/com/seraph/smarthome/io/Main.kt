@@ -21,20 +21,20 @@ class Main {
 }
 
 class DeviceWithInputs(private val broker: Broker, private val log: Log) {
-    private val block: Block
+    private val device: Device
     private val input: Endpoint
 
     init {
         val inputId = Endpoint.Id("integer_input")
         input = Endpoint(inputId, "Integer input", true, Endpoint.Type.INTEGER)
-        val id = Block.Id("device_with_input")
-        block = Block(id, "Device with input", listOf(input), emptyList())
-        broker.publish(Topics.structure(block.id), Gson().toJson(block))
+        val id = Device.Id("device_with_input")
+        device = Device(id, "Device with input", listOf(input), emptyList())
+        broker.publish(Topics.structure(device.id), Gson().toJson(device))
     }
 
     fun serve() {
         val times = mutableListOf<Long>()
-        broker.subscribe(Topics.output(block.id, input.id)) { _, data ->
+        broker.subscribe(Topics.output(device.id, input.id)) { _, data ->
             val sendTime = data.toLong()
             val timeDifference = System.nanoTime() - sendTime
             times.add(timeDifference)
@@ -44,21 +44,21 @@ class DeviceWithInputs(private val broker: Broker, private val log: Log) {
 }
 
 class DeviceWithOutputs(private val broker: Broker) {
-    private val block: Block
+    private val device: Device
     private val output: Endpoint
 
     init {
         val outputId = Endpoint.Id("integer_output")
         output = Endpoint(outputId, "Integer output", true, Endpoint.Type.INTEGER)
-        val id = Block.Id("device_with_output")
-        block = Block(id, "Device with output", emptyList(), listOf(output))
-        broker.publish(Topics.structure(block.id), Gson().toJson(block))
+        val id = Device.Id("device_with_output")
+        device = Device(id, "Device with output", emptyList(), listOf(output))
+        broker.publish(Topics.structure(device.id), Gson().toJson(device))
     }
 
     fun serve() {
         Thread {
             while (true) {
-                broker.publish(Topics.output(block.id, output.id), System.nanoTime().toString())
+                broker.publish(Topics.output(device.id, output.id), System.nanoTime().toString())
                 Thread.sleep(1000)
             }
         }.start()

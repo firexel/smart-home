@@ -14,8 +14,8 @@ class Connector(
 
     public fun serve() {
         connections.list.forEach {
-            broker.subscribe(Topics.output(it.from.block, it.from.endpoint)) { _, data ->
-                broker.publish(Topics.output(it.to.block, it.to.endpoint), data)
+            broker.subscribe(Topics.output(it.from.device, it.from.endpoint)) { _, data ->
+                broker.publish(Topics.output(it.to.device, it.to.endpoint), data)
             }
         }
     }

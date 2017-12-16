@@ -5,9 +5,9 @@ package com.seraph.smarthome.model
  *
  * Suggested topics structure:
  * home/
- *   blocks/
+ *   devices/
  *     structure/
- *       {block_id} <- Block structures are posted here
+ *       {block_id} <- Device structures are posted here
  *     outputs/
  *       {block_id}/
  *         {endpoint_ids} <- Measurements are posted here
@@ -26,12 +26,12 @@ data class Topic(val segments: List<String>) {
 class Topics {
     companion object {
         private val rootTopic = Topic(listOf("home"))
-        private val blocksTopic = rootTopic.subtopic(listOf("blocks"))
+        private val blocksTopic = rootTopic.subtopic(listOf("devices"))
 
-        fun structure(id: Block.Id = Block.Id.any()): Topic
+        fun structure(id: Device.Id = Device.Id.any()): Topic
                 = blocksTopic.subtopic(listOf("structure", id.hash))
 
-        fun output(block: Block.Id = Block.Id.any(), endpoint: Endpoint.Id = Endpoint.Id.any()): Topic
-                = blocksTopic.subtopic(listOf("outputs", block.hash, endpoint.hash))
+        fun output(device: Device.Id = Device.Id.any(), endpoint: Endpoint.Id = Endpoint.Id.any()): Topic
+                = blocksTopic.subtopic(listOf("outputs", device.hash, endpoint.hash))
     }
 }

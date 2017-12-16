@@ -5,11 +5,11 @@ package com.seraph.smarthome.model
  */
 
 data class Network(
-        val blocks: List<Block>,
+        val devices: List<Device>,
         val connections: List<Connection>)
 
-data class Block(
-        val id: Block.Id,
+data class Device(
+        val id: Device.Id,
         val name: String,
         val inputs: List<Endpoint>,
         val outputs: List<Endpoint>) {
@@ -44,7 +44,7 @@ data class Endpoint(
 }
 
 data class EndpointPath(
-        val block: Block.Id,
+        val device: Device.Id,
         val endpoint: Endpoint.Id)
 
 data class Connection(
