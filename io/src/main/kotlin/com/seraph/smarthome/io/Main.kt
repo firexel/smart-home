@@ -3,6 +3,7 @@ package com.seraph.smarthome.io
 import com.google.gson.Gson
 import com.seraph.smarthome.model.*
 import com.xenomachina.argparser.ArgParser
+import com.xenomachina.argparser.default
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -23,12 +24,17 @@ class Main {
 class DeviceWithInputs(private val broker: Broker, private val log: Log) {
     private val device: Device
     private val input: Endpoint
+    private val property: Endpoint
 
     init {
         val inputId = Endpoint.Id("integer_input")
         input = Endpoint(inputId, "Integer input", true, Endpoint.Type.INTEGER)
+
+        val propertyId = Endpoint.Id("bool_property")
+        property = Endpoint(inputId, "Bool property", true, Endpoint.Type.BOOLEAN)
+
         val id = Device.Id("device_with_input")
-        device = Device(id, "Device with input", listOf(input), emptyList(), emptyList())
+        device = Device(id, "Device with input", listOf(input), emptyList(), listOf(property))
         broker.publish(Topics.structure(device.id), Gson().toJson(device))
     }
 
@@ -58,8 +64,10 @@ class DeviceWithOutputs(private val broker: Broker) {
     fun serve() {
         Thread {
             while (true) {
-                broker.publish(Topics.output(device.id, output.id), System.nanoTime().toString())
-                Thread.sleep(1000)
+                broker.publish(Topics.structure(device.id), Gson().toJson(device))
+
+                //broker.publish(Topics.output(device.id, output.id), System.nanoTime().toString())
+                Thread.sleep(5000)
             }
         }.start()
     }
@@ -67,4 +75,5 @@ class DeviceWithOutputs(private val broker: Broker) {
 
 class CommandLineParams(parser: ArgParser) {
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
+            .default("tcp://localhost:1883")
 }

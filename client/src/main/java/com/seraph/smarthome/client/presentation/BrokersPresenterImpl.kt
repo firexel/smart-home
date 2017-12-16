@@ -24,7 +24,7 @@ class BrokersPresenterImpl(
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
                     if (it != null) {
-                        navigator.showDevicesScreen(it)
+                        navigator.showSceneScreen(it)
                     } else {
                         view.showError("Broker ${broker.id} not found")
                     }

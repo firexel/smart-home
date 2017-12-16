@@ -23,6 +23,8 @@ data class Device(
         override fun compareTo(other: Id): Int {
             return hash.compareTo(other.hash)
         }
+
+        override fun toString() = hash
     }
 }
 
@@ -36,6 +38,8 @@ data class Endpoint(
         companion object {
             fun any(): Id = Id("+")
         }
+
+        override fun toString() = hash
     }
 
     enum class Type {

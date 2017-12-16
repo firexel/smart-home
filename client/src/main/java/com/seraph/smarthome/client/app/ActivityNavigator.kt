@@ -5,10 +5,14 @@ import android.content.Intent
 import com.seraph.smarthome.client.model.BrokerSettings
 import com.seraph.smarthome.client.presentation.Navigator
 import com.seraph.smarthome.client.view.NewBrokerActivity
+import com.seraph.smarthome.client.view.SceneActivity
 
 class ActivityNavigator(private val activity: Activity) : Navigator {
 
-    override fun showDevicesScreen(brokerSettings: BrokerSettings) {
+    override fun showSceneScreen(brokerSettings: BrokerSettings) {
+        val intent = Intent(activity, SceneActivity::class.java)
+        intent.putExtra("param", brokerSettings)
+        activity.startActivity(intent)
     }
 
     override fun showNewBrokerSettingsScreen() {
