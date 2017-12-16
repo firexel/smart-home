@@ -5,19 +5,26 @@ package com.seraph.smarthome.model
  */
 
 data class Network(
-        val blocks: List<Block>,
+        val devices: List<Device>,
         val connections: List<Connection>)
 
-data class Block(
-        val id: Block.Id,
+data class Device(
+        val id: Device.Id,
         val name: String,
         val inputs: List<Endpoint>,
-        val outputs: List<Endpoint>) {
+        val outputs: List<Endpoint>,
+        val properties: List<Endpoint>) {
 
-    data class Id(val hash: String) {
+    data class Id(val hash: String) : Comparable<Id> {
         companion object {
             fun any(): Id = Id("+")
         }
+
+        override fun compareTo(other: Id): Int {
+            return hash.compareTo(other.hash)
+        }
+
+        override fun toString() = hash
     }
 }
 
@@ -31,6 +38,8 @@ data class Endpoint(
         companion object {
             fun any(): Id = Id("+")
         }
+
+        override fun toString() = hash
     }
 
     enum class Type {
@@ -44,7 +53,7 @@ data class Endpoint(
 }
 
 data class EndpointPath(
-        val block: Block.Id,
+        val device: Device.Id,
         val endpoint: Endpoint.Id)
 
 data class Connection(

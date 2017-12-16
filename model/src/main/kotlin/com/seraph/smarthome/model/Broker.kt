@@ -1,8 +1,10 @@
 package com.seraph.smarthome.model
 
-import org.eclipse.paho.client.mqttv3.IMqttMessageListener
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient
-import org.eclipse.paho.client.mqttv3.MqttMessage
+import org.eclipse.paho.client.mqttv3.*
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -14,12 +16,23 @@ interface Broker {
 
 class MqttBroker(address: String, name: String, private val log: Log) : Broker {
 
-    val client: MqttAsyncClient = MqttAsyncClient(address, name)
+    val client: MqttAsyncClient = MqttAsyncClient(address, name, MemoryPersistence())
 
     init {
-        client.connect()
-        while (!client.isConnected) {
-            Thread.sleep(10)
+        val latch = CountDownLatch(1)
+        var error: Throwable? = null
+        client.connect(null, object : IMqttActionListener {
+            override fun onSuccess(asyncActionToken: IMqttToken?) {
+                latch.countDown()
+            }
+
+            override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
+                error = exception ?: IOException("Cannot connect to broker at $address")
+                latch.countDown()
+            }
+        })
+        if (!latch.await(30, TimeUnit.SECONDS) || error != null) {
+            throw error ?: IOException("Connection timed out at $address")
         }
         log.i("Connected")
     }

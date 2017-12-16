@@ -1,18 +1,16 @@
 package com.seraph.smarthome.client.presentation
 
-import com.seraph.smarthome.client.app.Navigator
 import com.seraph.smarthome.client.model.BrokerSettings
-import com.seraph.smarthome.client.model.BrokersSettingsRepo
 import io.reactivex.android.schedulers.AndroidSchedulers
 
 class BrokersPresenterImpl(
         private val view: BrokersPresenter.View,
-        private val repo: BrokersSettingsRepo,
+        private val useCaseFactory: UseCaseFactory,
         private val navigator: Navigator
 ) : BrokersPresenter {
 
     override fun onRefresh() {
-        repo.getBrokersSettings()
+        useCaseFactory.listBrokersSettings().execute(Unit)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { view.showBrokers(it.map(::toBrokerViewModel)) }
     }
@@ -22,11 +20,11 @@ class BrokersPresenterImpl(
     }
 
     override fun onBrokerSelected(broker: BrokersPresenter.BrokerViewModel) {
-        repo.findBrokerSettings(broker.id)
+        useCaseFactory.findBrokeSettings().execute(broker.id)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
                     if (it != null) {
-                        navigator.showDevicesScreen(it)
+                        navigator.showSceneScreen(it)
                     } else {
                         view.showError("Broker ${broker.id} not found")
                     }

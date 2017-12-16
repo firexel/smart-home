@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.READ_PROFILE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name="com.seraph.smarthome.client.app.ClientApp"
@@ -23,12 +24,14 @@
             android:label="@string/title_activity_brokers">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
             android:name="com.seraph.smarthome.client.view.NewBrokerActivity"
             android:label="@string/title_activity_add_broker" />
+        <activity android:name="com.seraph.smarthome.client.view.SceneActivity"></activity>
     </application>
 
 </manifest>

@@ -8,6 +8,6 @@ public interface NewBrokerPresenter {
     fun onAddBroker(hostname: String, port: Int)
 
     public interface View {
-        fun showAddError()
+        fun showAddError(message:String)
     }
 }
