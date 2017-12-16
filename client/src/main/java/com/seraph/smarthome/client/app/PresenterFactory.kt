@@ -1,16 +1,23 @@
 package com.seraph.smarthome.client.app
 
-import android.app.Activity
+import android.content.Context
 import com.seraph.smarthome.client.presentation.BrokersPresenter
 import com.seraph.smarthome.client.presentation.BrokersPresenterImpl
 import com.seraph.smarthome.client.presentation.NewBrokerPresenter
 import com.seraph.smarthome.client.presentation.NewBrokerPresenterImpl
 
-class PresenterFactory(private val activity: Activity) {
-    fun createBrokersPresenter(view: BrokersPresenter.View): BrokersPresenter =
-            BrokersPresenterImpl(view, DatabaseBrokersRepo(activity), MockBrokersNavigator(activity))
+class PresenterFactory(context: Context) {
 
-    fun createNewBrokerPresenter(view: NewBrokerPresenter.View): NewBrokerPresenter =
-            NewBrokerPresenterImpl(view, DatabaseBrokersRepo(activity), MockBrokersNavigator(activity))
+    companion object {
+        fun from(context:Context) = (context.applicationContext as ClientApp).presenterFactory
+    }
+
+    private val brokersRepo = DatabaseBrokersRepo(context)
+
+    fun createBrokersPresenter(view: BrokersPresenter.View, navigator: Navigator): BrokersPresenter =
+            BrokersPresenterImpl(view, brokersRepo, navigator)
+
+    fun createNewBrokerPresenter(view: NewBrokerPresenter.View, navigator: Navigator): NewBrokerPresenter =
+            NewBrokerPresenterImpl(view, brokersRepo, navigator)
 }
 

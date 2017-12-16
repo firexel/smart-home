@@ -5,7 +5,7 @@ import android.content.Intent
 import com.seraph.smarthome.client.model.BrokerSettings
 import com.seraph.smarthome.client.view.NewBrokerActivity
 
-class MockBrokersNavigator(private val activity: Activity) : Navigator {
+class ActivityNavigator(private val activity: Activity) : Navigator {
 
     override fun showDevicesScreen(brokerSettings: BrokerSettings) {
     }
