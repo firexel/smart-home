@@ -12,7 +12,8 @@ data class Device(
         val id: Device.Id,
         val name: String,
         val inputs: List<Endpoint>,
-        val outputs: List<Endpoint>) {
+        val outputs: List<Endpoint>,
+        val properties: List<Endpoint>) {
 
     data class Id(val hash: String) {
         companion object {

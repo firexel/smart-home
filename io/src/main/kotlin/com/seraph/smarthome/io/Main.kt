@@ -28,7 +28,7 @@ class DeviceWithInputs(private val broker: Broker, private val log: Log) {
         val inputId = Endpoint.Id("integer_input")
         input = Endpoint(inputId, "Integer input", true, Endpoint.Type.INTEGER)
         val id = Device.Id("device_with_input")
-        device = Device(id, "Device with input", listOf(input), emptyList())
+        device = Device(id, "Device with input", listOf(input), emptyList(), emptyList())
         broker.publish(Topics.structure(device.id), Gson().toJson(device))
     }
 
@@ -51,7 +51,7 @@ class DeviceWithOutputs(private val broker: Broker) {
         val outputId = Endpoint.Id("integer_output")
         output = Endpoint(outputId, "Integer output", true, Endpoint.Type.INTEGER)
         val id = Device.Id("device_with_output")
-        device = Device(id, "Device with output", emptyList(), listOf(output))
+        device = Device(id, "Device with output", emptyList(), listOf(output), emptyList())
         broker.publish(Topics.structure(device.id), Gson().toJson(device))
     }
 
