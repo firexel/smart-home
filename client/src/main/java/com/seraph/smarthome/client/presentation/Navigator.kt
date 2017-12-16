@@ -1,4 +1,4 @@
-package com.seraph.smarthome.client.app
+package com.seraph.smarthome.client.presentation
 
 import com.seraph.smarthome.client.model.BrokerSettings
 

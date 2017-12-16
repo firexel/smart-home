@@ -8,7 +8,6 @@ import android.widget.EditText
 import android.widget.Toast
 import com.seraph.smarthome.broker.R
 import com.seraph.smarthome.client.app.ActivityNavigator
-import com.seraph.smarthome.client.app.PresenterFactory
 import com.seraph.smarthome.client.presentation.NewBrokerPresenter
 
 /**
@@ -16,9 +15,9 @@ import com.seraph.smarthome.client.presentation.NewBrokerPresenter
  */
 class NewBrokerActivity : AppCompatActivity(), NewBrokerPresenter.View {
 
-    private var presenter:NewBrokerPresenter? = null
-    private lateinit var textHostname:EditText
-    private lateinit var textPort:EditText
+    private var presenter: NewBrokerPresenter? = null
+    private lateinit var textHostname: EditText
+    private lateinit var textPort: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +35,9 @@ class NewBrokerActivity : AppCompatActivity(), NewBrokerPresenter.View {
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when (item!!.itemId) {
-            R.id.button_check_and_add -> { addBroker(); return true }
+            R.id.button_check_and_add -> {
+                addBroker(); return true
+            }
             else -> return super.onOptionsItemSelected(item)
         }
     }
@@ -47,7 +48,7 @@ class NewBrokerActivity : AppCompatActivity(), NewBrokerPresenter.View {
         presenter?.onAddBroker(hostname, port)
     }
 
-    override fun showAddError() {
-        Toast.makeText(this, "Cannot add broker", Toast.LENGTH_SHORT).show()
+    override fun showAddError(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 }

@@ -7,13 +7,19 @@ package com.seraph.smarthome.model
  * home/
  *   devices/
  *     structure/
- *       {block_id} <- Device structures are posted here
+ *       {device_id} <- Device structures are posted here
  *     outputs/
- *       {block_id}/
- *         {endpoint_ids} <- Measurements are posted here
+ *       {device_id}/
+ *         {endpoint_id} <- Values from device outputs are posted here
+ *     inputs/
+ *       {device_id}/
+ *         {endpoint_id} <- Values to device inputs are posted here
+ *     properties/
+ *       {device_id}/
+ *         {endpoint_id} <- Values to device properties are posted here
  *
  */
-data class Topic(val segments: List<String>) {
+data class Topic(private val segments: List<String>) {
     companion object {
         fun fromString(segments: String): Topic = Topic(segments.split("/"))
     }
@@ -33,5 +39,11 @@ class Topics {
 
         fun output(device: Device.Id = Device.Id.any(), endpoint: Endpoint.Id = Endpoint.Id.any()): Topic
                 = blocksTopic.subtopic(listOf("outputs", device.hash, endpoint.hash))
+
+        fun input(device: Device.Id = Device.Id.any(), endpoint: Endpoint.Id = Endpoint.Id.any()): Topic
+                = blocksTopic.subtopic(listOf("inputs", device.hash, endpoint.hash))
+
+        fun property(device: Device.Id = Device.Id.any(), endpoint: Endpoint.Id = Endpoint.Id.any()): Topic
+                = blocksTopic.subtopic(listOf("properties", device.hash, endpoint.hash))
     }
 }

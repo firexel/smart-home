@@ -15,9 +15,13 @@ data class Device(
         val outputs: List<Endpoint>,
         val properties: List<Endpoint>) {
 
-    data class Id(val hash: String) {
+    data class Id(val hash: String) : Comparable<Id> {
         companion object {
             fun any(): Id = Id("+")
+        }
+
+        override fun compareTo(other: Id): Int {
+            return hash.compareTo(other.hash)
         }
     }
 }

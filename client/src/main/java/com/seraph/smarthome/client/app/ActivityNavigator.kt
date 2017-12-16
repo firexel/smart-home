@@ -3,6 +3,7 @@ package com.seraph.smarthome.client.app
 import android.app.Activity
 import android.content.Intent
 import com.seraph.smarthome.client.model.BrokerSettings
+import com.seraph.smarthome.client.presentation.Navigator
 import com.seraph.smarthome.client.view.NewBrokerActivity
 
 class ActivityNavigator(private val activity: Activity) : Navigator {

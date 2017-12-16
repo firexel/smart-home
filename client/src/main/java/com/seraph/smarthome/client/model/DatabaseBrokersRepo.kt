@@ -1,9 +1,7 @@
-package com.seraph.smarthome.client.app
+package com.seraph.smarthome.client.model
 
 import android.arch.persistence.room.*
 import android.content.Context
-import com.seraph.smarthome.client.model.BrokerSettings
-import com.seraph.smarthome.client.model.BrokersSettingsRepo
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 
