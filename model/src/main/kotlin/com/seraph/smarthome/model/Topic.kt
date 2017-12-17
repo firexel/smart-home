@@ -5,6 +5,7 @@ package com.seraph.smarthome.model
  *
  * Suggested topics structure:
  * home/
+ *   metadata <- Broker name and possible other info stored here
  *   devices/
  *     structure/
  *       {device_id} <- Device structures are posted here
@@ -33,6 +34,8 @@ class Topics {
     companion object {
         private val rootTopic = Topic(listOf("home"))
         private val blocksTopic = rootTopic.subtopic(listOf("devices"))
+
+        fun metadata():Topic = rootTopic.subtopic(listOf("metadata"))
 
         fun structure(id: Device.Id = Device.Id.any()): Topic
                 = blocksTopic.subtopic(listOf("structure", id.hash))

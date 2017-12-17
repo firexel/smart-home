@@ -4,44 +4,41 @@ import android.arch.persistence.room.*
 import android.content.Context
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
+import com.seraph.smarthome.model.Metadata
 
 /**
  * Created by alex on 09.12.17.
  */
 
-class DatabaseBrokersRepo(context: Context) : BrokersSettingsRepo {
+class DatabaseBrokersRepo(context: Context) : BrokersInfoRepo {
 
     private val database = Room.databaseBuilder<BrokersDb>(context, BrokersDb::class.java, "brokers").build()
     private val brokersTable = database.brokersTable()
 
-    override fun getBrokersSettings(): Observable<List<BrokerSettings>> {
+    override fun getBrokersSettings(): Observable<List<BrokerInfo>> {
         return Observable.fromCallable { brokersTable.selectAllBrokers() }
                 .subscribeOn(Schedulers.io())
                 .map { it.map(::fromStoredBroker) }
     }
 
-    override fun saveBrokerSettings(brokerSettings: BrokerSettings): Observable<Unit> {
+    override fun saveBrokerSettings(brokerSettings: BrokerInfo): Observable<Unit> {
         return Observable.fromCallable { brokersTable.insertBroker(toStoredBroker(brokerSettings)) }
                 .subscribeOn(Schedulers.io())
     }
-
-    override fun findBrokerSettings(id: Int): Observable<BrokerSettings?> {
-        return Observable.fromCallable { brokersTable.findBrokerWithId(id) }
-                .subscribeOn(Schedulers.io())
-                .map { it.run(::fromStoredBroker) }
-    }
 }
 
-private fun toStoredBroker(model: BrokerSettings)
-        = StoredBrokerSettings(model.id, model.host, model.port)
+private fun toStoredBroker(model: BrokerInfo)
+        = StoredBrokerSettings(model.credentials.host, model.metadata.name, model.credentials.port)
 
-private fun fromStoredBroker(stored: StoredBrokerSettings)
-        = BrokerSettings(stored.id, stored.host, stored.port)
+private fun fromStoredBroker(stored: StoredBrokerSettings) = BrokerInfo(
+        Metadata(stored.name),
+        BrokerCredentials(stored.host, stored.port)
+)
 
 @Entity(tableName = "brokers")
 data class StoredBrokerSettings(
-        @PrimaryKey(autoGenerate = true) @ColumnInfo var id: Int,
-        @ColumnInfo var host: String,
+        @PrimaryKey(autoGenerate = false) @ColumnInfo var host: String,
+        @ColumnInfo var name: String,
         @ColumnInfo var port: Int)
 
 @Dao
@@ -51,9 +48,6 @@ interface BrokersTable {
 
     @Query("SELECT * from brokers")
     fun selectAllBrokers(): List<StoredBrokerSettings>
-
-    @Query("SELECT * from brokers where id = :id")
-    fun findBrokerWithId(id: Int): StoredBrokerSettings
 }
 
 @Database(entities = [(StoredBrokerSettings::class)], version = 1)

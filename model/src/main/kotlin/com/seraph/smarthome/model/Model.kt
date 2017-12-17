@@ -63,3 +63,7 @@ data class Connection(
 data class ConnectionsList(
         val list: List<Connection>
 )
+
+data class Metadata(
+        val name: String
+)

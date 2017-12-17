@@ -1,6 +1,6 @@
 package com.seraph.smarthome.client.presentation
 
-import com.seraph.smarthome.client.model.BrokerSettings
+import com.seraph.smarthome.client.model.BrokerCredentials
 import com.seraph.smarthome.model.Device
 import com.seraph.smarthome.model.Endpoint
 import io.reactivex.Observer
@@ -10,10 +10,10 @@ import io.reactivex.disposables.Disposable
 class ScenePresenterImpl(
         view: ScenePresenter.View,
         useCaseFactory: UseCaseFactory,
-        settings: BrokerSettings) : ScenePresenter {
+        credentials: BrokerCredentials) : ScenePresenter {
 
     init {
-        useCaseFactory.listDevices().execute(settings)
+        useCaseFactory.listDevices().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(object : Observer<Collection<Device>> {
                     override fun onNext(devices: Collection<Device>) {
