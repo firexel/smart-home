@@ -81,9 +81,11 @@ class BrokersActivity : AppCompatActivity(), BrokersPresenter.View {
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             private val nameText = view.findViewById<TextView>(R.id.text_name)
+            private val addressText = view.findViewById<TextView>(R.id.text_address)
 
             fun bind(broker: BrokersPresenter.BrokerViewModel) {
                 nameText.text = broker.name
+                addressText.text = broker.address
                 itemView.setOnClickListener {
                     presenter?.onBrokerSelected(broker)
                 }

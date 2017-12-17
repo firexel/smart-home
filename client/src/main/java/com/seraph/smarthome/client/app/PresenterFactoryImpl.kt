@@ -1,12 +1,12 @@
 package com.seraph.smarthome.client.app
 
-import com.seraph.smarthome.client.model.BrokerSettings
+import com.seraph.smarthome.client.model.BrokerCredentials
 import com.seraph.smarthome.client.presentation.*
 import com.seraph.smarthome.client.view.PresenterFactory
 
 class PresenterFactoryImpl(private val useCaseFactory: UseCaseFactory) : PresenterFactory {
-    override fun createScenePresenter(view: ScenePresenter.View, settings:BrokerSettings): ScenePresenter =
-            ScenePresenterImpl(view, useCaseFactory, settings)
+    override fun createScenePresenter(view: ScenePresenter.View, credentials: BrokerCredentials): ScenePresenter =
+            ScenePresenterImpl(view, useCaseFactory, credentials)
 
     override
     fun createBrokersPresenter(view: BrokersPresenter.View, navigator: Navigator): BrokersPresenter =

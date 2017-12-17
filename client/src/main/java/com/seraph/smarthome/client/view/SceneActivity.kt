@@ -9,7 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.seraph.smarthome.broker.R
-import com.seraph.smarthome.client.model.BrokerSettings
+import com.seraph.smarthome.client.model.BrokerCredentials
 import com.seraph.smarthome.client.presentation.ScenePresenter
 
 class SceneActivity : AppCompatActivity(), ScenePresenter.View {
@@ -30,8 +30,8 @@ class SceneActivity : AppCompatActivity(), ScenePresenter.View {
         presenter = PresenterFactory.from(this).createScenePresenter(this, getParams())
     }
 
-    private fun getParams(): BrokerSettings {
-        return intent.getSerializableExtra("param") as BrokerSettings
+    private fun getParams(): BrokerCredentials {
+        return intent.getSerializableExtra("param") as BrokerCredentials
     }
 
     override fun onShowActions(actions: Collection<ScenePresenter.ActionViewModel>) {

@@ -16,5 +16,5 @@ public interface BrokersPresenter {
         fun showError(text: String)
     }
 
-    public data class BrokerViewModel(val id: Int, val name: String)
+    public data class BrokerViewModel(val name: String, val address:String)
 }

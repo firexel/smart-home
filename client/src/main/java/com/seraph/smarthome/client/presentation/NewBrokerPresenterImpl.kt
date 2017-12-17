@@ -1,6 +1,6 @@
 package com.seraph.smarthome.client.presentation
 
-import com.seraph.smarthome.client.model.BrokerSettings
+import com.seraph.smarthome.client.model.BrokerCredentials
 import io.reactivex.Observer
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -12,7 +12,7 @@ class NewBrokerPresenterImpl(
 ) : NewBrokerPresenter {
 
     override fun onAddBroker(hostname: String, port: Int) {
-        useCaseFactory.addBroker().execute(BrokerSettings(host = hostname, port = port))
+        useCaseFactory.addBroker().execute(BrokerCredentials(hostname, port))
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnError { }
                 .subscribe(object : Observer<Unit> {
