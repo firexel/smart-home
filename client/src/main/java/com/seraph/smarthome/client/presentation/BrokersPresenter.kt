@@ -3,7 +3,7 @@ package com.seraph.smarthome.client.presentation
 /**
  * Created by alex on 09.12.17.
  */
-public interface BrokersPresenter {
+interface BrokersPresenter {
 
     fun onRefresh()
 
@@ -11,10 +11,15 @@ public interface BrokersPresenter {
 
     fun onBrokerSelected(broker: BrokerViewModel)
 
-    public interface View {
+    interface View {
         fun showBrokers(brokers: List<BrokerViewModel>)
         fun showError(text: String)
     }
 
-    public data class BrokerViewModel(val name: String, val address:String)
+    data class BrokerViewModel(val name: String, val address:String)
+
+    class BrokersListScreen : Screen {
+        override fun <T> acceptVisitor(visitor: Screen.Visitor<T>): T =
+                visitor.brokersListScreenVisited()
+    }
 }

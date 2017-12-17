@@ -1,9 +1,7 @@
 package com.seraph.smarthome.client.presentation
 
-import com.seraph.smarthome.client.model.BrokerCredentials
-
 interface Navigator {
-    fun showSceneScreen(credentials: BrokerCredentials)
-    fun showNewBrokerSettingsScreen()
-    fun showPreviousScreen()
+    fun show(screen: Screen)
+    fun goBack()
+    fun <T> getCurrentScreen(): T
 }

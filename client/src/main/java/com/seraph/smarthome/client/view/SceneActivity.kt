@@ -9,7 +9,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.seraph.smarthome.broker.R
-import com.seraph.smarthome.client.model.BrokerCredentials
 import com.seraph.smarthome.client.presentation.ScenePresenter
 
 class SceneActivity : AppCompatActivity(), ScenePresenter.View {
@@ -20,18 +19,16 @@ class SceneActivity : AppCompatActivity(), ScenePresenter.View {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scene)
-        with(findViewById<RecyclerView>(R.id.list_actions)){
+        with(findViewById<RecyclerView>(R.id.list_actions)) {
             layoutManager = LinearLayoutManager(
                     this@SceneActivity,
                     LinearLayoutManager.VERTICAL,
-                    false)
+                    false
+            )
             adapter = actionsAdapter
         }
-        presenter = PresenterFactory.from(this).createScenePresenter(this, getParams())
-    }
-
-    private fun getParams(): BrokerCredentials {
-        return intent.getSerializableExtra("param") as BrokerCredentials
+        presenter = PresenterFactory.from(this)
+                .createScenePresenter(this, ActivityNavigator(this))
     }
 
     override fun onShowActions(actions: Collection<ScenePresenter.ActionViewModel>) {

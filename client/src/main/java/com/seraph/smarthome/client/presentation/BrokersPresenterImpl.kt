@@ -30,12 +30,12 @@ class BrokersPresenterImpl(
     }
 
     override fun onAddNewBroker() {
-        navigator.showNewBrokerSettingsScreen()
+        navigator.show(NewBrokerPresenter.NewBrokerScreen())
     }
 
     override fun onBrokerSelected(broker: BrokersPresenter.BrokerViewModel) {
         if (infoMap.contains(broker)) {
-            navigator.showSceneScreen(infoMap[broker]!!.credentials)
+            navigator.show(ScenePresenter.SceneScreen(infoMap[broker]!!.credentials))
         } else {
             view.showError("Broker ${broker.name} not found")
         }
