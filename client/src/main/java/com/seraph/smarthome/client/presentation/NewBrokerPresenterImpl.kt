@@ -20,7 +20,7 @@ class NewBrokerPresenterImpl(
                     override fun onSubscribe(d: Disposable) = Unit
 
                     override fun onComplete() {
-                        navigator.showPreviousScreen()
+                        navigator.goBack()
                     }
 
                     override fun onError(e: Throwable) {

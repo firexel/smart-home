@@ -8,7 +8,6 @@ import android.view.*
 import android.widget.TextView
 import android.widget.Toast
 import com.seraph.smarthome.broker.R
-import com.seraph.smarthome.client.app.ActivityNavigator
 import com.seraph.smarthome.client.presentation.BrokersPresenter
 
 class BrokersActivity : AppCompatActivity(), BrokersPresenter.View {

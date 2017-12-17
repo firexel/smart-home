@@ -7,7 +7,6 @@ import android.view.MenuItem
 import android.widget.EditText
 import android.widget.Toast
 import com.seraph.smarthome.broker.R
-import com.seraph.smarthome.client.app.ActivityNavigator
 import com.seraph.smarthome.client.presentation.NewBrokerPresenter
 
 /**
