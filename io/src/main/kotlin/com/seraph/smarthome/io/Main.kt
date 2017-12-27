@@ -1,7 +1,9 @@
 package com.seraph.smarthome.io
 
-import com.google.gson.Gson
-import com.seraph.smarthome.model.*
+import com.seraph.smarthome.io.hardware.ComPortConnection
+import com.seraph.smarthome.io.hardware.Wellpro8028Device
+import com.seraph.smarthome.model.ConsoleLog
+import com.seraph.smarthome.model.MqttBroker
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 
@@ -14,66 +16,26 @@ class Main {
         @JvmStatic
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
-            val broker = MqttBroker(params.brokerAddress, "SMIO", ConsoleLog())
-            DeviceWithOutputs(broker).serve()
-            DeviceWithInputs(broker, ConsoleLog()).serve()
+            val settings = ComPortConnection.Settings(baudRate = 19200)
+            val log = ConsoleLog()
+            val connection = ComPortConnection(params.portName, settings, log)
+            val device = Wellpro8028Device(connection, params.deviceIndex.toByte())
+            val broker = MqttBroker(params.brokerAddress, "I/O Service", log)
+            DeviceServer(device, "io_service_outputs", "I/O Service Outputs", log)
+                    .serve(broker)
         }
-    }
-}
-
-class DeviceWithInputs(private val broker: Broker, private val log: Log) {
-    private val device: Device
-    private val input: Endpoint
-    private val property: Endpoint
-
-    init {
-        val inputId = Endpoint.Id("integer_input")
-        input = Endpoint(inputId, "Integer input", true, Endpoint.Type.INTEGER)
-
-        val propertyId = Endpoint.Id("bool_property")
-        property = Endpoint(inputId, "Bool property", true, Endpoint.Type.BOOLEAN)
-
-        val id = Device.Id("device_with_input")
-        device = Device(id, "Device with input", listOf(input), emptyList(), listOf(property))
-        broker.publish(Topics.structure(device.id), Gson().toJson(device))
-    }
-
-    fun serve() {
-        val times = mutableListOf<Long>()
-        broker.subscribe(Topics.output(device.id, input.id)) { _, data ->
-            val sendTime = data.toLong()
-            val timeDifference = System.nanoTime() - sendTime
-            times.add(timeDifference)
-            log.i("Message traveled for $timeDifference, avg: ${times.takeLast(15).average()}")
-        }
-    }
-}
-
-class DeviceWithOutputs(private val broker: Broker) {
-    private val device: Device
-    private val output: Endpoint
-
-    init {
-        val outputId = Endpoint.Id("integer_output")
-        output = Endpoint(outputId, "Integer output", true, Endpoint.Type.INTEGER)
-        val id = Device.Id("device_with_output")
-        device = Device(id, "Device with output", emptyList(), listOf(output), emptyList())
-        broker.publish(Topics.structure(device.id), Gson().toJson(device))
-    }
-
-    fun serve() {
-        Thread {
-            while (true) {
-                broker.publish(Topics.structure(device.id), Gson().toJson(device))
-
-                //broker.publish(Topics.output(device.id, output.id), System.nanoTime().toString())
-                Thread.sleep(5000)
-            }
-        }.start()
     }
 }
 
 class CommandLineParams(parser: ArgParser) {
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
             .default("tcp://localhost:1883")
+
+    val portName by parser.storing("-p", "--port", help = "system name of port to connect with PLC")
+            .default("tty.usbserial")
+
+    val deviceIndex: Int by parser.storing("--module_index", help = "index of the device on bus", transform = String::toIntMy)
+            .default(1)
 }
+
+fun String.toIntMy() = toInt()

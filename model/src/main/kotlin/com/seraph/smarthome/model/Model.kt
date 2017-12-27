@@ -11,9 +11,9 @@ data class Network(
 data class Device(
         val id: Device.Id,
         val name: String,
-        val inputs: List<Endpoint>,
-        val outputs: List<Endpoint>,
-        val properties: List<Endpoint>) {
+        val inputs: List<Endpoint> = emptyList(),
+        val outputs: List<Endpoint> = emptyList(),
+        val controls: List<Control> = emptyList()) {
 
     data class Id(val hash: String) : Comparable<Id> {
         companion object {
@@ -31,7 +31,6 @@ data class Device(
 data class Endpoint(
         val id: Endpoint.Id,
         val name: String,
-        val buffered: Boolean,
         val type: Endpoint.Type) {
 
     data class Id(val hash: String) {
@@ -67,3 +66,11 @@ data class ConnectionsList(
 data class Metadata(
         val name: String
 )
+
+data class Control(
+        val type:Type
+) {
+    enum class Type {
+        SWITCH
+    }
+}

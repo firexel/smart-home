@@ -35,15 +35,7 @@ class ScenePresenterImpl(
     }
 
     private fun extractActionsFrom(device: Device): List<ScenePresenter.ActionViewModel> {
-        return device.properties
-                .filter { it.type == Endpoint.Type.BOOLEAN }
-                .map {
-                    ScenePresenter.ActionViewModel(
-                            "${device.id}:${it.id}",
-                            "${device.name} > ${it.name}",
-                            "OFF"
-                    )
-                }
+        return emptyList()
     }
 
     override fun onActionPerformed(actionId: String) {
