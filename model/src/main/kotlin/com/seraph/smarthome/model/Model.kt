@@ -13,7 +13,7 @@ data class Device(
         val name: String,
         val inputs: List<Endpoint> = emptyList(),
         val outputs: List<Endpoint> = emptyList(),
-        val controls: List<Control> = emptyList()) {
+        val properties: List<Property> = emptyList()) {
 
     data class Id(val hash: String) : Comparable<Id> {
         companion object {
@@ -67,10 +67,21 @@ data class Metadata(
         val name: String
 )
 
-data class Control(
-        val type:Type
+data class Property(
+        val id:Endpoint.Id,
+        val type: Type,
+        val purpose: Purpose
 ) {
+
     enum class Type {
-        SWITCH
+        ACTION, // button-type property
+        INDICATOR // true/false indicator property
+    }
+
+    enum class Purpose {
+        STATE, // control with this purpose will be interpreted as state of whole device
+        MAIN, // control with this purpose will be interpreted as main control of whole device (main switch, functioning mode, etc)
+        PRIMARY, // controls wit this purpose should be accessible in view mode
+        SECONDARY // controls with this purpose can be accessible in edit mode
     }
 }
