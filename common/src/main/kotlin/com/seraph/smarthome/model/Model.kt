@@ -79,7 +79,6 @@ data class Property(
     }
 
     enum class Purpose {
-        STATE, // control with this purpose will be interpreted as state of whole device
         MAIN, // control with this purpose will be interpreted as main control of whole device (main switch, functioning mode, etc)
         PRIMARY, // controls wit this purpose should be accessible in view mode
         SECONDARY // controls with this purpose can be accessible in edit mode

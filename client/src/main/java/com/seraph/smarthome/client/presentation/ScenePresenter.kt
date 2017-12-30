@@ -1,19 +1,21 @@
 package com.seraph.smarthome.client.presentation
 
+import android.support.v7.util.DiffUtil
 import com.seraph.smarthome.client.model.BrokerCredentials
 
 interface ScenePresenter {
 
-    fun onActionPerformed(actionId:String)
+    fun onDeviceActionPerformed(deviceId: String, actionId: String)
 
     interface View {
-        fun onShowActions(actions:Collection<ActionViewModel>)
+        fun onShowDevices(devices: List<DeviceViewModel>, diff: DiffUtil.DiffResult)
     }
 
-    data class ActionViewModel (
-            val id:String,
-            val name:String,
-            val value:String
+    data class DeviceViewModel(
+            val id: String,
+            val name: String,
+            val mainActionId: String?,
+            val mainIndicatorValue: Boolean?
     )
 
     class SceneScreen(val credentials: BrokerCredentials) : Screen {

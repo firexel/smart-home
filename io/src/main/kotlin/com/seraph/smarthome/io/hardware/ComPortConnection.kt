@@ -1,7 +1,7 @@
 package com.seraph.smarthome.io.hardware
 
 import com.fazecast.jSerialComm.SerialPort
-import com.seraph.smarthome.model.Log
+import com.seraph.smarthome.util.Log
 
 class ComPortConnection(
         portName: String,

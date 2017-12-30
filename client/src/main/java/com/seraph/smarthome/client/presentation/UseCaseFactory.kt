@@ -4,7 +4,8 @@ import android.content.Context
 import com.seraph.smarthome.client.app.ClientApp
 import com.seraph.smarthome.client.model.BrokerCredentials
 import com.seraph.smarthome.client.model.BrokerInfo
-import com.seraph.smarthome.model.Device
+import com.seraph.smarthome.client.model.Device
+import com.seraph.smarthome.client.model.Property
 
 /**
  * Created by aleksandr.naumov on 16.12.17.
@@ -16,7 +17,11 @@ interface UseCaseFactory {
     }
 
     fun addBroker(): UseCase<BrokerCredentials, Unit>
+
     fun listBrokersSettings(): UseCase<Unit, List<BrokerInfo>>
 
-    fun listDevices(): UseCase<BrokerCredentials, Collection<Device>>
+    fun listDevices(): UseCase<BrokerCredentials, List<Device>>
+
+    fun <T> changePropertyValue(deviceId: Device.Id, property: Property<T>, value: T)
+            : UseCase<BrokerCredentials, Unit>
 }

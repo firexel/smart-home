@@ -70,6 +70,6 @@ class Wellpro8028Device(
             crc.update(byte)
         }
 
-        inline fun Short.shr(shift: Int): Int = this.toInt() shr shift
+        fun Short.shr(shift: Int): Int = this.toInt() shr shift
     }
 }

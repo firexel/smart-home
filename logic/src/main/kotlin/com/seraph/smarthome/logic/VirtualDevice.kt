@@ -16,7 +16,7 @@ interface VirtualDevice {
     }
 
     enum class Purpose {
-        STATE, MAIN, PRIMARY, SECONDARY
+        MAIN, PRIMARY, SECONDARY
     }
 
     interface Updatable<in T> {

@@ -2,10 +2,11 @@ package com.seraph.smarthome.server
 
 import com.google.gson.Gson
 import com.seraph.smarthome.model.ConnectionsList
-import com.seraph.smarthome.model.ConsoleLog
-import com.seraph.smarthome.model.MqttBroker
+import com.seraph.smarthome.transport.MqttBroker
+import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.SystemExitException
+import com.xenomachina.argparser.default
 import java.io.File
 import java.io.FileReader
 
@@ -26,12 +27,12 @@ class Main {
 class CommandLineParams(parser: ArgParser) {
     val configPath by parser.storing("-l", "--list", help = "path to list list") {
         File(this)
-    }.addValidator {
+    }.default(File("../testdata/connections.json")).addValidator {
         if (!value.exists()) {
             throw SystemExitException("Connections list not found at ${value.absoluteFile}", -1)
         }
     }
 
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
-    // at iot.eclipse.org, port 1883
+            .default("tcp://localhost:1883")
 }

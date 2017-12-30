@@ -1,7 +1,10 @@
 package com.seraph.smarthome.io
 
-import com.google.gson.Gson
-import com.seraph.smarthome.model.*
+import com.seraph.smarthome.model.Device
+import com.seraph.smarthome.model.Endpoint
+import com.seraph.smarthome.transport.BooleanConverter
+import com.seraph.smarthome.transport.Broker
+import com.seraph.smarthome.transport.Topics
 
 
 /**
@@ -10,8 +13,7 @@ import com.seraph.smarthome.model.*
 class DeviceServer(
         private val device: IoDevice,
         private val id: String,
-        private val name: String,
-        private val log: Log) {
+        private val name: String) {
 
     private val descriptor = createOutputDeviceDescriptor()
 
@@ -36,18 +38,10 @@ class DeviceServer(
     private fun inputId(it: Int) = Endpoint.Id("input_$it")
 
     fun serve(broker: Broker) {
-        broker.publish(Topics.structure(descriptor.id), Gson().toJson(descriptor))
+        Topics.structure(descriptor.id).publish(broker, descriptor)
         for (i in 0 until device.outputsTotal) {
-            broker.subscribe(Topics.input(descriptor.id, inputId(i))) { _, data ->
-                val state = when (data) {
-                    "true" -> true
-                    "false" -> false
-                    else -> {
-                        log.w("Unknown incoming value $data")
-                        return@subscribe
-                    }
-                }
-                device.setOutputState(i, state)
+            Topics.input(descriptor.id, inputId(i)).typed(BooleanConverter()).subscribe(broker) {
+                device.setOutputState(i, it)
             }
         }
     }

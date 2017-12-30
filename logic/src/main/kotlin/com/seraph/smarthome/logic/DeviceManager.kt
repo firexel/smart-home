@@ -1,7 +1,9 @@
 package com.seraph.smarthome.logic
 
-import com.google.gson.Gson
-import com.seraph.smarthome.model.*
+import com.seraph.smarthome.model.Device
+import com.seraph.smarthome.model.Endpoint
+import com.seraph.smarthome.model.Property
+import com.seraph.smarthome.transport.*
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -20,9 +22,9 @@ class DeviceManager(private val broker: Broker) {
             val id = Device.Id("device_$deviceIndex")
             val visitor = DiscoverVisitor(id)
             device.configure(visitor)
-            val descriptor = visitor.formDescriptor("Device #$deviceIndex")
+            val descriptor = visitor.formDescriptor("Io Device #$deviceIndex")
             brokerQueue.submit {
-                broker.publish(Topics.structure(id), Gson().toJson(descriptor))
+                Topics.structure(id).publish(broker, descriptor)
             }
             visitor.invalidateAll()
         }
@@ -45,8 +47,7 @@ class DeviceManager(private val broker: Broker) {
             outputs.add(endpoint)
 
             val updater = ValueSender(
-                    topic = Topics.output(deviceId, endpoint.id),
-                    serializer = Boolean::toString
+                    Topics.output(deviceId, endpoint.id).typed(BooleanConverter())
             )
             senders.add(updater)
 
@@ -64,8 +65,7 @@ class DeviceManager(private val broker: Broker) {
             properties.add(property)
 
             val updater = ValueSender(
-                    topic = Topics.property(deviceId, property.id),
-                    serializer = Boolean::toString
+                    Topics.property(deviceId, property.id).typed(BooleanConverter())
             )
             senders.add(updater)
 
@@ -82,10 +82,7 @@ class DeviceManager(private val broker: Broker) {
             )
             properties.add(property)
 
-            return ValueReceiver(
-                    topic = Topics.property(deviceId, property.id),
-                    deserializer = { Unit }
-            )
+            return ValueReceiver(Topics.property(deviceId, property.id).typed(ActionConverter()))
         }
 
         fun formDescriptor(deviceName: String): Device = Device(
@@ -100,22 +97,20 @@ class DeviceManager(private val broker: Broker) {
     }
 
     private fun mapFrom(purpose: VirtualDevice.Purpose): Property.Purpose = when (purpose) {
-        VirtualDevice.Purpose.STATE -> Property.Purpose.STATE
         VirtualDevice.Purpose.MAIN -> Property.Purpose.MAIN
         VirtualDevice.Purpose.PRIMARY -> Property.Purpose.PRIMARY
         VirtualDevice.Purpose.SECONDARY -> Property.Purpose.SECONDARY
     }
 
     inner class ValueReceiver<out T>(
-            private val topic: Topic,
-            private val deserializer: (String) -> T)
+            private val topic: TypedTopic<T>)
         : VirtualDevice.Observable<T> {
 
         override fun observe(observer: (T) -> Unit) {
             brokerQueue.submit {
-                broker.subscribe(topic) { _, data ->
+                topic.subscribe(broker) { data ->
                     devicesQueue.submit {
-                        observer.invoke(deserializer(data))
+                        observer(data)
                     }
                 }
             }
@@ -123,8 +118,7 @@ class DeviceManager(private val broker: Broker) {
     }
 
     inner class ValueSender<in T>(
-            private val topic: Topic,
-            private val serializer: (T) -> String)
+            private val topic: TypedTopic<T>)
         : VirtualDevice.Updatable<T> {
 
         private var source: (() -> T)? = null
@@ -137,7 +131,7 @@ class DeviceManager(private val broker: Broker) {
             val source = this.source ?: return
             val value = source()
             brokerQueue.submit {
-                broker.publish(topic, serializer(value))
+                topic.publish(broker, value)
             }
         }
     }

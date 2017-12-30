@@ -1,4 +1,4 @@
-package com.seraph.smarthome.model
+package com.seraph.smarthome.util
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.

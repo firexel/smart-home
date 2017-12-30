@@ -2,19 +2,19 @@
   "list": [
     {
       "from": {
-        "block": {
-          "hash": "device_with_output"
+        "device": {
+          "hash": "device_0"
         },
         "endpoint": {
-          "hash": "integer_output"
+          "hash": "on_off_output"
         }
       },
       "to": {
-        "block": {
-          "hash": "device_with_input"
+        "device": {
+          "hash": "io_service_outputs"
         },
         "endpoint": {
-          "hash": "integer_input"
+          "hash": "input_1"
         }
       }
     }

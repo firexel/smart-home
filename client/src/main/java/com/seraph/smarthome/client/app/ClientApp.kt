@@ -8,7 +8,7 @@ import com.seraph.smarthome.client.model.DatabaseBrokersRepo
 import com.seraph.smarthome.client.model.MqttBrokerRepo
 import com.seraph.smarthome.client.presentation.UseCaseFactory
 import com.seraph.smarthome.client.view.PresenterFactory
-import com.seraph.smarthome.model.Log
+import com.seraph.smarthome.util.Log
 
 /**
  * Created by aleksandr.naumov on 16.12.17.

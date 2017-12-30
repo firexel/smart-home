@@ -8,7 +8,7 @@ class VirtualSwitch : VirtualDevice {
 
     override fun configure(visitor: VirtualDevice.Visitor) {
         val output = visitor.declareBoolOutput("on_off_output", "On/Off")
-        val indicator = visitor.declareIndicator("on_off_indicator", VirtualDevice.Purpose.STATE)
+        val indicator = visitor.declareIndicator("on_off_indicator", VirtualDevice.Purpose.MAIN)
         val toggle = visitor.declareAction("toggle_action", VirtualDevice.Purpose.MAIN)
 
         output.use { isOn }

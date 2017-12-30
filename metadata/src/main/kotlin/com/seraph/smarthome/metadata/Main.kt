@@ -1,7 +1,9 @@
 package com.seraph.smarthome.metadata
 
-import com.google.gson.Gson
-import com.seraph.smarthome.model.*
+import com.seraph.smarthome.util.ConsoleLog
+import com.seraph.smarthome.model.Metadata
+import com.seraph.smarthome.transport.MqttBroker
+import com.seraph.smarthome.transport.Topics
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 
@@ -19,10 +21,7 @@ class Main {
         }
 
         private fun putMetadata(broker: MqttBroker, brokerName: String) {
-            broker.publish(
-                    Topics.metadata(),
-                    Gson().toJson(Metadata(brokerName))
-            )
+            Topics.metadata().publish(broker, Metadata(brokerName))
         }
     }
 }

@@ -3,8 +3,8 @@ package com.seraph.smarthome.client.cases
 import com.seraph.smarthome.client.model.BrokerCredentials
 import com.seraph.smarthome.client.model.BrokerInfo
 import com.seraph.smarthome.client.model.BrokersInfoRepo
+import com.seraph.smarthome.client.model.Metadata
 import com.seraph.smarthome.client.presentation.UseCase
-import com.seraph.smarthome.model.Metadata
 import io.reactivex.Observable
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -20,7 +20,7 @@ class AddBrokerSettingsUseCase(
     fun execute(params: BrokerCredentials): Observable<Unit> {
         return brokerRepo.openConnection(params)
                 .flatMap {
-                    it.observeMetadata()
+                    it.metadata
                             .take(1)
                             .timeout(2, TimeUnit.SECONDS)
                             .onErrorReturn {

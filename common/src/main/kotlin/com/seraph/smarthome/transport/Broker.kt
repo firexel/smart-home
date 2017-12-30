@@ -1,10 +1,11 @@
-package com.seraph.smarthome.model
+package com.seraph.smarthome.transport
 
 import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import com.seraph.smarthome.util.Log
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -38,13 +39,13 @@ class MqttBroker(address: String, name: String, private val log: Log) : Broker {
     }
 
     override fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit) {
-        client.subscribe(topic.toString(), 0, Listener(listener))
+        client.subscribe(topic.toString(), 1, Listener(listener))
         log.i("$topic subscribed")
     }
 
 
     override fun publish(topic: Topic, data: String) {
-        client.publish(topic.toString(), data.toByteArray(), 0, true)
+        client.publish(topic.toString(), data.toByteArray(), 1, true)
         log.i("$topic <- $data")
     }
 

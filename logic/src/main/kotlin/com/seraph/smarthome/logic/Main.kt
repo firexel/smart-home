@@ -1,8 +1,8 @@
 package com.seraph.smarthome.logic
 
+import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.logic.devices.VirtualSwitch
-import com.seraph.smarthome.model.ConsoleLog
-import com.seraph.smarthome.model.MqttBroker
+import com.seraph.smarthome.transport.MqttBroker
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 
