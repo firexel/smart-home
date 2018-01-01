@@ -23,7 +23,7 @@ class Wellpro8028DeviceTest {
 
     @Test
     fun testEnablingOutput0() {
-        device.setOutputState(0, true)
+        device.setRelayState(0, true)
         connection.assertCommandWas(byteArrayOf(
                 0x01, 0x05, 0x00, 0x00, 0xff.toByte(), 0x00, 0x8c.toByte(), 0x3a
         ))
@@ -31,7 +31,7 @@ class Wellpro8028DeviceTest {
 
     @Test
     fun testDisablingOutput0() {
-        device.setOutputState(0, false)
+        device.setRelayState(0, false)
         connection.assertCommandWas(byteArrayOf(
                 0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0xcd.toByte(), 0xca.toByte()
         ))
@@ -39,7 +39,7 @@ class Wellpro8028DeviceTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun testOperatingPortOutOfRange() {
-        device.setOutputState(10, true)
+        device.setRelayState(10, true)
     }
 
     private class MockConnection : Connection {

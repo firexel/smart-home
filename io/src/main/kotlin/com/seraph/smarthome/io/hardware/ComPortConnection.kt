@@ -32,9 +32,9 @@ class ComPortConnection(
         )
     }
 
-    override fun send(byteArray: ByteArray, responseSize: Int): ByteArray {
+    override fun send(byteArray: ByteArray, responseSize: Int): ByteArray = synchronized(this) {
         sendRequest(byteArray)
-        return receiveResponse(responseSize, byteArray)
+        receiveResponse(responseSize, byteArray)
     }
 
     private fun sendRequest(byteArray: ByteArray) {
@@ -55,7 +55,7 @@ class ComPortConnection(
             bytesReceived < responseSize -> log.w("com port read timeout ${port.readTimeout}")
             else -> log.i("com > ${response.asHexString()}")
         }
-        return byteArray
+        return response
     }
 
     data class Settings(
