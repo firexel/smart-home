@@ -1,5 +1,6 @@
 package com.seraph.smarthome.logic
 
+import com.seraph.smarthome.logic.devices.VirtualOverrideSwitch
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.logic.devices.VirtualSwitch
 import com.seraph.smarthome.transport.MqttBroker
@@ -17,7 +18,9 @@ class Main {
             val params = CommandLineParams(ArgParser(argv))
             val broker = MqttBroker(params.brokerAddress, "Logic Gates Service", ConsoleLog())
             val manager = DeviceManager(broker)
-            manager.addDevice(VirtualSwitch())
+
+            manager.addDevice(VirtualOverrideSwitch())
+            manager.addDevice(VirtualOverrideSwitch())
         }
     }
 }

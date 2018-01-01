@@ -80,6 +80,7 @@ class DeviceServer(
                     .filter { newState[it] != initialState[it] }
                     .forEach { publishOutput(broker, it, newState[it]) }
             initialState = newState
+            Thread.sleep(10)
         }
     }
 

@@ -3,15 +3,71 @@
     {
       "from": {
         "device": {
-          "hash": "device_0"
+          "hash": "io_device_outputs"
         },
         "endpoint": {
-          "hash": "on_off_output"
+          "hash": "output_0"
         }
       },
       "to": {
         "device": {
-          "hash": "io_service_outputs"
+          "hash": "device_0"
+        },
+        "endpoint": {
+          "hash": "other_switch"
+        }
+      }
+    },
+    {
+      "from": {
+        "device": {
+          "hash": "device_0"
+        },
+        "endpoint": {
+          "hash": "overriden_output"
+        }
+      },
+      "to": {
+        "device": {
+          "hash": "io_device_inputs"
+        },
+        "endpoint": {
+          "hash": "input_0"
+        }
+      }
+    },
+
+
+    {
+      "from": {
+        "device": {
+          "hash": "io_device_outputs"
+        },
+        "endpoint": {
+          "hash": "output_1"
+        }
+      },
+      "to": {
+        "device": {
+          "hash": "device_1"
+        },
+        "endpoint": {
+          "hash": "other_switch"
+        }
+      }
+    },
+    {
+      "from": {
+        "device": {
+          "hash": "device_1"
+        },
+        "endpoint": {
+          "hash": "overriden_output"
+        }
+      },
+      "to": {
+        "device": {
+          "hash": "io_device_inputs"
         },
         "endpoint": {
           "hash": "input_1"

@@ -8,6 +8,8 @@ interface VirtualDevice {
     fun configure(visitor: Visitor)
 
     interface Visitor {
+        fun declareBoolInput(id: String, name: String): Observable<Boolean>
+
         fun declareBoolOutput(id: String, name: String): Updatable<Boolean>
 
         fun declareIndicator(id: String, purpose: Purpose): Updatable<Boolean>

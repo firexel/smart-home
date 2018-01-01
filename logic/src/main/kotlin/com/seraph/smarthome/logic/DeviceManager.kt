@@ -33,29 +33,36 @@ class DeviceManager(private val broker: Broker) {
     private inner class DiscoverVisitor(private val deviceId: Device.Id) : VirtualDevice.Visitor {
 
         private val outputs = mutableListOf<Endpoint>()
+        private val inputs = mutableListOf<Endpoint>()
         private val properties = mutableListOf<Property>()
         private val senders = mutableListOf<ValueSender<*>>()
 
-        override fun declareBoolOutput(id: String, name: String):
-                VirtualDevice.Updatable<Boolean> {
-
-            val endpoint = Endpoint(
-                    id = Endpoint.Id(id),
-                    type = Endpoint.Type.BOOLEAN,
-                    name = name
-            )
-            outputs.add(endpoint)
-
-            val updater = ValueSender(
-                    Topics.output(deviceId, endpoint.id).typed(BooleanConverter())
-            )
-            senders.add(updater)
-
-            return updater
+        override fun declareBoolInput(id: String, name: String)
+                : VirtualDevice.Observable<Boolean>
+                = with(newEndpoint(id, name)) {
+            inputs.add(this)
+            ValueReceiver(Topics.input(deviceId, this.id).typed(BooleanConverter()))
         }
 
-        override fun declareIndicator(id: String, purpose: VirtualDevice.Purpose):
-                VirtualDevice.Updatable<Boolean> {
+        override fun declareBoolOutput(id: String, name: String)
+                : VirtualDevice.Updatable<Boolean>
+                = with(newEndpoint(id, name)) {
+            outputs.add(this)
+            newSender(this)
+        }
+
+        private fun newSender(endpoint: Endpoint)
+                = ValueSender(Topics.output(deviceId, endpoint.id).typed(BooleanConverter()))
+                .apply { senders.add(this) }
+
+        private fun newEndpoint(id: String, name: String) = Endpoint(
+                id = Endpoint.Id(id),
+                type = Endpoint.Type.BOOLEAN,
+                name = name
+        )
+
+        override fun declareIndicator(id: String, purpose: VirtualDevice.Purpose)
+                : VirtualDevice.Updatable<Boolean> {
 
             val property = Property(
                     id = Endpoint.Id(id),
