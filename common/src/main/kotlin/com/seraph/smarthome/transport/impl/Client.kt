@@ -5,7 +5,7 @@ import com.seraph.smarthome.transport.Topic
 /**
  * Created by aleksandr.naumov on 03.01.18.
  */
-interface Client {
+internal interface Client {
     var disconnectionCallback: ((ClientException) -> Unit)?
 
     fun connect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit)

@@ -2,7 +2,7 @@ package com.seraph.smarthome.transport.impl
 
 import com.seraph.smarthome.transport.Broker
 
-interface State {
+internal interface State {
     fun engage()
     fun disengage()
 

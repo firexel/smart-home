@@ -1,6 +1,6 @@
 package com.seraph.smarthome.transport.impl
 
-class Exchanger<D : StateData> {
+internal class Exchanger<D : Exchanger.StateData> {
 
     private lateinit var sharedData: D
 
@@ -29,5 +29,9 @@ class Exchanger<D : StateData> {
         synchronized(this) {
             return extractor(sharedData)
         }
+    }
+
+    interface StateData {
+        val state: State
     }
 }

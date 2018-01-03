@@ -83,5 +83,5 @@ class ExchangerTest {
 
     private data class MockData(
             override val state: State
-    ) : StateData
+    ) : Exchanger.StateData
 }

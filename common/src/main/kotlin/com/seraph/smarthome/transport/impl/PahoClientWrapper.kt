@@ -7,7 +7,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 /**
  * Created by aleksandr.naumov on 03.01.18.
  */
-class PahoClientWrapper(private val options: Options) : Client {
+internal class PahoClientWrapper(private val options: Options) : Client {
 
     private val client: MqttAsyncClient
 

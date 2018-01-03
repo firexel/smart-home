@@ -4,7 +4,7 @@ import com.seraph.smarthome.transport.Broker
 import java.lang.Integer.min
 import java.util.*
 
-class WaitingState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
+internal class WaitingState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
 
     private var task: TimerTask? = null
     private var expectedReconnectTime: Long = 0

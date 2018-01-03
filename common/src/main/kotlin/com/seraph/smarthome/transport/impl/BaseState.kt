@@ -1,6 +1,6 @@
 package com.seraph.smarthome.transport.impl
 
-abstract class BaseState(protected val exchanger: Exchanger<SharedData>) : State {
+internal abstract class BaseState(protected val exchanger: Exchanger<SharedData>) : State {
     protected fun transact(action: (SharedData) -> SharedData) {
         exchanger.transact { data ->
             if (data.state === this) {

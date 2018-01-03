@@ -8,7 +8,7 @@ import java.util.*
 /**
  * Created by aleksandr.naumov on 02.01.18.
  */
-public class StatefullMqttBroker(
+class StatefullMqttBroker(
         private val log: Log,
         address: String,
         name: String
