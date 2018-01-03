@@ -6,6 +6,7 @@ package com.seraph.smarthome.transport
 interface Broker {
     fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit)
     fun publish(topic: Topic, data: String)
+
     fun <T> accept(visitor: Visitor<T>): T
 
     public interface Visitor<T> {

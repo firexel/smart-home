@@ -1,11 +1,10 @@
 package com.seraph.smarthome.transport.impl
 
 import com.seraph.smarthome.transport.Broker
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient
 import java.lang.Integer.min
 import java.util.*
 
-class WaitingState(exchanger: Exchanger) : BaseState(exchanger) {
+class WaitingState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
 
     private var task: TimerTask? = null
     private var expectedReconnectTime: Long = 0
@@ -32,7 +31,7 @@ class WaitingState(exchanger: Exchanger) : BaseState(exchanger) {
         return 1000.toLong() * min(60, Math.pow(2.toDouble(), timesRetried.toDouble()).toInt())
     }
 
-    override fun disengage(data: SharedData) {
+    override fun disengage() {
         task?.cancel()
         task = null
     }
@@ -40,7 +39,7 @@ class WaitingState(exchanger: Exchanger) : BaseState(exchanger) {
     override fun <T> accept(visitor: Broker.Visitor<T>): T
             = visitor.onWaitingState(expectedReconnectTime - System.currentTimeMillis())
 
-    override fun execute(action: (MqttAsyncClient) -> Unit) = transact {
+    override fun execute(action: (Client) -> Unit) = transact {
         it.copy(actions = it.actions + action)
     }
 }

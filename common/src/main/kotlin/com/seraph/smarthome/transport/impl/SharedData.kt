@@ -1,10 +1,12 @@
 package com.seraph.smarthome.transport.impl
 
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient
+interface StateData {
+    val state: State
+}
 
 data class SharedData(
-        val client: MqttAsyncClient,
-        val actions: List<(MqttAsyncClient) -> Unit>,
-        val state: State,
-        val timesRetried:Int
-)
+        val client: Client,
+        val actions: List<(Client) -> Unit>,
+        override val state: State,
+        val timesRetried: Int
+) : StateData

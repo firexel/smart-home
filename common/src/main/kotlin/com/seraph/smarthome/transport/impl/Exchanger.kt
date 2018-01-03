@@ -1,17 +1,17 @@
 package com.seraph.smarthome.transport.impl
 
-class Exchanger {
+class Exchanger<D : StateData> {
 
-    private lateinit var sharedData: SharedData
+    private lateinit var sharedData: D
 
-    fun begin(initialData: SharedData) {
+    fun begin(initialData: D) {
         sharedData = initialData
         synchronized(this) {
             initialData.state.engage()
         }
     }
 
-    fun transact(action: (SharedData) -> SharedData) {
+    fun transact(action: (D) -> D) {
         synchronized(this) {
             val oldData = sharedData
             val oldState = oldData.state
@@ -19,13 +19,13 @@ class Exchanger {
             val newState = newData.state
             sharedData = newData
             if (oldState !== newState) {
-                oldState.disengage(newData)
+                oldState.disengage()
                 newState.engage()
             }
         }
     }
 
-    fun <T> sync(extractor: (SharedData) -> T): T {
+    fun <R> sync(extractor: (D) -> R): R {
         synchronized(this) {
             return extractor(sharedData)
         }

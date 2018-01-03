@@ -4,7 +4,7 @@ import org.eclipse.paho.client.mqttv3.MqttException
 import org.eclipse.paho.client.mqttv3.MqttException.*
 import java.io.IOException
 
-class MqttOperationException(throwable: Throwable?) : RuntimeException(throwable) {
+class ClientException(throwable: Throwable?) : RuntimeException(throwable) {
 
     private companion object {
         fun reasonCode(throwable: Throwable?): Short = when (throwable) {

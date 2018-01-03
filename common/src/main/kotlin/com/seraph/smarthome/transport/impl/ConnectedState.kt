@@ -1,39 +1,29 @@
 package com.seraph.smarthome.transport.impl
 
 import com.seraph.smarthome.transport.Broker
-import org.eclipse.paho.client.mqttv3.*
 
-class ConnectedState(exchanger: Exchanger) : BaseState(exchanger) {
+class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
 
     override fun engage() = transact { data ->
-        signAsListener(data.client)
+        data.client.disconnectionCallback = { cause ->
+            transact { it.copy(state = inferNextState(cause)) }
+        }
         performStoredActions(data)
     }
 
-    override fun disengage(data: SharedData) {
-        data.client.setCallback(null)
-    }
-
-    private fun signAsListener(client: MqttAsyncClient) {
-        client.setCallback(object : MqttCallback {
-            override fun connectionLost(cause: Throwable?) {
-                transact { it.copy(state = inferNextState(MqttOperationException(cause))) }
-            }
-
-            override fun messageArrived(topic: String?, message: MqttMessage?) = Unit
-            override fun deliveryComplete(token: IMqttDeliveryToken?) = Unit
-        })
+    override fun disengage() = sync {
+        it.client.disconnectionCallback = null
     }
 
     private fun performStoredActions(data: SharedData): SharedData {
-        val successfulActions = mutableListOf<(MqttAsyncClient) -> Unit>()
+        val successfulActions = mutableListOf<(Client) -> Unit>()
         return try {
             data.actions.forEach {
                 performAction(it, data.client)
                 successfulActions.add(it)
             }
             data.copy(actions = emptyList())
-        } catch (ex: MqttOperationException) {
+        } catch (ex: ClientException) {
             data.copy(
                     state = inferNextState(ex),
                     actions = data.actions - successfulActions
@@ -41,32 +31,32 @@ class ConnectedState(exchanger: Exchanger) : BaseState(exchanger) {
         }
     }
 
-    private fun inferNextState(ex: MqttOperationException): State = when (ex.reason) {
-        MqttOperationException.Reason.BAD_BROKER_STATE,
-        MqttOperationException.Reason.BAD_NETWORK,
-        MqttOperationException.Reason.BAD_CLIENT_LOGIC
+    private fun inferNextState(ex: ClientException): State = when (ex.reason) {
+        ClientException.Reason.BAD_BROKER_STATE,
+        ClientException.Reason.BAD_NETWORK,
+        ClientException.Reason.BAD_CLIENT_LOGIC
         -> WaitingState(exchanger)
 
-        MqttOperationException.Reason.BAD_CLIENT_STATE,
-        MqttOperationException.Reason.BAD_CLIENT_CONFIGURATION
+        ClientException.Reason.BAD_CLIENT_STATE,
+        ClientException.Reason.BAD_CLIENT_CONFIGURATION
         -> DisconnectingState(exchanger)
     }
 
-    private fun performAction(action: (MqttAsyncClient) -> Unit, client: MqttAsyncClient) {
+    private fun performAction(action: (Client) -> Unit, client: Client) {
         try {
             action(client)
-        } catch (ex: MqttException) {
-            throw MqttOperationException(ex)
+        } catch (ex: ClientException) {
+            throw ClientException(ex)
         }
     }
 
     override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onConnectedState()
 
-    override fun execute(action: (MqttAsyncClient) -> Unit) = transact { data ->
+    override fun execute(action: (Client) -> Unit) = transact { data ->
         try {
             performAction(action, data.client)
             data
-        } catch (ex: MqttOperationException) {
+        } catch (ex: ClientException) {
             data.copy(
                     state = inferNextState(ex),
                     actions = data.actions + action
