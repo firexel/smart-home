@@ -9,7 +9,7 @@ import io.reactivex.subjects.ReplaySubject
 import kotlin.reflect.KClass
 import kotlin.reflect.full.cast
 
-class MqttBrokerConnection(private val broker: MqttBroker) : BrokerConnection {
+class BrokerConnection(private val broker: Broker) : BrokerConnection {
 
     private val propertyStorageAdapter = PropertyStorageAdapter()
     private val deviceMap = mutableMapOf<Device.Id, Device>()
@@ -115,7 +115,7 @@ class MqttBrokerConnection(private val broker: MqttBroker) : BrokerConnection {
                 = topic.typed(BooleanConverter()).publish(broker, value as Boolean)
 
         override fun onActionVisited(property: ActionProperty)
-                = topic.typed(ActionConverter()).publish(broker, value as Unit)
+                = topic.unpersisted().typed(ActionConverter()).publish(broker, value as Unit)
     }
 
     private inner class PropertyStorageAdapter : PropertyStorage {

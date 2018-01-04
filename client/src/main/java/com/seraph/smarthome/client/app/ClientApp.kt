@@ -27,14 +27,18 @@ class ClientApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        brokerRepo = MqttBrokerRepo(log)
+        brokerRepo = MqttBrokerRepo(log.copy("BrokerRepo"))
         infoRepo = DatabaseBrokersRepo(this)
 
         useCaseFactory = ProductionUseCaseFactory(infoRepo, brokerRepo)
         presenterFactory = PresenterFactoryImpl(useCaseFactory)
     }
 
-    class AdbLog : Log {
+    class AdbLog(private val component: String = "ClientApp") : Log {
+
+        override fun copy(component: String): Log =
+                AdbLog("${this.component}/$component")
+
         override fun i(message: String) {
             android.util.Log.i("ClientApp", message)
         }

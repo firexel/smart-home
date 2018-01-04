@@ -2,7 +2,7 @@ package com.seraph.smarthome.io
 
 import com.seraph.smarthome.io.hardware.ComPortConnection
 import com.seraph.smarthome.io.hardware.Wellpro8028Device
-import com.seraph.smarthome.transport.MqttBroker
+import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.NoLog
 import com.xenomachina.argparser.ArgParser
@@ -18,10 +18,10 @@ class Main {
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
             val settings = ComPortConnection.Settings(baudRate = 19200)
-            val log = ConsoleLog()
+            val log = ConsoleLog("IO")
             val connection = ComPortConnection(params.portName, settings, NoLog())
             val device = Wellpro8028Device(connection, params.deviceIndex.toByte())
-            val broker = MqttBroker(params.brokerAddress, "I/O Service", log)
+            val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
             DeviceServer(device, "io_device", "I/O Service Outputs")
                     .serve(broker)
         }
