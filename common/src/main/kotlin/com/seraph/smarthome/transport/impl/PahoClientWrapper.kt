@@ -20,7 +20,7 @@ internal class PahoClientWrapper(private val options: Options) : Client {
             field = value
             if (value == null) client.setCallback(null)
             else client.setCallback(object : MqttCallback {
-                override fun connectionLost(cause: Throwable?) = value(ClientException(cause))
+                override fun connectionLost(cause: Throwable?) = value(PahoClientException(cause))
                 override fun messageArrived(topic: String?, message: MqttMessage?) = Unit
                 override fun deliveryComplete(token: IMqttDeliveryToken?) = Unit
             })
@@ -37,7 +37,7 @@ internal class PahoClientWrapper(private val options: Options) : Client {
                     override fun onSuccess(asyncActionToken: IMqttToken?) = onSuccess()
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?)
-                            = onFail(ClientException(exception))
+                            = onFail(PahoClientException(exception))
                 }
         )
     }
@@ -47,7 +47,7 @@ internal class PahoClientWrapper(private val options: Options) : Client {
             override fun onSuccess(asyncActionToken: IMqttToken?) = onSuccess()
 
             override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?)
-                    = onFail(ClientException(exception))
+                    = onFail(PahoClientException(exception))
         })
     }
 
@@ -65,7 +65,7 @@ internal class PahoClientWrapper(private val options: Options) : Client {
         try {
             operation()
         } catch (ex: MqttException) {
-            throw ClientException(ex)
+            throw PahoClientException(ex)
         }
     }
 

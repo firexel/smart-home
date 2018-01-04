@@ -1,8 +1,11 @@
 package com.seraph.smarthome.transport.impl
 
+import java.util.*
+
 internal class Exchanger<D : Exchanger.StateData> {
 
     private lateinit var sharedData: D
+    private val currentTransactions = LinkedList<(D) -> D>()
 
     fun begin(initialData: D) {
         sharedData = initialData
@@ -11,17 +14,27 @@ internal class Exchanger<D : Exchanger.StateData> {
         }
     }
 
-    fun transact(action: (D) -> D) {
+    fun transact(transaction: (D) -> D) {
         synchronized(this) {
-            val oldData = sharedData
-            val oldState = oldData.state
-            val newData = action(oldData)
-            val newState = newData.state
-            sharedData = newData
-            if (oldState !== newState) {
-                oldState.disengage()
-                newState.engage()
+            val transactions = currentTransactions
+            transactions.add(transaction)
+            if (transactions.size == 1) {
+                var data = sharedData
+                var oldState = data.state
+                while (transactions.isNotEmpty()) {
+                    val transact = transactions.first
+                    data = transact(data)
+                    val newState = data.state
+                    if (oldState !== newState) {
+                        oldState.disengage()
+                        newState.engage()
+                        oldState = newState
+                    }
+                    transactions.removeFirst()
+                }
+                sharedData = data
             }
+            Unit
         }
     }
 

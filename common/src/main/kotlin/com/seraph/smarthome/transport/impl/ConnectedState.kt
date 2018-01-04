@@ -19,15 +19,14 @@ internal class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exch
         val successfulActions = mutableListOf<(Client) -> Unit>()
         return try {
             data.actions.forEach {
-                performAction(it, data.client)
+                it(data.client)
                 successfulActions.add(it)
             }
             data.copy(actions = emptyList())
         } catch (ex: ClientException) {
-            data.copy(
-                    state = inferNextState(ex),
-                    actions = data.actions - successfulActions
-            )
+            val state = inferNextState(ex)
+            val actions = if (state is WaitingState) data.actions - successfulActions else emptyList()
+            data.copy(state = state, actions = actions)
         }
     }
 
@@ -42,25 +41,16 @@ internal class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exch
         -> DisconnectingState(exchanger)
     }
 
-    private fun performAction(action: (Client) -> Unit, client: Client) {
-        try {
-            action(client)
-        } catch (ex: ClientException) {
-            throw ClientException(ex)
-        }
-    }
-
     override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onConnectedState()
 
     override fun execute(action: (Client) -> Unit) = transact { data ->
         try {
-            performAction(action, data.client)
+            action(data.client)
             data
         } catch (ex: ClientException) {
-            data.copy(
-                    state = inferNextState(ex),
-                    actions = data.actions + action
-            )
+            val state = inferNextState(ex)
+            val actions = if (state is WaitingState) data.actions + action else emptyList()
+            data.copy(state = state, actions = actions)
         }
     }
 }

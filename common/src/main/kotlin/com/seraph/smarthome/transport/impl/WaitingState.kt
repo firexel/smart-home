@@ -4,7 +4,10 @@ import com.seraph.smarthome.transport.Broker
 import java.lang.Integer.min
 import java.util.*
 
-internal class WaitingState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
+internal class WaitingState(
+        exchanger: Exchanger<SharedData>,
+        private val clock: Clock = SystemClock()
+) : BaseState(exchanger) {
 
     private var task: TimerTask? = null
     private var expectedReconnectTime: Long = 0
@@ -21,14 +24,28 @@ internal class WaitingState(exchanger: Exchanger<SharedData>) : BaseState(exchan
             }
         }
         val delay = calculateDelay(data.timesRetried)
-        expectedReconnectTime = System.currentTimeMillis() + delay
+        expectedReconnectTime = clock.time + delay
         Timer().schedule(task, delay)
         this.task = task
     }
 
     private fun calculateDelay(timesRetried: Int): Long {
-        // 1000 * 2^timesRetried, but not greater than minute
-        return 1000.toLong() * min(60, Math.pow(2.toDouble(), timesRetried.toDouble()).toInt())
+        return 2.pow(timesRetried, 60) * 1000.toLong()
+    }
+
+    private fun Int.pow(power: Int, maximum: Int): Int {
+        return when {
+            power < 0 -> throw IllegalArgumentException()
+            power == 0 -> min(maximum, 1)
+            else -> {
+                var result = this
+                for (i in 1 until power) {
+                    if (result >= maximum) break
+                    result *= this
+                }
+                min(maximum, result)
+            }
+        }
     }
 
     override fun disengage() {
@@ -37,9 +54,18 @@ internal class WaitingState(exchanger: Exchanger<SharedData>) : BaseState(exchan
     }
 
     override fun <T> accept(visitor: Broker.Visitor<T>): T
-            = visitor.onWaitingState(expectedReconnectTime - System.currentTimeMillis())
+            = visitor.onWaitingState(expectedReconnectTime - clock.time)
 
     override fun execute(action: (Client) -> Unit) = transact {
         it.copy(actions = it.actions + action)
+    }
+
+    interface Clock {
+        val time: Long
+    }
+
+    class SystemClock : Clock {
+        override val time: Long
+            get() = System.currentTimeMillis()
     }
 }

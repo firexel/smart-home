@@ -3,7 +3,7 @@ package com.seraph.smarthome.transport.impl
 import com.seraph.smarthome.transport.Broker
 
 internal class DisconnectedState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
-    override fun engage() = Unit
+    override fun engage() = transact { it.copy(actions = emptyList()) }
 
     override fun disengage() = Unit
 

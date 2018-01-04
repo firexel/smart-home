@@ -1,12 +1,13 @@
 package com.seraph.smarthome.transport.impl
 
 import com.nhaarman.mockito_kotlin.*
+import org.junit.Assert
 import org.junit.Test
 
 /**
  * Created by aleksandr.naumov on 03.01.18.
  */
-class ExchangerTest {
+internal class ExchangerTest {
 
     @Test
     fun testBeginEngagesFirstState() {
@@ -18,6 +19,7 @@ class ExchangerTest {
         exchanger.begin(data)
 
         verify(state1, times(1)).engage()
+        Assert.assertSame(state1, exchanger.sync { it.state })
     }
 
     @Test
@@ -36,6 +38,7 @@ class ExchangerTest {
 
         verify(state1, times(1)).disengage()
         verify(state2, times(1)).engage()
+        Assert.assertSame(state2, exchanger.sync { it.state })
     }
 
     @Test
@@ -55,6 +58,7 @@ class ExchangerTest {
             verify(state2, times(1)).engage()
         }
         verify(state2, never()).disengage()
+        Assert.assertSame(state2, exchanger.sync { it.state })
     }
 
     @Test
@@ -79,6 +83,32 @@ class ExchangerTest {
             verify(state3, times(1)).engage()
         }
         verify(state3, never()).disengage()
+        Assert.assertSame(state3, exchanger.sync { it.state })
+    }
+
+    @Test
+    fun testStateChangeDuringNestedTransacts() {
+        val exchanger = Exchanger<MockData>()
+        val state2: State = mock()
+        val state1: State = mock {
+            on { it.engage() } doAnswer {
+                exchanger.transact {
+                    exchanger.transact { it.copy(state = state2) }
+                    it
+                }
+            }
+        }
+        val data = MockData(state1)
+        verify(state1, never()).engage()
+
+        exchanger.begin(data)
+        with(inOrder(state1, state2)) {
+            verify(state1, times(1)).engage()
+            verify(state1, times(1)).disengage()
+            verify(state2, times(1)).engage()
+        }
+        verify(state2, never()).disengage()
+        Assert.assertSame(state2, exchanger.sync { it.state })
     }
 
     private data class MockData(
