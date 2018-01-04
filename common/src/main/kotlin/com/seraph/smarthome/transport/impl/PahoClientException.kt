@@ -2,27 +2,38 @@ package com.seraph.smarthome.transport.impl
 
 import org.eclipse.paho.client.mqttv3.MqttException
 import java.io.IOException
+import java.net.SocketTimeoutException
 
 /**
  * Created by aleksandr.naumov on 03.01.18.
  */
 internal class PahoClientException(private val throwable: Throwable?) : ClientException(
-        inferReason(reasonCode(throwable)), throwable) {
+        inferReason(reasonCode(unwrap(throwable))), throwable) {
 
     override val message: String?
         get() = if (throwable == null) {
             "Unknown error"
         } else if (throwable is MqttException) {
-            "${throwable::class.simpleName} error with code ${throwable.reasonCode} " +
-                    "and message \"${throwable.message}\""
+            if (unwrap(throwable) === throwable) {
+                "${throwable::class.simpleName} error with code ${throwable.reasonCode} " +
+                        "and message \"${throwable.message}\""
+            } else {
+                "${throwable.cause!!::class.simpleName} error with code ${throwable.reasonCode} " +
+                        "and message \"${throwable.cause!!.message}\""
+            }
         } else {
             "${throwable::class.simpleName} error with message \"${throwable.message}\""
         } + " (treated as $reason)"
 
     private companion object {
+        fun unwrap(throwable: Throwable?): Throwable? =
+                if (throwable is MqttException && throwable.reasonCode == 0) throwable.cause
+                else throwable
+
         fun reasonCode(throwable: Throwable?): Short = when (throwable) {
             is MqttException -> throwable.reasonCode.toShort()
             is IOException -> MqttException.REASON_CODE_SERVER_CONNECT_ERROR
+            is SocketTimeoutException -> MqttException.REASON_CODE_CLIENT_TIMEOUT
             else -> MqttException.REASON_CODE_CLIENT_EXCEPTION
         }
 

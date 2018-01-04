@@ -4,7 +4,6 @@ import com.seraph.smarthome.model.Device
 import com.seraph.smarthome.model.Endpoint
 import com.seraph.smarthome.model.Property
 import com.seraph.smarthome.transport.*
-import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -115,13 +114,18 @@ class DeviceManager(private val broker: Broker, private val log: Log) {
             private val topic: TypedTopic<T>)
         : VirtualDevice.Observable<T> {
 
+        private var previous: T? = null
+
         override fun observe(observer: (T) -> Unit) {
             brokerQueue.run {
                 topic.subscribe(broker) { data ->
-                    log.i("Got data from $topic")
-                    devicesQueue.submit {
-                        log.i("Submitting data from $topic to observer")
-                        observer(data)
+                    if (previous != data || (data == Unit && previous == Unit)) {
+                        previous = data
+                        devicesQueue.submit {
+                            observer(data)
+                        }
+                    } else {
+                        log.i("Skipping equal update from $topic ($data)")
                     }
                 }
             }

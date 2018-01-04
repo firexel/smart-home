@@ -10,7 +10,7 @@ interface Broker {
 
     fun <T> accept(visitor: Visitor<T>): T
 
-    public interface Visitor<T> {
+    interface Visitor<T> {
         fun onConnectedState(): T
         fun onDisconnectedState(): T
         fun onDisconnectingState(): T

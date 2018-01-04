@@ -24,15 +24,17 @@ import com.seraph.smarthome.model.Metadata
  *         {endpoint_id} <- Values to device properties are posted here
  *
  */
-open class Topic(val segments: List<String>) {
+open class Topic(val segments: List<String>, val persisted: Boolean = true) {
     companion object {
         fun fromString(segments: String): Topic = Topic(segments.split("/"))
     }
 
-    fun subtopic(segments: List<String>): Topic = Topic(this.segments + segments)
+    fun subtopic(segments: List<String>): Topic = Topic(this.segments + segments, persisted)
+
+    fun unpersisted(): Topic = Topic(segments, false)
 
     fun <T> typed(converter: TypedTopic.DataConverter<T>): TypedTopic<T>
-            = TypedTopic(segments, converter)
+            = TypedTopic(segments, persisted, converter)
 
     override fun toString(): String = segments.joinToString(separator = "/")
 
@@ -51,8 +53,9 @@ open class Topic(val segments: List<String>) {
 
 class TypedTopic<T>(
         segments: List<String>,
+        persisted: Boolean,
         private val converter: DataConverter<T>)
-    : Topic(segments) {
+    : Topic(segments, persisted) {
 
     fun subscribe(broker: Broker, receiver: (T) -> Unit) {
         broker.subscribe(this) { _, data ->

@@ -76,7 +76,7 @@ internal class PahoClientWrapper(
     }
 
     override fun publish(topic: Topic, data: String) = safe("publish") {
-        client.publish(topic.toString(), data.toByteArray(Charsets.UTF_8), options.publishQos, true)
+        client.publish(topic.toString(), data.toByteArray(Charsets.UTF_8), options.publishQos, topic.persisted)
     }
 
     private inline fun safe(name: String, operation: () -> Unit) {

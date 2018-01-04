@@ -115,7 +115,7 @@ class BrokerConnection(private val broker: Broker) : BrokerConnection {
                 = topic.typed(BooleanConverter()).publish(broker, value as Boolean)
 
         override fun onActionVisited(property: ActionProperty)
-                = topic.typed(ActionConverter()).publish(broker, value as Unit)
+                = topic.unpersisted().typed(ActionConverter()).publish(broker, value as Unit)
     }
 
     private inner class PropertyStorageAdapter : PropertyStorage {
