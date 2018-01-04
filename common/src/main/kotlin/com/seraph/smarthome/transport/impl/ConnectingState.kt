@@ -29,8 +29,8 @@ internal class ConnectingState(exchanger: Exchanger<SharedData>) : BaseState(exc
 
     override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onConnectingState()
 
-    override fun execute(action: (Client) -> Unit) = transact {
-        it.copy(actions = it.actions + action)
+    override fun execute(key: Any?, action: (Client) -> Unit) = transact {
+        it.copy(actions = it.actions + SharedData.Action(key, action))
     }
 
     private fun inferNextState(exception: ClientException) = when (exception.reason) {

@@ -2,7 +2,7 @@ package com.seraph.smarthome.logic
 
 import com.seraph.smarthome.logic.devices.VirtualOverrideSwitch
 import com.seraph.smarthome.util.ConsoleLog
-import com.seraph.smarthome.transport.MqttBroker
+import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 
@@ -14,9 +14,10 @@ class Main {
     companion object {
         @JvmStatic
         fun main(argv: Array<String>) {
+            val log = ConsoleLog("Logic")
             val params = CommandLineParams(ArgParser(argv))
-            val broker = MqttBroker(params.brokerAddress, "Logic Gates Service", ConsoleLog())
-            val manager = DeviceManager(broker)
+            val broker = StatefulMqttBroker(params.brokerAddress, "Logic Gates Service", log.copy("Broker"))
+            val manager = DeviceManager(broker, log.copy("DeviceManager"))
 
             manager.addDevice(VirtualOverrideSwitch())
             manager.addDevice(VirtualOverrideSwitch())

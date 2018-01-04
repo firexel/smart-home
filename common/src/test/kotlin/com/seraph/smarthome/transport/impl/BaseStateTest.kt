@@ -75,7 +75,7 @@ internal open class BaseStateTest {
         override fun engage() = Unit
         override fun disengage() = Unit
         override fun <T> accept(visitor: Broker.Visitor<T>): T = throw IllegalStateException("Mock")
-        override fun execute(action: (Client) -> Unit) = Unit
+        override fun execute(key:Any?, action: (Client) -> Unit) = Unit
 
         fun assertTransactionCalls() {
             Assert.assertTrue(checkTransactionCall())

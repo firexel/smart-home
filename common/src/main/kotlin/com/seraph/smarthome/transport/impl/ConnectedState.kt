@@ -16,16 +16,20 @@ internal class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exch
     }
 
     private fun performStoredActions(data: SharedData): SharedData {
-        val successfulActions = mutableListOf<(Client) -> Unit>()
+        val successfulActions = mutableListOf<SharedData.Action>()
         return try {
             data.actions.forEach {
-                it(data.client)
+                it.lambda(data.client)
                 successfulActions.add(it)
             }
-            data.copy(actions = emptyList())
+            data.copy(actions = data.actions.filter { it.persisted })
         } catch (ex: ClientException) {
             val state = inferNextState(ex)
-            val actions = if (state is WaitingState) data.actions - successfulActions else emptyList()
+            val actions = if (state is WaitingState) {
+                data.actions - successfulActions.filter { it.singleUse }
+            } else {
+                emptyList()
+            }
             data.copy(state = state, actions = actions)
         }
     }
@@ -43,13 +47,22 @@ internal class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exch
 
     override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onConnectedState()
 
-    override fun execute(action: (Client) -> Unit) = transact { data ->
+    override fun execute(key: Any?, action: (Client) -> Unit) = transact { data ->
         try {
             action(data.client)
-            data
+            val actionObject = SharedData.Action(key, action)
+            if (actionObject.persisted) {
+                data.copy(actions = data.actions + actionObject)
+            } else {
+                data
+            }
         } catch (ex: ClientException) {
             val state = inferNextState(ex)
-            val actions = if (state is WaitingState) data.actions + action else emptyList()
+            val actions = if (state is WaitingState) {
+                data.actions + SharedData.Action(key, action)
+            } else {
+                emptyList()
+            }
             data.copy(state = state, actions = actions)
         }
     }

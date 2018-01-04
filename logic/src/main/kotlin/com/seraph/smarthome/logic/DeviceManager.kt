@@ -4,20 +4,22 @@ import com.seraph.smarthome.model.Device
 import com.seraph.smarthome.model.Endpoint
 import com.seraph.smarthome.model.Property
 import com.seraph.smarthome.transport.*
+import com.seraph.smarthome.util.ConsoleLog
+import com.seraph.smarthome.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Created by aleksandr.naumov on 29.12.17.
  */
-class DeviceManager(private val broker: Broker) {
+class DeviceManager(private val broker: Broker, private val log: Log) {
 
     private val brokerQueue = Executors.newFixedThreadPool(1)
     private val devicesQueue = Executors.newFixedThreadPool(1)
     private val deviceCounter = AtomicInteger(0)
 
     fun addDevice(device: VirtualDevice) {
-        devicesQueue.submit {
+        devicesQueue.run {
             val deviceIndex = deviceCounter.getAndIncrement()
             val id = Device.Id("device_$deviceIndex")
             val visitor = DiscoverVisitor(id)
@@ -114,9 +116,11 @@ class DeviceManager(private val broker: Broker) {
         : VirtualDevice.Observable<T> {
 
         override fun observe(observer: (T) -> Unit) {
-            brokerQueue.submit {
+            brokerQueue.run {
                 topic.subscribe(broker) { data ->
+                    log.i("Got data from $topic")
                     devicesQueue.submit {
+                        log.i("Submitting data from $topic to observer")
                         observer(data)
                     }
                 }
@@ -137,7 +141,7 @@ class DeviceManager(private val broker: Broker) {
         override fun invalidate() {
             val source = this.source ?: return
             val value = source()
-            brokerQueue.submit {
+            brokerQueue.run {
                 topic.publish(broker, value)
             }
         }

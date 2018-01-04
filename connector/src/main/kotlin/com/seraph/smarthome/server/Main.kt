@@ -2,7 +2,7 @@ package com.seraph.smarthome.server
 
 import com.google.gson.Gson
 import com.seraph.smarthome.model.ConnectionsList
-import com.seraph.smarthome.transport.MqttBroker
+import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.SystemExitException
@@ -17,9 +17,10 @@ class Main {
     companion object {
         @JvmStatic
         fun main(argv: Array<String>) {
+            val log = ConsoleLog("Connector")
             val params = CommandLineParams(ArgParser(argv))
             val connections = Gson().fromJson(FileReader(params.configPath), ConnectionsList::class.java)
-            Connector(MqttBroker(params.brokerAddress, "SHCS", ConsoleLog()), connections).serve()
+            Connector(StatefulMqttBroker(params.brokerAddress, "SHCS", log.copy("Broker")), connections).serve()
         }
     }
 }

@@ -9,7 +9,7 @@ internal class DisconnectedState(exchanger: Exchanger<SharedData>) : BaseState(e
 
     override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onDisconnectedState()
 
-    override fun execute(action: (Client) -> Unit) {
+    override fun execute(key:Any?, action: (Client) -> Unit) {
         throw OperationDeclinedException("Client is disconnected")
     }
 }

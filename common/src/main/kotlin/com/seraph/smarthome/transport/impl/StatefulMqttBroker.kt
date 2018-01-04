@@ -8,13 +8,13 @@ import java.util.*
 /**
  * Created by aleksandr.naumov on 02.01.18.
  */
-class StatefullMqttBroker(
-        private val log: Log,
+class StatefulMqttBroker(
         address: String,
-        name: String
+        name: String,
+        private val log: Log
 ) : Broker {
 
-    private var exchanger: Exchanger<SharedData> = Exchanger()
+    private var exchanger: Exchanger<SharedData> = Exchanger(log.copy("Exchanger"))
 
     init {
         val options = PahoClientWrapper.Options(
@@ -22,7 +22,7 @@ class StatefullMqttBroker(
                 name = name
         )
         exchanger.begin(SharedData(
-                client = PahoClientWrapper(options),
+                client = PahoClientWrapper(options, log.copy("Transport")),
                 actions = LinkedList(),
                 state = ConnectingState(exchanger),
                 timesRetried = 0
@@ -32,7 +32,7 @@ class StatefullMqttBroker(
     override fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit)
             = exchanger.sync { data ->
 
-        data.state.execute { client ->
+        data.state.execute(topic) { client ->
             client.subscribe(topic) { topic, data ->
                 log.i("$topic -> $data")
                 listener(topic, data)
@@ -41,7 +41,7 @@ class StatefullMqttBroker(
         }
     }
 
-    override fun publish(topic: Topic, data: String) = exchanger.sync {
+    override fun publish(topic: Topic, data: String, persisted:Boolean) = exchanger.sync {
         it.state.execute { client ->
             client.publish(topic, data)
             log.i("$topic <- $data")

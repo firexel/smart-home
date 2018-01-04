@@ -6,8 +6,18 @@ import java.io.IOException
 /**
  * Created by aleksandr.naumov on 03.01.18.
  */
-internal class PahoClientException(throwable: Throwable?) : ClientException(
+internal class PahoClientException(private val throwable: Throwable?) : ClientException(
         inferReason(reasonCode(throwable)), throwable) {
+
+    override val message: String?
+        get() = if (throwable == null) {
+            "Unknown error"
+        } else if (throwable is MqttException) {
+            "${throwable::class.simpleName} error with code ${throwable.reasonCode} " +
+                    "and message \"${throwable.message}\""
+        } else {
+            "${throwable::class.simpleName} error with message \"${throwable.message}\""
+        } + " (treated as $reason)"
 
     private companion object {
         fun reasonCode(throwable: Throwable?): Short = when (throwable) {

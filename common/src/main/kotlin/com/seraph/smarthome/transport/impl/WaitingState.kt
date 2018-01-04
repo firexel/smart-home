@@ -56,8 +56,8 @@ internal class WaitingState(
     override fun <T> accept(visitor: Broker.Visitor<T>): T
             = visitor.onWaitingState(expectedReconnectTime - clock.time)
 
-    override fun execute(action: (Client) -> Unit) = transact {
-        it.copy(actions = it.actions + action)
+    override fun execute(key: Any?, action: (Client) -> Unit) = transact {
+        it.copy(actions = it.actions + SharedData.Action(key, action))
     }
 
     interface Clock {

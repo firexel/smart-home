@@ -16,4 +16,6 @@ internal abstract class BaseState(protected val exchanger: Exchanger<SharedData>
             action(data)
         }
     }
+
+    override fun toString(): String = this::class.simpleName.toString()
 }

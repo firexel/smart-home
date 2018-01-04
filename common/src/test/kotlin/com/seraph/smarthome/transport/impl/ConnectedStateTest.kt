@@ -30,7 +30,7 @@ internal class ConnectedStateTest : BaseStateTest() {
             throw ClientException(ClientException.Reason.BAD_NETWORK)
         }
 
-        state.execute(action)
+        state.execute(action = action)
 
         assertCurrentState(WaitingState::class)
         assertPendingActions(listOf(action))

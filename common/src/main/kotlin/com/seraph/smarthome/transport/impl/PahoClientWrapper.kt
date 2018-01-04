@@ -1,13 +1,18 @@
 package com.seraph.smarthome.transport.impl
 
 import com.seraph.smarthome.transport.Topic
+import com.seraph.smarthome.util.Log
 import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import java.io.IOException
 
 /**
  * Created by aleksandr.naumov on 03.01.18.
  */
-internal class PahoClientWrapper(private val options: Options) : Client {
+internal class PahoClientWrapper(
+        private val options: Options,
+        private val log: Log
+) : Client {
 
     private val client: MqttAsyncClient
 
@@ -26,46 +31,68 @@ internal class PahoClientWrapper(private val options: Options) : Client {
             })
         }
 
-    override fun connect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit) = safe {
+    override fun connect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit) = safe("connect") {
         client.connect(
                 MqttConnectOptions().apply {
                     isAutomaticReconnect = options.autoReconnect
                     keepAliveInterval = options.keepAliveInterval
+                    isCleanSession = true
                 },
                 null,
                 object : IMqttActionListener {
-                    override fun onSuccess(asyncActionToken: IMqttToken?) = onSuccess()
+                    override fun onSuccess(asyncActionToken: IMqttToken?) {
+                        log.i("Connected")
+                        onSuccess()
+                    }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?)
-                            = onFail(PahoClientException(exception))
+                            = with(PahoClientException(exception)) {
+                        log.w("Connection failed because of $message")
+                        onFail(this)
+                    }
                 }
         )
     }
 
-    override fun disconnect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit) = safe {
+    override fun disconnect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit) = safe("disconnect") {
         client.disconnect(null, object : IMqttActionListener {
-            override fun onSuccess(asyncActionToken: IMqttToken?) = onSuccess()
+            override fun onSuccess(asyncActionToken: IMqttToken?) {
+                log.i("Disconnected")
+                onSuccess()
+            }
 
             override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?)
-                    = onFail(PahoClientException(exception))
+                    = with(PahoClientException(exception)) {
+                log.w("Connection failed because of $message")
+                onFail(this)
+            }
         })
     }
 
-    override fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit) = safe {
+    override fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit) = safe("subscribe") {
         client.subscribe(topic.toString(), options.subscribeQos) { topic, message ->
             listener(Topic.fromString(topic), String(message.payload, Charsets.UTF_8))
         }
     }
 
-    override fun publish(topic: Topic, data: String) = safe {
+    override fun publish(topic: Topic, data: String) = safe("publish") {
         client.publish(topic.toString(), data.toByteArray(Charsets.UTF_8), options.publishQos, true)
     }
 
-    private inline fun safe(operation: () -> Unit) {
+    private inline fun safe(name: String, operation: () -> Unit) {
         try {
             operation()
         } catch (ex: MqttException) {
-            throw PahoClientException(ex)
+            throwClientException(ex, name)
+        } catch (ex: IOException) {
+            throwClientException(ex, name)
+        }
+    }
+
+    private fun throwClientException(ex: Throwable, name: String) {
+        with(PahoClientException(ex)) {
+            log.w("Error occurred during $name: $message")
+            throw this
         }
     }
 

@@ -7,5 +7,5 @@ internal interface State {
     fun disengage()
 
     fun <T> accept(visitor: Broker.Visitor<T>): T
-    fun execute(action: (Client) -> Unit)
+    fun execute(key: Any? = null, action: (Client) -> Unit)
 }
