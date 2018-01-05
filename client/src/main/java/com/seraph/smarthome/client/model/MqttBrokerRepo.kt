@@ -23,7 +23,7 @@ class MqttBrokerRepo(private val log: Log) : BrokerRepo {
                         "Mobile client " + Build.DEVICE,
                         log.copy("Broker")
                 )
-                BrokerConnection(broker) as BrokerConnection
+                BrokerConnectionImpl(broker) as BrokerConnection
             }.cache()
         }.subscribeOn(Schedulers.io())
     }

@@ -4,7 +4,10 @@ import com.seraph.smarthome.util.Log
 import com.seraph.smarthome.util.NoLog
 import java.util.*
 
-internal class Exchanger<D : Exchanger.StateData>(private val log: Log = NoLog()) {
+internal class Exchanger<D : Exchanger.StateData>(
+        private val log: Log = NoLog(),
+        private var listener: (State) -> Unit = {}
+) {
 
     private lateinit var sharedData: D
     private val currentTransactions = LinkedList<(D) -> D>()
@@ -15,6 +18,7 @@ internal class Exchanger<D : Exchanger.StateData>(private val log: Log = NoLog()
             val state = initialData.state
             log.i("--> $state")
             state.engage()
+            listener(state)
         }
     }
 
@@ -34,6 +38,7 @@ internal class Exchanger<D : Exchanger.StateData>(private val log: Log = NoLog()
                         oldState.disengage()
                         newState.engage()
                         oldState = newState
+                        listener(newState)
                     }
                     transactions.removeFirst()
                 }

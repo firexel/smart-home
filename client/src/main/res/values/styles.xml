@@ -9,4 +9,9 @@
         <item name="android:listDivider">@drawable/shape_divider</item>
     </style>
 
+    <style name="AppTheme.CustomToolbar" parent="AppTheme">
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
 </resources>

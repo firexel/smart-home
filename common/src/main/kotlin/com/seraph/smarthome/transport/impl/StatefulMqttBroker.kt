@@ -14,7 +14,10 @@ class StatefulMqttBroker(
         private val log: Log
 ) : Broker {
 
-    private var exchanger: Exchanger<SharedData> = Exchanger(log.copy("Exchanger"))
+    private val listeners = mutableListOf<Broker.StateListener>()
+    private var exchanger: Exchanger<SharedData> = Exchanger(log.copy("Exchanger")) { state ->
+        listeners.forEach { it.onStateChanged(state) }
+    }
 
     init {
         val options = PahoClientWrapper.Options(
@@ -41,15 +44,16 @@ class StatefulMqttBroker(
         }
     }
 
-    override fun publish(topic: Topic, data: String, persisted:Boolean) = exchanger.sync {
+    override fun publish(topic: Topic, data: String, persisted: Boolean) = exchanger.sync {
         it.state.execute { client ->
             client.publish(topic, data)
             log.i("$topic <- $data")
         }
     }
 
-    override fun <T> accept(visitor: Broker.Visitor<T>): T = exchanger.sync {
-        it.state.accept(visitor)
+    override fun addStateListener(listener: Broker.StateListener) = exchanger.sync {
+        listeners.add(listener)
+        listener.onStateChanged(it.state)
     }
 }
 

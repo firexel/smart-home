@@ -21,5 +21,13 @@ class ProductionUseCaseFactory(
     override fun <T> changePropertyValue(deviceId: Device.Id, property: Property<T>, value: T)
             : UseCase<BrokerCredentials, Unit>
             = ChangePropertyValueUseCase(brokerRepo, deviceId, property, value)
+
+    override fun observeConnectionState()
+            : UseCase<BrokerCredentials, BrokerConnection.State>
+            = ObserveConnectionState(brokerRepo)
+
+    override fun observeBrokerMetadata()
+            : UseCase<BrokerCredentials, Metadata>
+            = GetBrokerMetadataUseCase(brokerRepo)
 }
 

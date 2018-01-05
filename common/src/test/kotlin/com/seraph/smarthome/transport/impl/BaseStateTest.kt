@@ -61,21 +61,21 @@ internal open class BaseStateTest {
         Assert.assertEquals(clazz, exchanger.sync { it.state }::class)
     }
 
-    protected fun assertPendingActions(expectedActions: List<(Client) -> Unit>) {
+    protected fun assertPendingActions(expectedActions: List<SharedData.Action>) {
         val expected = expectedActions.joinToString()
         val actualActions = exchanger.sync { it.actions }
         val actual = actualActions.joinToString()
         Assert.assertEquals(expected, actual)
         actualActions.indices.forEach {
-            Assert.assertSame(expectedActions[it], actualActions[it])
+            Assert.assertSame(expectedActions[it].lambda, actualActions[it].lambda)
         }
     }
 
     private class MockBaseState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
         override fun engage() = Unit
         override fun disengage() = Unit
-        override fun <T> accept(visitor: Broker.Visitor<T>): T = throw IllegalStateException("Mock")
-        override fun execute(key:Any?, action: (Client) -> Unit) = Unit
+        override fun <T> accept(visitor: Broker.BrokerState.Visitor<T>): T = throw IllegalStateException("Mock")
+        override fun execute(key: Any?, action: (Client) -> Unit) = Unit
 
         fun assertTransactionCalls() {
             Assert.assertTrue(checkTransactionCall())

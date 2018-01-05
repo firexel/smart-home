@@ -21,7 +21,7 @@ internal class DisconnectingState(exchanger: Exchanger<SharedData>) : BaseState(
 
     override fun disengage() = Unit
 
-    override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onDisconnectingState()
+    override fun <T> accept(visitor: Broker.BrokerState.Visitor<T>): T = visitor.onDisconnectingState()
 
     override fun execute(key: Any?, action: (Client) -> Unit) {
         throw OperationDeclinedException("Client is disconnecting")

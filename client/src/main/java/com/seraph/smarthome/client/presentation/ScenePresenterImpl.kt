@@ -1,6 +1,7 @@
 package com.seraph.smarthome.client.presentation
 
 import android.support.v7.util.DiffUtil
+import com.seraph.smarthome.client.cases.BrokerConnection
 import com.seraph.smarthome.client.model.ActionProperty
 import com.seraph.smarthome.client.model.Device
 import com.seraph.smarthome.client.model.IndicatorProperty
@@ -11,7 +12,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 class ScenePresenterImpl(
         private val view: ScenePresenter.View,
         private val useCaseFactory: UseCaseFactory,
-        navigator: Navigator)
+        private val navigator: Navigator)
     : ScenePresenter {
 
     private val credentials = navigator.getCurrentScreen<ScenePresenter.SceneScreen>().credentials
@@ -31,8 +32,23 @@ class ScenePresenterImpl(
                 }
                 .subscribe(onNextObserver {
                     devices = it.list
-                    view.onShowDevices(it.list.map { extractViewModelFrom(it) }, it.diff)
+                    view.showDevices(it.list.map { extractViewModelFrom(it) }, it.diff)
                 })
+
+        useCaseFactory.observeConnectionState().execute(credentials)
+                .observeOn(AndroidSchedulers.mainThread())
+                .map { view.showConnectionStatus(it.accept(ConnectionStatusNameVisitor())) }
+                .subscribe()
+
+        useCaseFactory.observeBrokerMetadata().execute(credentials)
+                .observeOn(AndroidSchedulers.mainThread())
+                .map { view.showBrokerName(it.brokerName) }
+                .subscribe()
+
+    }
+
+    override fun onGoingBack() {
+        navigator.goBack()
     }
 
     private fun calculateDiff(change: Pair<List<Device>, List<Device>>) =
@@ -94,5 +110,14 @@ class ScenePresenterImpl(
                     .execute(credentials)
                     .subscribe()
         }
+    }
+
+    class ConnectionStatusNameVisitor : BrokerConnection.State.Visitor<String> {
+        override fun onConnectedState(): String = "Connected"
+        override fun onDisconnectedState(): String = "Disconnected"
+        override fun onDisconnectingState(): String = "Disconnecting..."
+        override fun onConnectingState(): String = "Connecting..."
+        override fun onWaitingState(msToReconnect: Long): String
+                = "Reconnecting in ${Math.round(msToReconnect / 1000.0)}"
     }
 }

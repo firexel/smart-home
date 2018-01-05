@@ -8,13 +8,21 @@ interface Broker {
 
     fun publish(topic: Topic, data: String, persisted: Boolean = true)
 
-    fun <T> accept(visitor: Visitor<T>): T
+    fun addStateListener(listener: StateListener)
 
-    interface Visitor<T> {
-        fun onConnectedState(): T
-        fun onDisconnectedState(): T
-        fun onDisconnectingState(): T
-        fun onWaitingState(msToReconnect: Long): T
-        fun onConnectingState(): T
+    interface StateListener {
+        fun onStateChanged(brokerState: BrokerState)
+    }
+
+    interface BrokerState {
+        fun <T> accept(visitor: Visitor<T>): T
+
+        interface Visitor<T> {
+            fun onConnectedState(): T
+            fun onDisconnectedState(): T
+            fun onDisconnectingState(): T
+            fun onWaitingState(msToReconnect: Long): T
+            fun onConnectingState(): T
+        }
     }
 }

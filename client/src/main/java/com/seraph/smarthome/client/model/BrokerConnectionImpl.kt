@@ -9,8 +9,7 @@ import io.reactivex.subjects.ReplaySubject
 import kotlin.reflect.KClass
 import kotlin.reflect.full.cast
 
-class BrokerConnection(private val broker: Broker) : BrokerConnection {
-
+class BrokerConnectionImpl(private val broker: Broker) : BrokerConnection {
     private val propertyStorageAdapter = PropertyStorageAdapter()
     private val deviceMap = mutableMapOf<Device.Id, Device>()
     private val delayedPropertyUpdates = mutableMapOf<PropertyPath, String>()
@@ -21,10 +20,19 @@ class BrokerConnection(private val broker: Broker) : BrokerConnection {
     private val metadataSubject = ReplaySubject.createWithSize<Metadata>(1)
             .apply { subscribeOn(Schedulers.io()) }
 
+    private val stateSubject = ReplaySubject.createWithSize<BrokerConnection.State>(1)
+            .apply { subscribeOn(Schedulers.io()) }
+
     override val devices: Observable<List<Device>> = devicesSubject
     override val metadata: Observable<Metadata> = metadataSubject
+    override val state: Observable<BrokerConnection.State> = stateSubject
 
     init {
+        broker.addStateListener(object : Broker.StateListener {
+            override fun onStateChanged(brokerState: Broker.BrokerState) {
+                handleStateChange(brokerState)
+            }
+        })
         Topics.metadata().subscribe(broker) { metadata ->
             metadataSubject.onNext(metadata.map())
         }
@@ -34,6 +42,10 @@ class BrokerConnection(private val broker: Broker) : BrokerConnection {
         broker.subscribe(Topics.property()) { topic, data ->
             handlePropertyPublished(topic, data)
         }
+    }
+
+    private fun handleStateChange(brokerState: Broker.BrokerState) {
+        stateSubject.onNext(brokerState.map())
     }
 
     private fun handleDevicePublished(commonDevice: com.seraph.smarthome.model.Device) {

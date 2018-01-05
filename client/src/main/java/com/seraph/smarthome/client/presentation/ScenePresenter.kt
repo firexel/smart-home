@@ -6,9 +6,12 @@ import com.seraph.smarthome.client.model.BrokerCredentials
 interface ScenePresenter {
 
     fun onDeviceActionPerformed(deviceId: String, actionId: String)
+    fun onGoingBack()
 
     interface View {
-        fun onShowDevices(devices: List<DeviceViewModel>, diff: DiffUtil.DiffResult)
+        fun showDevices(devices: List<DeviceViewModel>, diff: DiffUtil.DiffResult)
+        fun showConnectionStatus(status: String)
+        fun showBrokerName(name: String)
     }
 
     data class DeviceViewModel(
