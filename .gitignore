@@ -5,5 +5,10 @@
 /.idea/libraries
 .DS_Store
 /build
+/logic/build
+/io/build
+/common/build
+/client/build
+/metadata/build
 /captures
 .externalNativeBuild
