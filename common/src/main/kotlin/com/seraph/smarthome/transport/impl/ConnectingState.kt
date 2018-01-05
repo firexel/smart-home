@@ -27,7 +27,7 @@ internal class ConnectingState(exchanger: Exchanger<SharedData>) : BaseState(exc
 
     override fun disengage() = Unit
 
-    override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onConnectingState()
+    override fun <T> accept(visitor: Broker.BrokerState.Visitor<T>): T = visitor.onConnectingState()
 
     override fun execute(key: Any?, action: (Client) -> Unit) = transact {
         it.copy(actions = it.actions + SharedData.Action(key, action))

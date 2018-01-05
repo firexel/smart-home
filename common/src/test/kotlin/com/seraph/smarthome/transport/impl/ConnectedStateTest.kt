@@ -26,11 +26,11 @@ internal class ConnectedStateTest : BaseStateTest() {
     fun testNonFatalExceptionDuringClientAction() {
         val client: Client = mock()
         exchanger.begin(SharedData(client, emptyList(), state, 0))
-        val action: (Client) -> Unit = {
+        val action = SharedData.Action(null) {
             throw ClientException(ClientException.Reason.BAD_NETWORK)
         }
 
-        state.execute(action = action)
+        state.execute(null, action.lambda)
 
         assertCurrentState(WaitingState::class)
         assertPendingActions(listOf(action))
@@ -64,8 +64,8 @@ internal class ConnectedStateTest : BaseStateTest() {
     @Test
     fun testPendingActionsGetExecutedOnceStateEngaged() {
         val executionLog = mutableListOf<Int>()
-        val actions: List<(Client) -> Unit> = (0 until 5).map {
-            { _: Client ->
+        val actions = (0 until 5).map {
+            SharedData.Action(null) { _: Client ->
                 executionLog.add(it)
                 Unit
             }
@@ -80,8 +80,8 @@ internal class ConnectedStateTest : BaseStateTest() {
     @Test
     fun testActionListPartiallyExecutedDuringEngage() {
         val executionLog = mutableListOf<Int>()
-        val actions: List<(Client) -> Unit> = (0 until 5).map {
-            { _: Client ->
+        val actions = (0 until 5).map {
+            SharedData.Action(null) { _: Client ->
                 if (it == 2) {
                     throw ClientException(ClientException.Reason.BAD_NETWORK)
                 } else {

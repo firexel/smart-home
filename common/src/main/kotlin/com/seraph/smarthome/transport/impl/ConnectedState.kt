@@ -45,7 +45,7 @@ internal class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exch
         -> DisconnectingState(exchanger)
     }
 
-    override fun <T> accept(visitor: Broker.Visitor<T>): T = visitor.onConnectedState()
+    override fun <T> accept(visitor: Broker.BrokerState.Visitor<T>): T = visitor.onConnectedState()
 
     override fun execute(key: Any?, action: (Client) -> Unit) = transact { data ->
         try {

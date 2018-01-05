@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.Toolbar
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,10 +17,23 @@ class SceneActivity : AppCompatActivity(), ScenePresenter.View {
 
     private val devicesAdapter = DevicesAdapter()
     private var presenter: ScenePresenter? = null
+    private var brokerNameText: TextView? = null
+    private var connectionStateName: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scene)
+        with(findViewById<Toolbar>(R.id.toolbar)) {
+            setSupportActionBar(this)
+            brokerNameText = findViewById(R.id.text_broker_name)
+            connectionStateName = findViewById(R.id.text_connection_state)
+            setNavigationOnClickListener {
+                presenter?.onGoingBack()
+            }
+        }
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+
         with(findViewById<RecyclerView>(R.id.list_devices)) {
             layoutManager = LinearLayoutManager(
                     this@SceneActivity,
@@ -32,8 +46,16 @@ class SceneActivity : AppCompatActivity(), ScenePresenter.View {
                 .createScenePresenter(this, ActivityNavigator(this))
     }
 
-    override fun onShowDevices(devices: List<ScenePresenter.DeviceViewModel>, diff: DiffUtil.DiffResult) {
+    override fun showDevices(devices: List<ScenePresenter.DeviceViewModel>, diff: DiffUtil.DiffResult) {
         devicesAdapter.update(devices, diff)
+    }
+
+    override fun showConnectionStatus(status: String) {
+        connectionStateName?.text = status
+    }
+
+    override fun showBrokerName(name: String) {
+        brokerNameText?.text = name
     }
 
     inner class DevicesAdapter : RecyclerView.Adapter<DevicesAdapter.ViewHolder>() {

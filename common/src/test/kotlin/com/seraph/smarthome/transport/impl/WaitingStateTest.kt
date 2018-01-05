@@ -48,7 +48,7 @@ internal class WaitingStateTest : BaseStateTest() {
         Assert.assertEquals(expectedDelay, timeToWait)
     }
 
-    class TimeVisitor : Broker.Visitor<Long> {
+    class TimeVisitor : Broker.BrokerState.Visitor<Long> {
         override fun onConnectedState(): Long = throw IllegalStateException()
         override fun onDisconnectedState(): Long = throw IllegalStateException()
         override fun onDisconnectingState(): Long = throw IllegalStateException()

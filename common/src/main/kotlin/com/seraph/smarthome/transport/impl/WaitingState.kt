@@ -53,7 +53,7 @@ internal class WaitingState(
         task = null
     }
 
-    override fun <T> accept(visitor: Broker.Visitor<T>): T
+    override fun <T> accept(visitor: Broker.BrokerState.Visitor<T>): T
             = visitor.onWaitingState(expectedReconnectTime - clock.time)
 
     override fun execute(key: Any?, action: (Client) -> Unit) = transact {
