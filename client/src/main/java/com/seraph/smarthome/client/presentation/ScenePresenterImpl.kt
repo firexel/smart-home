@@ -7,7 +7,9 @@ import com.seraph.smarthome.client.model.Device
 import com.seraph.smarthome.client.model.IndicatorProperty
 import com.seraph.smarthome.client.model.Property
 import com.seraph.smarthome.client.util.onNextObserver
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
+import java.util.concurrent.TimeUnit
 
 class ScenePresenterImpl(
         private val view: ScenePresenter.View,
@@ -37,6 +39,7 @@ class ScenePresenterImpl(
 
         useCaseFactory.observeConnectionState().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
+                .flatMap { it.accept(UpdateVisitor(it)) }
                 .map { view.showConnectionStatus(it.accept(ConnectionStatusNameVisitor())) }
                 .subscribe()
 
@@ -118,6 +121,21 @@ class ScenePresenterImpl(
         override fun onDisconnectingState(): String = "Disconnecting..."
         override fun onConnectingState(): String = "Connecting..."
         override fun onWaitingState(msToReconnect: Long): String
-                = "Reconnecting in ${Math.round(msToReconnect / 1000.0)}"
+                = "Reconnecting in ${Math.round(msToReconnect / 1000.0)}..."
+    }
+
+    class UpdateVisitor(private val state: BrokerConnection.State)
+        : BrokerConnection.State.Visitor<Observable<BrokerConnection.State>> {
+        override fun onConnectedState(): Observable<BrokerConnection.State> = Observable.just(state)
+        override fun onDisconnectedState(): Observable<BrokerConnection.State> = Observable.just(state)
+        override fun onDisconnectingState(): Observable<BrokerConnection.State> = Observable.just(state)
+        override fun onConnectingState(): Observable<BrokerConnection.State> = Observable.just(state)
+        override fun onWaitingState(msToReconnect: Long): Observable<BrokerConnection.State>
+                = Observable.intervalRange(
+                0,
+                Math.round(msToReconnect / 1000.0),
+                0,
+                1, TimeUnit.SECONDS
+        ).map { state }
     }
 }

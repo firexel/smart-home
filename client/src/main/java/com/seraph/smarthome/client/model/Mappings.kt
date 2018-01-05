@@ -67,8 +67,12 @@ class MapVisitor : Broker.BrokerState.Visitor<BrokerConnection.State> {
     }
 
     override fun onWaitingState(msToReconnect: Long): BrokerConnection.State = object : BrokerConnection.State {
+        private val creationTime = System.currentTimeMillis()
+
         override fun <T> accept(visitor: BrokerConnection.State.Visitor<T>): T {
-            return visitor.onWaitingState(msToReconnect)
+            return visitor.onWaitingState(
+                    (creationTime + msToReconnect) - System.currentTimeMillis()
+            )
         }
     }
 
