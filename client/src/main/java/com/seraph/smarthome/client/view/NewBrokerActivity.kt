@@ -7,6 +7,8 @@ import android.view.MenuItem
 import android.widget.EditText
 import android.widget.Toast
 import com.seraph.smarthome.broker.R
+import com.seraph.smarthome.client.app.ClientApp.Companion.app
+import com.seraph.smarthome.client.app.ClientApp.Companion.presenters
 import com.seraph.smarthome.client.presentation.NewBrokerPresenter
 
 /**
@@ -23,8 +25,7 @@ class NewBrokerActivity : AppCompatActivity(), NewBrokerPresenter.View {
         setContentView(R.layout.activity_add_broker)
         textHostname = findViewById(R.id.edit_hostname)
         textPort = findViewById(R.id.edit_port)
-        presenter = PresenterFactory.from(this)
-                .createNewBrokerPresenter(this, ActivityNavigator(this))
+        presenter = presenters.createNewBrokerPresenter(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

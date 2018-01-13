@@ -21,7 +21,7 @@ class ScenePresenterImpl(
     private var devices: List<Device> = emptyList()
 
     init {
-        useCaseFactory.listDevices().execute(credentials)
+        useCaseFactory.observeDevices().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
                 .map {
                     it.filter { it.properties.isNotEmpty() }
@@ -40,14 +40,13 @@ class ScenePresenterImpl(
         useCaseFactory.observeConnectionState().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap { it.accept(UpdateVisitor(it)) }
-                .map { view.showConnectionStatus(it.accept(ConnectionStatusNameVisitor())) }
-                .subscribe()
+                .subscribe(onNextObserver {
+                    view.showConnectionStatus(it.accept(ConnectionStatusNameVisitor()))
+                })
 
         useCaseFactory.observeBrokerMetadata().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
-                .map { view.showBrokerName(it.brokerName) }
-                .subscribe()
-
+                .subscribe(onNextObserver { view.showBrokerName(it.brokerName) })
     }
 
     override fun onGoingBack() {

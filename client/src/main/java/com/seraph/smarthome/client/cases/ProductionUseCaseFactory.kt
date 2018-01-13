@@ -12,7 +12,7 @@ class ProductionUseCaseFactory(
     override fun addBroker(): UseCase<BrokerCredentials, Unit> =
             AddBrokerSettingsUseCase(infoRepo, brokerRepo)
 
-    override fun listDevices(): UseCase<BrokerCredentials, List<Device>> =
+    override fun observeDevices(): UseCase<BrokerCredentials, List<Device>> =
             ListDevicesUseCase(brokerRepo)
 
     override fun listBrokersSettings(): UseCase<Unit, List<BrokerInfo>> =

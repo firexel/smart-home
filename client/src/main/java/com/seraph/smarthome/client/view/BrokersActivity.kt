@@ -8,6 +8,8 @@ import android.view.*
 import android.widget.TextView
 import android.widget.Toast
 import com.seraph.smarthome.broker.R
+import com.seraph.smarthome.client.app.ClientApp.Companion.app
+import com.seraph.smarthome.client.app.ClientApp.Companion.presenters
 import com.seraph.smarthome.client.presentation.BrokersPresenter
 
 class BrokersActivity : AppCompatActivity(), BrokersPresenter.View {
@@ -26,8 +28,7 @@ class BrokersActivity : AppCompatActivity(), BrokersPresenter.View {
             )
             adapter = brokersAdapter
         }
-        presenter = PresenterFactory.from(this)
-                .createBrokersPresenter(this, ActivityNavigator(this))
+        presenter = presenters.createBrokersPresenter(this)
     }
 
     override fun onResume() {

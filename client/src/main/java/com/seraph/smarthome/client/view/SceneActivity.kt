@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.seraph.smarthome.broker.R
+import com.seraph.smarthome.client.app.ClientApp.Companion.presenters
 import com.seraph.smarthome.client.presentation.ScenePresenter
 
 class SceneActivity : AppCompatActivity(), ScenePresenter.View {
@@ -42,8 +43,7 @@ class SceneActivity : AppCompatActivity(), ScenePresenter.View {
             )
             adapter = devicesAdapter
         }
-        presenter = PresenterFactory.from(this)
-                .createScenePresenter(this, ActivityNavigator(this))
+        presenter = presenters.createScenePresenter(this)
     }
 
     override fun showDevices(devices: List<ScenePresenter.DeviceViewModel>, diff: DiffUtil.DiffResult) {

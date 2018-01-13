@@ -6,6 +6,7 @@ package com.seraph.smarthome.util
 interface Log {
     fun i(message: String)
     fun w(message: String)
+    fun v(message: String)
 
     fun copy(component: String): Log
 }
@@ -22,10 +23,15 @@ class ConsoleLog(private val component: String = "") : Log {
     override fun w(message: String) {
         println("W $component: $message")
     }
+
+    override fun v(message: String) {
+        println("V $component: $message")
+    }
 }
 
 class NoLog : Log {
     override fun copy(component: String): Log = this
     override fun i(message: String) = Unit
     override fun w(message: String) = Unit
+    override fun v(message: String) = Unit
 }
