@@ -1,5 +1,8 @@
 package com.seraph.smarthome.logic
 
+import com.seraph.smarthome.domain.Control
+import com.seraph.smarthome.domain.Endpoint
+
 /**
  * Created by aleksandr.naumov on 28.12.17.
  */
@@ -8,25 +11,19 @@ interface VirtualDevice {
     fun configure(visitor: Visitor)
 
     interface Visitor {
-        fun declareBoolInput(id: String, name: String): Observable<Boolean>
+        fun <T> declareInput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention): Input<T>
+        fun <T> declareOutput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention): Output<T>
 
-        fun declareBoolOutput(id: String, name: String): Updatable<Boolean>
-
-        fun declareIndicator(id: String, purpose: Purpose): Updatable<Boolean>
-
-        fun declareAction(id: String, purpose: Purpose): Observable<Unit>
+        fun declareIndicator(id: String, priority: Control.Priority, source: Output<Boolean>)
+        fun declareButton(id: String, priority: Control.Priority, input: Input<Unit>, alert: String = "")
     }
 
-    enum class Purpose {
-        MAIN, PRIMARY, SECONDARY
-    }
-
-    interface Updatable<in T> {
+    interface Output<in T> {
         fun use(source: () -> T)
         fun invalidate()
     }
 
-    interface Observable<out T> {
+    interface Input<out T> {
         fun observe(observer: (T) -> Unit)
     }
 }

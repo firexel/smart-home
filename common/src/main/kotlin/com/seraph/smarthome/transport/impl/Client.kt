@@ -11,7 +11,6 @@ internal interface Client {
     fun connect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit)
     fun disconnect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit)
 
-    fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit)
-    fun publish(topic: Topic, data: String)
-
+    fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit)
+    fun publish(topic: Topic, data: ByteArray)
 }

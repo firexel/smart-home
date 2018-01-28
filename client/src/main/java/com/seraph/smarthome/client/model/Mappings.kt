@@ -2,19 +2,21 @@ package com.seraph.smarthome.client.model
 
 import com.seraph.smarthome.client.cases.BrokerConnection
 import com.seraph.smarthome.transport.Broker
+import com.seraph.smarthome.transport.Control
+import com.seraph.smarthome.transport.Endpoint
 import kotlin.reflect.KClass
 
 /**
  * Created by aleksandr.naumov on 30.12.17.
  */
 
-typealias CommonDevice = com.seraph.smarthome.model.Device
-typealias CommonDeviceId = com.seraph.smarthome.model.Device.Id
-typealias CommonMetadata = com.seraph.smarthome.model.Metadata
-typealias CommonProperty = com.seraph.smarthome.model.Property
-typealias CommonPurpose = com.seraph.smarthome.model.Property.Purpose
-typealias CommonPropertyType = com.seraph.smarthome.model.Property.Type
-typealias CommonEndpointId = com.seraph.smarthome.model.Endpoint.Id
+typealias CommonDevice = com.seraph.smarthome.transport.Device
+typealias CommonDeviceId = com.seraph.smarthome.transport.Device.Id
+typealias CommonMetadata = com.seraph.smarthome.transport.Metadata
+typealias CommonProperty = Control
+typealias CommonPurpose = Control.Purpose
+typealias CommonPropertyType = Control.Type
+typealias CommonEndpointId = Endpoint.Id
 
 fun Device.Id.map(): CommonDeviceId = CommonDeviceId(hash)
 
@@ -24,7 +26,7 @@ fun CommonMetadata.map(): Metadata = Metadata(this.name)
 
 fun CommonDevice.map(storage: PropertyStorage): Device {
     val newId = Device.Id(id.hash)
-    return Device(newId, name, properties.map { it.map(newId, storage) })
+    return Device(newId, name, controls.map { it.map(newId, storage) })
 }
 
 fun CommonPurpose.map(): Property.Priority = when (this) {

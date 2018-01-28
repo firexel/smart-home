@@ -32,22 +32,20 @@ class StatefulMqttBroker(
         ))
     }
 
-    override fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit)
+    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit)
             = exchanger.sync { data ->
 
         data.state.execute(topic) { client ->
             client.subscribe(topic) { topic, data ->
-                log.i("$topic -> $data")
                 listener(topic, data)
             }
             log.i("$topic subscribed")
         }
     }
 
-    override fun publish(topic: Topic, data: String, persisted: Boolean) = exchanger.sync {
+    override fun publish(topic: Topic, data: ByteArray) = exchanger.sync {
         it.state.execute { client ->
             client.publish(topic, data)
-            log.i("$topic <- $data")
         }
     }
 

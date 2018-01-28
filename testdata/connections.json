@@ -1,78 +1,28 @@
 {
-  "list": [
+  "connections": [
     {
-      "from": {
-        "device": {
-          "hash": "io_device_outputs"
-        },
-        "endpoint": {
-          "hash": "output_0"
-        }
-      },
-      "to": {
-        "device": {
-          "hash": "device_0"
-        },
-        "endpoint": {
-          "hash": "other_switch"
-        }
-      }
+      "srcDevice": "io:wellpro8028:outputs",
+      "srcEndpoint": "output_0",
+      "dstDevice": "logic:0",
+      "dstEndpoint": "state"
     },
     {
-      "from": {
-        "device": {
-          "hash": "device_0"
-        },
-        "endpoint": {
-          "hash": "overriden_output"
-        }
-      },
-      "to": {
-        "device": {
-          "hash": "io_device_inputs"
-        },
-        "endpoint": {
-          "hash": "input_0"
-        }
-      }
-    },
-
-
-    {
-      "from": {
-        "device": {
-          "hash": "io_device_outputs"
-        },
-        "endpoint": {
-          "hash": "output_1"
-        }
-      },
-      "to": {
-        "device": {
-          "hash": "device_1"
-        },
-        "endpoint": {
-          "hash": "other_switch"
-        }
-      }
+      "srcDevice": "logic:0",
+      "srcEndpoint": "overriden",
+      "dstDevice": "io:wellpro8028:inputs",
+      "dstEndpoint": "input_0"
     },
     {
-      "from": {
-        "device": {
-          "hash": "device_1"
-        },
-        "endpoint": {
-          "hash": "overriden_output"
-        }
-      },
-      "to": {
-        "device": {
-          "hash": "io_device_inputs"
-        },
-        "endpoint": {
-          "hash": "input_1"
-        }
-      }
+      "srcDevice": "io:wellpro8028:outputs",
+      "srcEndpoint": "output_1",
+      "dstDevice": "logic:1",
+      "dstEndpoint": "state"
+    },
+    {
+      "srcDevice": "logic:1",
+      "srcEndpoint": "overriden",
+      "dstDevice": "io:wellpro8028:inputs",
+      "dstEndpoint": "input_1"
     }
   ]
 }

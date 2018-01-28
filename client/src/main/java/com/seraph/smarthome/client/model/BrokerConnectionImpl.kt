@@ -2,6 +2,7 @@ package com.seraph.smarthome.client.model
 
 import com.seraph.smarthome.client.cases.BrokerConnection
 import com.seraph.smarthome.client.util.replace
+import com.seraph.smarthome.domain.impl.Topics
 import com.seraph.smarthome.transport.*
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
@@ -48,7 +49,7 @@ class BrokerConnectionImpl(private val broker: Broker) : BrokerConnection {
         stateSubject.onNext(brokerState.map())
     }
 
-    private fun handleDevicePublished(commonDevice: com.seraph.smarthome.model.Device) {
+    private fun handleDevicePublished(commonDevice: com.seraph.smarthome.transport.Device) {
         val device = commonDevice.map(propertyStorageAdapter)
         deviceMap[device.id] = applyDelayedUpdates(device)
         updateDevicesSubject()
@@ -127,7 +128,7 @@ class BrokerConnectionImpl(private val broker: Broker) : BrokerConnection {
                 = topic.typed(BooleanConverter()).publish(broker, value as Boolean)
 
         override fun onActionVisited(property: ActionProperty)
-                = topic.unpersisted().typed(ActionConverter()).publish(broker, value as Unit)
+                = topic.retained().typed(ActionConverter()).publish(broker, value as Unit)
     }
 
     private inner class PropertyStorageAdapter : PropertyStorage {

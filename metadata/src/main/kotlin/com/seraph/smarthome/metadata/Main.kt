@@ -1,8 +1,7 @@
 package com.seraph.smarthome.metadata
 
-import com.seraph.smarthome.model.Metadata
-import com.seraph.smarthome.transport.Broker
-import com.seraph.smarthome.transport.Topics
+import com.seraph.smarthome.domain.Metadata
+import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
@@ -19,11 +18,8 @@ class Main {
             val log = ConsoleLog("Metadata")
             val params = CommandLineParams(ArgParser(argv))
             val broker = StatefulMqttBroker(params.brokerAddress, "MetadataService", log.copy("Broker"))
-            putMetadata(broker, params.brokerName)
-        }
-
-        private fun putMetadata(broker: Broker, brokerName: String) {
-            Topics.metadata().publish(broker, Metadata(brokerName))
+            val network = MqttNetwork(broker, log.copy("Network"))
+            network.publish(Metadata(params.brokerName))
         }
     }
 }
