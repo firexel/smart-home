@@ -17,12 +17,12 @@ class MqttNetwork(
         create()
     }
 
-    override fun publish(metadata: Metadata) {
-        publish(Topics.metadata(), JsonSerializer(gson, Metadata::class), metadata)
+    override fun publish(metainfo: Metainfo) {
+        publish(Topics.metadata(), JsonSerializer(gson, Metainfo::class), metainfo)
     }
 
-    override fun subscribe(func: (Metadata) -> Unit) {
-        subscribe(Topics.metadata(), JsonSerializer(gson, Metadata::class), func)
+    override fun subscribe(func: (Metainfo) -> Unit) {
+        subscribe(Topics.metadata(), JsonSerializer(gson, Metainfo::class), func)
     }
 
     override fun publish(device: Device) {

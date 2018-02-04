@@ -5,7 +5,7 @@ package com.seraph.smarthome.domain
  * Created by aleksandr.naumov on 29.12.17.
  */
 
-data class Metadata(
+data class Metainfo(
         val brokerName: String
 )
 
@@ -15,7 +15,6 @@ data class Device(
         val controls: List<Control>
 ) {
     data class Id(val segments: List<String>) {
-        val service: Boolean = segments.size == 1
         val value: String = segments.joinToString(":")
         override fun toString(): String = value
     }

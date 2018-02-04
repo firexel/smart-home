@@ -2,50 +2,10 @@ package com.seraph.smarthome.client.model
 
 import com.seraph.smarthome.client.cases.BrokerConnection
 import com.seraph.smarthome.transport.Broker
-import com.seraph.smarthome.transport.Control
-import com.seraph.smarthome.transport.Endpoint
-import kotlin.reflect.KClass
 
 /**
  * Created by aleksandr.naumov on 30.12.17.
  */
-
-typealias CommonDevice = com.seraph.smarthome.transport.Device
-typealias CommonDeviceId = com.seraph.smarthome.transport.Device.Id
-typealias CommonMetadata = com.seraph.smarthome.transport.Metadata
-typealias CommonProperty = Control
-typealias CommonPurpose = Control.Purpose
-typealias CommonPropertyType = Control.Type
-typealias CommonEndpointId = Endpoint.Id
-
-fun Device.Id.map(): CommonDeviceId = CommonDeviceId(hash)
-
-fun Property.Id.map(): CommonEndpointId = CommonEndpointId(hash)
-
-fun CommonMetadata.map(): Metadata = Metadata(this.name)
-
-fun CommonDevice.map(storage: PropertyStorage): Device {
-    val newId = Device.Id(id.hash)
-    return Device(newId, name, controls.map { it.map(newId, storage) })
-}
-
-fun CommonPurpose.map(): Property.Priority = when (this) {
-    CommonPurpose.MAIN -> Property.Priority.MAIN
-    CommonPurpose.PRIMARY -> Property.Priority.PRIMARY
-    CommonPurpose.SECONDARY -> Property.Priority.SECONDARY
-}
-
-fun CommonProperty.map(deviceId: Device.Id, storage: PropertyStorage): Property<*> {
-    val newId = Property.Id(id.hash)
-    val newName = id.hash
-    val newPriority = purpose.map()
-    return when (this.type) {
-        CommonPropertyType.ACTION -> ActionProperty(newId, newName, newPriority)
-        CommonPropertyType.INDICATOR -> IndicatorProperty(
-                newId, newName, newPriority,
-                storage.getValueFor(deviceId, newId, Boolean::class))
-    }
-}
 
 fun Broker.BrokerState.map(): BrokerConnection.State = this.accept(MapVisitor())
 
@@ -83,8 +43,4 @@ class MapVisitor : Broker.BrokerState.Visitor<BrokerConnection.State> {
             return visitor.onConnectingState()
         }
     }
-}
-
-interface PropertyStorage {
-    fun <T : Any> getValueFor(deviceId: Device.Id, propertyId: Property.Id, clazz: KClass<T>): T
 }

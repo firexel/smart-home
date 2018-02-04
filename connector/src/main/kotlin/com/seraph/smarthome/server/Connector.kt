@@ -25,7 +25,7 @@ class Connector(
     }
 
     public fun serve() {
-        network.subscribe { device: Device ->
+        network.subscribe(null) { device: Device ->
             device.endpoints.forEach { endpoint ->
                 val gid = GlobalEndpointId(device.id, endpoint.id)
                 synchronized(pendingConnections) {
@@ -49,6 +49,7 @@ class Connector(
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     class MakeConnectionVisitor(
             private val network: Network,
             private val src: GlobalEndpointId,

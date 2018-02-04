@@ -1,6 +1,6 @@
 package com.seraph.smarthome.metadata
 
-import com.seraph.smarthome.domain.Metadata
+import com.seraph.smarthome.domain.Metainfo
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
@@ -15,11 +15,11 @@ class Main {
     companion object {
         @JvmStatic
         fun main(argv: Array<String>) {
-            val log = ConsoleLog("Metadata")
+            val log = ConsoleLog("Metainfo")
             val params = CommandLineParams(ArgParser(argv))
             val broker = StatefulMqttBroker(params.brokerAddress, "MetadataService", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            network.publish(Metadata(params.brokerName))
+            network.publish(Metainfo(params.brokerName))
         }
     }
 }

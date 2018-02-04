@@ -2,11 +2,9 @@ package com.seraph.smarthome.client.presentation
 
 import android.support.v7.util.DiffUtil
 import com.seraph.smarthome.client.cases.BrokerConnection
-import com.seraph.smarthome.client.model.ActionProperty
-import com.seraph.smarthome.client.model.Device
-import com.seraph.smarthome.client.model.IndicatorProperty
-import com.seraph.smarthome.client.model.Property
-import com.seraph.smarthome.client.util.onNextObserver
+import com.seraph.smarthome.domain.Control
+import com.seraph.smarthome.domain.Device
+import com.seraph.smarthome.domain.Endpoint
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import java.util.concurrent.TimeUnit
@@ -24,7 +22,7 @@ class ScenePresenterImpl(
         useCaseFactory.observeDevices().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
                 .map {
-                    it.filter { it.properties.isNotEmpty() }
+                    it.filter { it.controls.isNotEmpty() }
                 }
                 .scan(Pair(emptyList<Device>(), emptyList<Device>())) { old, new ->
                     Pair(old.second, new)
@@ -32,21 +30,21 @@ class ScenePresenterImpl(
                 .map {
                     DiffedChange(it.second, calculateDiff(it))
                 }
-                .subscribe(onNextObserver {
+                .subscribe {
                     devices = it.list
                     view.showDevices(it.list.map { extractViewModelFrom(it) }, it.diff)
-                })
+                }
 
         useCaseFactory.observeConnectionState().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap { it.accept(UpdateVisitor(it)) }
-                .subscribe(onNextObserver {
+                .subscribe {
                     view.showConnectionStatus(it.accept(ConnectionStatusNameVisitor()))
-                })
+                }
 
-        useCaseFactory.observeBrokerMetadata().execute(credentials)
+        useCaseFactory.observeBrokerMetainfo().execute(credentials)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(onNextObserver { view.showBrokerName(it.brokerName) })
+                .subscribe { view.showBrokerName(it.brokerName) }
     }
 
     override fun onGoingBack() {
@@ -56,24 +54,19 @@ class ScenePresenterImpl(
     private fun calculateDiff(change: Pair<List<Device>, List<Device>>) =
             DiffUtil.calculateDiff(CollectionComparator(change.first, change.second), true)
 
-    private fun extractViewModelFrom(device: Device) = ScenePresenter.DeviceViewModel(
-            device.id.hash,
-            device.name,
-            device.properties
-                    .filter { it.priority == Property.Priority.MAIN }
-                    .map { it.accept(ActionIdVisitor()) }
-                    .firstOrNull { it != null },
-            device.properties
-                    .filter { it.priority == Property.Priority.MAIN }
-                    .map { it.accept(IndicatorStateVisitor()) }
-                    .firstOrNull { it != null }
-    )
+    private fun extractViewModelFrom(device: Device): ScenePresenter.DeviceViewModel {
+        val mainControls = device.controls.filter { it.priority == Control.Priority.MAIN }
+        return ScenePresenter.DeviceViewModel(
+                device.id.value,
+                mainControls.map { it.usage.accept(ActionVisitor(device.id)) }
+                        .firstOrNull { it != null },
+                mainControls.map { it.usage.accept(IndicatorStateVisitor()) }
+                        .firstOrNull { it != null }
+        )
+    }
 
-    override fun onDeviceActionPerformed(deviceId: String, actionId: String) {
-        val device = devices.find { it.id == Device.Id(deviceId) }
-        device?.properties
-                ?.find { it.id == Property.Id(actionId) }
-                ?.accept(FireActionVisitor(device.id))
+    private fun <T> getEndpointState(endpoint: Endpoint<T>): T? {
+        return null
     }
 
     class CollectionComparator(
@@ -94,23 +87,20 @@ class ScenePresenterImpl(
 
     data class DiffedChange(val list: List<Device>, val diff: DiffUtil.DiffResult)
 
-    class ActionIdVisitor : Property.Visitor<String?> {
-        override fun onIndicatorVisited(property: IndicatorProperty): String? = null
-        override fun onActionVisited(property: ActionProperty): String? = property.id.hash
-    }
-
-    class IndicatorStateVisitor : Property.Visitor<Boolean?> {
-        override fun onIndicatorVisited(property: IndicatorProperty): Boolean? = property.value
-        override fun onActionVisited(property: ActionProperty): Boolean? = null
-    }
-
-    inner class FireActionVisitor(private val deviceId: Device.Id) : Property.Visitor<Unit> {
-        override fun onIndicatorVisited(property: IndicatorProperty) = Unit
-        override fun onActionVisited(property: ActionProperty) {
-            useCaseFactory
-                    .changePropertyValue(deviceId, property, Unit)
+    inner class ActionVisitor(private val deviceId: Device.Id) : Control.Usage.Visitor<(() -> Any)?> {
+        override fun onButton(trigger: Endpoint<Unit>, alert: String) = {
+            useCaseFactory.publishEndpoint(deviceId, trigger, Unit)
                     .execute(credentials)
                     .subscribe()
+        }
+
+        override fun onIndicator(source: Endpoint<Boolean>) = null
+    }
+
+    inner class IndicatorStateVisitor : Control.Usage.Visitor<String?> {
+        override fun onButton(trigger: Endpoint<Unit>, alert: String): String? = null
+        override fun onIndicator(source: Endpoint<Boolean>): String? {
+            return getEndpointState(source)?.toOnOff() ?: "---"
         }
     }
 
@@ -137,4 +127,9 @@ class ScenePresenterImpl(
                 1, TimeUnit.SECONDS
         ).map { state }
     }
+}
+
+private fun Boolean.toOnOff() = when (this) {
+    true -> "On"
+    else -> "Off"
 }

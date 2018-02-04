@@ -19,7 +19,7 @@ class BrokersPresenterImpl(
                     val vms = mutableListOf<BrokersPresenter.BrokerViewModel>()
                     it.forEach { info ->
                         val vm = BrokersPresenter.BrokerViewModel(
-                                info.metadata.brokerName,
+                                info.metainfo.brokerName,
                                 "${info.credentials.host}:${info.credentials.port}"
                         )
                         vms.add(vm)

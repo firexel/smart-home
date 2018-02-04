@@ -5,7 +5,6 @@ import com.seraph.smarthome.client.model.BrokerCredentials
 
 interface ScenePresenter {
 
-    fun onDeviceActionPerformed(deviceId: String, actionId: String)
     fun onGoingBack()
 
     interface View {
@@ -15,10 +14,9 @@ interface ScenePresenter {
     }
 
     data class DeviceViewModel(
-            val id: String,
             val name: String,
-            val mainActionId: String?,
-            val mainIndicatorValue: Boolean?
+            val mainAction: (() -> Any)?,
+            val mainIndicator: String?
     )
 
     class SceneScreen(val credentials: BrokerCredentials) : Screen {
