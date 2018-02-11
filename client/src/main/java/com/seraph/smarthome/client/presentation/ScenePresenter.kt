@@ -14,10 +14,13 @@ interface ScenePresenter {
     }
 
     data class DeviceViewModel(
+            internal val id: String,
             val name: String,
             val mainAction: (() -> Any)?,
             val mainIndicator: String?
-    )
+    ) {
+        fun sameAs(other: DeviceViewModel): Boolean = id == other.id
+    }
 
     class SceneScreen(val credentials: BrokerCredentials) : Screen {
         override fun <T> acceptVisitor(visitor: Screen.Visitor<T>): T = visitor.sceneScreenVisited()

@@ -34,8 +34,8 @@ class DisposableUseCaseFactory(private val wrapped: UseCaseFactory) : UseCaseFac
     override fun <T> publishEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>, value: T): UseCase<BrokerCredentials, Unit>
             = wrapped.publishEndpoint(deviceId, endpoint, value).disposable()
 
-    override fun <T> subscribeEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>): UseCase<BrokerCredentials, T>
-            = wrapped.subscribeEndpoint(deviceId, endpoint).disposable()
+    override fun <T> observeEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>): UseCase<BrokerCredentials, T>
+            = wrapped.observeEndpoint(deviceId, endpoint).disposable()
 
     private fun <P, R> UseCase<P, R>.disposable(): UseCase<P, R> {
         val wrapper = DisposableUseCase(this)

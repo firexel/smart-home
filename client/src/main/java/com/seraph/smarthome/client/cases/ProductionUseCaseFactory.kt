@@ -35,7 +35,7 @@ class ProductionUseCaseFactory(
             : UseCase<BrokerCredentials, Unit>
             = PublishEndpointValueUseCase(brokerRepo, deviceId, endpoint, value)
 
-    override fun <T> subscribeEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>)
+    override fun <T> observeEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>)
             : UseCase<BrokerCredentials, T>
             = throw IllegalStateException()
 }

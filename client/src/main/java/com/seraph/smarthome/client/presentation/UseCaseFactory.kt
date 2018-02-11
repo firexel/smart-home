@@ -24,5 +24,5 @@ interface UseCaseFactory {
 
     fun <T> publishEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>, value: T): UseCase<BrokerCredentials, Unit>
 
-    fun <T> subscribeEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>): UseCase<BrokerCredentials, T>
+    fun <T> observeEndpoint(deviceId: Device.Id, endpoint: Endpoint<T>): UseCase<BrokerCredentials, T>
 }
