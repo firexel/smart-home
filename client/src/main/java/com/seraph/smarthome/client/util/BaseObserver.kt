@@ -19,9 +19,3 @@ abstract class BaseObserver<T> : Observer<T> {
     override fun onNext(t: T) {
     }
 }
-
-fun <T> onNextObserver(onNextBlock: (T) -> Unit) = object : BaseObserver<T>() {
-    override fun onNext(t: T) {
-        onNextBlock(t)
-    }
-}

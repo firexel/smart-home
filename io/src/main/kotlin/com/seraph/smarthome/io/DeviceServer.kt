@@ -1,10 +1,9 @@
 package com.seraph.smarthome.io
 
-import com.seraph.smarthome.model.Device
-import com.seraph.smarthome.model.Endpoint
-import com.seraph.smarthome.transport.BooleanConverter
-import com.seraph.smarthome.transport.Broker
-import com.seraph.smarthome.transport.Topics
+import com.seraph.smarthome.domain.Device
+import com.seraph.smarthome.domain.Endpoint
+import com.seraph.smarthome.domain.Network
+import com.seraph.smarthome.domain.Types
 import java.lang.Integer.min
 
 
@@ -12,9 +11,31 @@ import java.lang.Integer.min
  * Created by aleksandr.naumov on 27.12.17.
  */
 class DeviceServer(
+        private val network: Network,
         private val device: IoDevice,
-        private val id: String,
-        private val name: String) {
+        private val id: String) {
+
+    companion object {
+        val serviceName = "io"
+    }
+
+    private val inputEndpoints = (0 until device.relaysTotal).map {
+        Endpoint(
+                id = Endpoint.Id("input_$it"),
+                type = Types.BOOLEAN,
+                direction = Endpoint.Direction.INPUT,
+                retention = Endpoint.Retention.RETAINED
+        )
+    }
+
+    private val outputEndpoints = (0 until device.sensorsTotal).map {
+        Endpoint(
+                id = Endpoint.Id("output_$it"),
+                type = Types.BOOLEAN,
+                direction = Endpoint.Direction.OUTPUT,
+                retention = Endpoint.Retention.RETAINED
+        )
+    }
 
     private val inputsDescriptor = createInputsDeviceDescriptor()
     private val outputsDescriptor = createOutputsDeviceDescriptor()
@@ -25,15 +46,9 @@ class DeviceServer(
         }
 
         return Device(
-                id = Device.Id("${id}_inputs"),
-                name = name,
-                inputs = (0 until device.relaysTotal).map {
-                    Endpoint(
-                            inputId(it),
-                            "Input #$it",
-                            Endpoint.Type.BOOLEAN
-                    )
-                }
+                id = Device.Id(listOf(serviceName, id, "inputs")),
+                endpoints = inputEndpoints,
+                controls = emptyList()
         )
     }
 
@@ -43,50 +58,38 @@ class DeviceServer(
         }
 
         return Device(
-                id = Device.Id("${id}_outputs"),
-                name = name,
-                outputs = (0 until device.sensorsTotal).map {
-                    Endpoint(
-                            outputId(it),
-                            "Output #$it",
-                            Endpoint.Type.BOOLEAN
-                    )
-                }
+                id = Device.Id(listOf(serviceName, id, "outputs")),
+                endpoints = outputEndpoints,
+                controls = emptyList()
         )
     }
 
-    private fun inputId(it: Int) = Endpoint.Id("input_$it")
+    fun serve() {
+        network.publish(inputsDescriptor)
+        network.publish(outputsDescriptor)
 
-    private fun outputId(it: Int) = Endpoint.Id("output_$it")
-
-    fun serve(broker: Broker) {
-        Topics.structure(inputsDescriptor.id).publish(broker, inputsDescriptor)
-        Topics.structure(outputsDescriptor.id).publish(broker, outputsDescriptor)
-
-        for (i in 0 until device.relaysTotal) {
-            Topics.input(inputsDescriptor.id, inputId(i)).typed(BooleanConverter()).subscribe(broker) {
-                device.setRelayState(i, it)
+        inputEndpoints.forEachIndexed { index, endpoint ->
+            network.subscribe(inputsDescriptor.id, endpoint) { _, _, data ->
+                device.setRelayState(index, data)
             }
         }
 
         var initialState = device.getSensorsState()
         for (i in 0 until initialState.size) {
-            publishOutput(broker, i, initialState[i])
+            publishOutput(i, initialState[i])
         }
 
         while (true) {
             val newState = device.getSensorsState()
             (0 until min(newState.size, initialState.size))
                     .filter { newState[it] != initialState[it] }
-                    .forEach { publishOutput(broker, it, newState[it]) }
+                    .forEach { publishOutput(it, newState[it]) }
             initialState = newState
             Thread.sleep(10)
         }
     }
 
-    private fun publishOutput(broker: Broker, sensorIndex: Int, sensorState: Boolean) {
-        Topics.output(outputsDescriptor.id, outputId(sensorIndex))
-                .typed(BooleanConverter())
-                .publish(broker, sensorState)
+    private fun publishOutput(sensorIndex: Int, sensorState: Boolean) {
+        network.publish(outputsDescriptor.id, outputEndpoints[sensorIndex], sensorState)
     }
 }

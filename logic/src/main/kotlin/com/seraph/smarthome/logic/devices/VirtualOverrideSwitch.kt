@@ -1,5 +1,8 @@
 package com.seraph.smarthome.logic.devices
 
+import com.seraph.smarthome.domain.Control
+import com.seraph.smarthome.domain.Endpoint
+import com.seraph.smarthome.domain.Types
 import com.seraph.smarthome.logic.VirtualDevice
 
 /**
@@ -11,28 +14,42 @@ class VirtualOverrideSwitch : VirtualDevice {
     private var state: Boolean = false
 
     override fun configure(visitor: VirtualDevice.Visitor) {
-        val otherSwitch = visitor.declareBoolInput("other_switch", "Other switch")
-        val overridenOutput = visitor.declareBoolOutput("overriden_output", "Overriden output")
-        val overrideAction = visitor.declareAction("override", VirtualDevice.Purpose.MAIN)
-        val stateIndicator = visitor.declareIndicator("state", VirtualDevice.Purpose.MAIN)
+        val stateInput = visitor.declareInput(
+                "state",
+                Types.BOOLEAN,
+                Endpoint.Retention.RETAINED
+        )
+
+        val impulseInput = visitor.declareInput(
+                "impulse",
+                Types.VOID,
+                Endpoint.Retention.NOT_RETAINED
+        )
+
+        val overridenOutput = visitor.declareOutput(
+                "overriden",
+                Types.BOOLEAN,
+                Endpoint.Retention.RETAINED
+        )
+
+        visitor.declareButton("override", Control.Priority.MAIN, impulseInput)
+        visitor.declareIndicator("state", Control.Priority.MAIN, overridenOutput)
 
         fun switchState(newState: Boolean) {
             if (newState != state) {
                 state = newState
-                stateIndicator.invalidate()
                 overridenOutput.invalidate()
             }
         }
 
-        otherSwitch.observe {
+        stateInput.observe {
             switchState(it)
         }
 
-        overrideAction.observe {
+        impulseInput.observe {
             switchState(!state)
         }
 
-        stateIndicator.use { state }
         overridenOutput.use { state }
     }
 }

@@ -1,22 +1,22 @@
 package com.seraph.smarthome.client.cases
 
-import com.seraph.smarthome.client.model.Device
-import com.seraph.smarthome.client.model.Metadata
-import com.seraph.smarthome.client.model.Property
+import com.seraph.smarthome.domain.Device
+import com.seraph.smarthome.domain.Endpoint
+import com.seraph.smarthome.domain.Metainfo
 import io.reactivex.Observable
 
 interface BrokerConnection {
     /**
-     * This observable fires when new device is appeared or disappeared, name, property change etc
+     * This observable fires when new device is appeared or disappeared, name, property publish etc
      * It holds actual state of device list
      */
     val devices: Observable<List<Device>>
 
     /**
-     * This observable fires when broker metadata has been loaded or changed
-     * It holds actual state of broker metadata
+     * This observable fires when broker metainfo has been loaded or changed
+     * It holds actual state of broker metainfo
      */
-    val metadata: Observable<Metadata>
+    val metainfo: Observable<Metainfo>
 
     /**
      * This observable fires when connection state changes
@@ -25,9 +25,14 @@ interface BrokerConnection {
     val state: Observable<State>
 
     /**
-     * This method sends property change signal to the broker
+     * This method sends endpoint publish signal to the broker
      */
-    fun <T> change(deviceId: Device.Id, property: Property<T>, value: T): Observable<Unit>
+    fun <T> publish(deviceId: Device.Id, endpoint: Endpoint<T>, value: T): Observable<Unit>
+
+    /**
+     * This method receives endpoint publishes from the entire system
+     */
+    fun <T> subscribe(deviceId: Device.Id, endpoint: Endpoint<T>): Observable<T>
 
     /**
      * Abstraction for connection state

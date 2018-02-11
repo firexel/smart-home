@@ -1,7 +1,11 @@
 package com.seraph.smarthome.server
 
 import com.google.gson.Gson
-import com.seraph.smarthome.model.ConnectionsList
+import com.google.gson.GsonBuilder
+import com.seraph.smarthome.domain.Device
+import com.seraph.smarthome.domain.Endpoint
+import com.seraph.smarthome.domain.impl.MqttNetwork
+import com.seraph.smarthome.domain.impl.installModelAdapters
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
@@ -19,11 +23,24 @@ class Main {
         fun main(argv: Array<String>) {
             val log = ConsoleLog("Connector")
             val params = CommandLineParams(ArgParser(argv))
-            val connections = Gson().fromJson(FileReader(params.configPath), ConnectionsList::class.java)
-            Connector(StatefulMqttBroker(params.brokerAddress, "SHCS", log.copy("Broker")), connections).serve()
+            val gsonBuilder = GsonBuilder()
+            installModelAdapters(gsonBuilder)
+            val gson = gsonBuilder.create()
+            val connections = gson.fromJson(FileReader(params.configPath), ConnectionsList::class.java)
+            val broker = StatefulMqttBroker(params.brokerAddress, "SHCS", log.copy("Broker"))
+            val network = MqttNetwork(broker, log.copy("Network"))
+            Connector(network, connections.connections, log).serve()
         }
     }
 }
+
+data class ConnectionsList(val connections: List<Connection>)
+data class Connection(
+        val srcDevice: Device.Id,
+        val srcEndpoint: Endpoint.Id,
+        val dstDevice: Device.Id,
+        val dstEndpoint: Endpoint.Id
+)
 
 class CommandLineParams(parser: ArgParser) {
     val configPath by parser.storing("-l", "--list", help = "path to list list") {
