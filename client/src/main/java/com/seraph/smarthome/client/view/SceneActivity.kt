@@ -85,34 +85,33 @@ class SceneActivity : AppCompatActivity(), ScenePresenter.View {
 
             fun bind(device: ScenePresenter.DeviceViewModel) {
                 bindName(device.name)
-                bindMainIndicator(device.mainIndicatorValue)
-                bindMainAction(device.mainActionId, device.id)
+                bindMainIndicator(device.mainIndicator)
+                bindMainAction(device.mainAction)
             }
 
             private fun bindName(name: String) {
                 nameText.text = name
             }
 
-            private fun bindMainAction(mainActionId: String?, deviceId: String) {
-                if (mainActionId != null) {
+            private fun bindMainAction(mainAction: (() -> Any)?) {
+                if (mainAction != null) {
                     itemView.setOnClickListener {
-                        presenter?.onDeviceActionPerformed(deviceId, mainActionId)
+                        mainAction()
                     }
                 } else {
                     itemView.setOnClickListener(null)
                 }
             }
 
-            private fun bindMainIndicator(mainIndicatorValue: Boolean?) {
+            private fun bindMainIndicator(mainIndicatorValue: String?) {
                 if (mainIndicatorValue != null) {
                     indicatorText.visibility = View.VISIBLE
-                    indicatorText.text = if (mainIndicatorValue) "On" else "Off"
+                    indicatorText.text = mainIndicatorValue
                 } else {
                     indicatorText.visibility = View.GONE
                 }
             }
         }
-
     }
 }
 

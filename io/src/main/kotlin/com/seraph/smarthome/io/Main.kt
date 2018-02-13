@@ -1,5 +1,6 @@
 package com.seraph.smarthome.io
 
+import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.io.hardware.ComPortConnection
 import com.seraph.smarthome.io.hardware.Wellpro8028Device
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
@@ -22,8 +23,8 @@ class Main {
             val connection = ComPortConnection(params.portName, settings, NoLog())
             val device = Wellpro8028Device(connection, params.deviceIndex.toByte())
             val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
-            DeviceServer(device, "io_device", "I/O Service Outputs")
-                    .serve(broker)
+            val network = MqttNetwork(broker, log.copy("Network"))
+            DeviceServer(network, device, "wellpro8028").serve()
         }
     }
 }

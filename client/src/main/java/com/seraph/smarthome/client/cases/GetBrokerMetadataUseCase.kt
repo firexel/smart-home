@@ -1,8 +1,8 @@
 package com.seraph.smarthome.client.cases
 
 import com.seraph.smarthome.client.model.BrokerCredentials
-import com.seraph.smarthome.client.model.Metadata
 import com.seraph.smarthome.client.presentation.UseCase
+import com.seraph.smarthome.domain.Metainfo
 import io.reactivex.Observable
 
 /**
@@ -10,10 +10,10 @@ import io.reactivex.Observable
  */
 class GetBrokerMetadataUseCase(
         private val brokerRepo: BrokerRepo
-) : UseCase<BrokerCredentials, Metadata> {
+) : UseCase<BrokerCredentials, Metainfo> {
 
     override
-    fun execute(params: BrokerCredentials): Observable<Metadata> {
-        return brokerRepo.openConnection(params).flatMap { it.metadata }
+    fun execute(params: BrokerCredentials): Observable<Metainfo> {
+        return brokerRepo.openConnection(params).flatMap { it.metainfo }
     }
 }

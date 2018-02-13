@@ -69,14 +69,14 @@ internal class PahoClientWrapper(
         })
     }
 
-    override fun subscribe(topic: Topic, listener: (topic: Topic, data: String) -> Unit) = safe("subscribe") {
+    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit) = safe("subscribe") {
         client.subscribe(topic.toString(), options.subscribeQos) { topic, message ->
-            listener(Topic.fromString(topic), String(message.payload, Charsets.UTF_8))
+            listener(Topic.fromString(topic), message.payload)
         }
     }
 
-    override fun publish(topic: Topic, data: String) = safe("publish") {
-        client.publish(topic.toString(), data.toByteArray(Charsets.UTF_8), options.publishQos, topic.persisted)
+    override fun publish(topic: Topic, data: ByteArray) = safe("publish") {
+        client.publish(topic.toString(), data, options.publishQos, topic.persisted)
     }
 
     private inline fun safe(name: String, operation: () -> Unit) {

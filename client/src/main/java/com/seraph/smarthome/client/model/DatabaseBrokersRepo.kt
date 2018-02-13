@@ -2,6 +2,7 @@ package com.seraph.smarthome.client.model
 
 import android.arch.persistence.room.*
 import android.content.Context
+import com.seraph.smarthome.domain.Metainfo
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 
@@ -27,10 +28,10 @@ class DatabaseBrokersRepo(context: Context) : BrokersInfoRepo {
 }
 
 private fun toStoredBroker(model: BrokerInfo)
-        = StoredBrokerSettings(model.credentials.host, model.metadata.brokerName, model.credentials.port)
+        = StoredBrokerSettings(model.credentials.host, model.metainfo.brokerName, model.credentials.port)
 
 private fun fromStoredBroker(stored: StoredBrokerSettings) = BrokerInfo(
-        Metadata(stored.name),
+        Metainfo(stored.name),
         BrokerCredentials(stored.host, stored.port)
 )
 

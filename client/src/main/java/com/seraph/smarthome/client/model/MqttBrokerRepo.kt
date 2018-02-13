@@ -1,9 +1,7 @@
 package com.seraph.smarthome.client.model
 
-import android.os.Build
 import com.seraph.smarthome.client.cases.BrokerConnection
 import com.seraph.smarthome.client.cases.BrokerRepo
-import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.Log
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
@@ -18,12 +16,7 @@ class MqttBrokerRepo(private val log: Log) : BrokerRepo {
     override fun openConnection(credentials: BrokerCredentials): Observable<BrokerConnection> {
         return openConnections.getOrPut(credentials) {
             Observable.fromCallable {
-                val broker = StatefulMqttBroker(
-                        "tcp://${credentials.host}:${credentials.port}",
-                        "Mobile client " + Build.DEVICE,
-                        log.copy("Broker")
-                )
-                BrokerConnectionImpl(broker) as BrokerConnection
+                BrokerConnectionImpl(credentials, log.copy("Connection")) as BrokerConnection
             }.cache()
         }.subscribeOn(Schedulers.io())
     }
