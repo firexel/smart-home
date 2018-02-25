@@ -22,3 +22,7 @@ run {
         args Eval.me(appArgs)
     }
 }
+
+project.ext.addLaunchParameters = { brokerName ->
+    return ['--broker', "tcp://$brokerName:1883"]
+}

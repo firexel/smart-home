@@ -20,3 +20,11 @@ run {
         args Eval.me(appArgs)
     }
 }
+
+project.ext.additionalDependencies = [
+        "../testdata/connections.json": "connections.json"
+]
+
+project.ext.addLaunchParameters = { brokerName ->
+    return ['--list', 'connections.json', '--broker', "tcp://$brokerName:1883"]
+}

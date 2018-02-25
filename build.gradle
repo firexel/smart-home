@@ -10,6 +10,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.1.0-alpha04'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.bmuschko:gradle-docker-plugin:3.2.4'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -23,6 +24,91 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+
+import static org.codehaus.groovy.runtime.DefaultGroovyMethods.with
+
+allprojects.each {
+    it.afterEvaluate { project ->
+        if (project.hasProperty("mainClassName")) {
+            configureJarAssemblyIn(project)
+            configureDockerImageAssemblyIn(project)
+        }
+    }
+}
+
+private void configureJarAssemblyIn(def project) {
+    logger.lifecycle("Configuring Jar task for $project.name...")
+    with(project) {
+        jar {
+            doFirst {
+                from {
+                    configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+                }
+            }
+            exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+            manifest {
+                attributes "Main-Class": mainClassName
+            }
+        }
+    }
+}
+
+private void configureDockerImageAssemblyIn(def project) {
+    logger.lifecycle("Configuring image assembly tasks for $project.name...")
+
+    with(project) {
+        apply plugin: 'com.bmuschko.docker-remote-api'
+
+        def projectDependencies = [:]
+        if (project.hasProperty("additionalDependencies")) {
+            projectDependencies = project.additionalDependencies
+        }
+
+        def launchParameters = { brokerName -> [] }
+        if (project.hasProperty("addLaunchParameters")) {
+            launchParameters = project.addLaunchParameters
+        }
+
+        task createDockerfile(type: Dockerfile) {
+            destFile = project.file('build/docker/Dockerfile')
+            from 'anapsix/alpine-java:8u162b12_server-jre'
+            workingDir '/'
+            addFile "${project.name}.jar", "${project.name}.jar"
+            projectDependencies.values().each { addFile it, it }
+            defaultCommand {
+                ['java', '-jar', "${project.name}.jar"] + launchParameters("broker")
+            }
+        }
+
+        task copyDependenciesInContext(type: Copy) {
+            dependsOn tasks['jar']
+            from "build/libs/${project.name}.jar"
+            projectDependencies.keySet().each { from it }
+            into createDockerfile.destFile.parentFile
+        }
+
+        task buildImage(type: DockerBuildImage) {
+            dependsOn createDockerfile, copyDependenciesInContext
+            inputDir = createDockerfile.destFile.parentFile
+            tag = "seraph/$project.name:latest"
+        }
+    }
+
+    tasks["up"].dependsOn project.tasks["buildImage"]
+}
+
+task up(type: Exec) {
+    ignoreExitValue true
+    workingDir 'deploy'
+    def composeExecutable
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        composeExecutable = "/usr/local/bin/docker-compose"
+    } else {
+        composeExecutable = "docker-compose"
+    }
+    commandLine composeExecutable, 'up'
 }

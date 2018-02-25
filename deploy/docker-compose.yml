@@ -1,0 +1,12 @@
+version: "3"
+services:
+  broker:
+    image: "eclipse-mosquitto:1.4.12"
+  connector:
+    image: "seraph/connector:latest"
+  io:
+    image: "seraph/io:latest"
+  metadata:
+    image: "seraph/metadata:latest"
+  locic:
+    image: "seraph/logic:latest"
