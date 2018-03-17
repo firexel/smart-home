@@ -22,3 +22,11 @@ run {
         args Eval.me(appArgs)
     }
 }
+
+project.ext.additionalDependencies = [
+        "io.json": "/etc/io.json"
+]
+
+project.ext.addLaunchParameters = { brokerName ->
+    return ['--broker', "tcp://$brokerName:1883"]
+}

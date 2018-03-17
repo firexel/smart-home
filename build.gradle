@@ -10,6 +10,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.1.0-alpha04'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.bmuschko:gradle-docker-plugin:3.2.4'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -23,6 +24,149 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+
+import java.util.regex.Pattern
+
+import static org.codehaus.groovy.runtime.DefaultGroovyMethods.with
+
+allprojects.each {
+    def root = project
+    it.afterEvaluate { project ->
+        if (project.hasProperty("mainClassName")) {
+            configureJarAssemblyIn(project)
+            configureDockerImageAssemblyIn(root, project)
+        }
+    }
+}
+
+private void configureJarAssemblyIn(def project) {
+    logger.debug("Configuring Jar task for $project.name...")
+    with(project) {
+        jar {
+            doFirst {
+                from {
+                    configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+                }
+            }
+            exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+            manifest {
+                attributes "Main-Class": mainClassName
+            }
+        }
+    }
+}
+
+private void configureDockerImageAssemblyIn(def root, def project) {
+    logger.debug("Configuring image assembly tasks for $project.name...")
+    project.apply plugin: 'com.bmuschko.docker-remote-api'
+
+    def projectDependencies = [:]
+    if (project.hasProperty("additionalDependencies")) {
+        projectDependencies = project.additionalDependencies
+    }
+
+    def launchParameters = { brokerName -> [] }
+    if (project.hasProperty("addLaunchParameters")) {
+        launchParameters = project.addLaunchParameters
+    }
+
+    findMachinesDirectories().each { File machineDir ->
+        def machine = machineDir.name.capitalize()
+        def file = new File(machineDir, "${machineDir.name}.env")
+        def envs = new HashMap()
+        if (file.exists()) {
+            envs = parseEnvFile(file)
+        }
+
+        with(project) {
+
+            def createDockerfileTask = task(type: Dockerfile, "createDockerfile$machine") {
+                def launchParams = launchParameters("broker")
+                inputs.property("dependencies", projectDependencies)
+                inputs.property("launch_params", launchParams)
+                destFile = project.file("build/docker/$machine/Dockerfile".toString())
+                from 'anapsix/alpine-java:8u162b12_server-jre'
+                workingDir '/'
+                addFile "${project.name}.jar", "${project.name}.jar"
+                projectDependencies.keySet().each { addFile it, projectDependencies[it] }
+                defaultCommand {
+                    ['java', '-jar', "${project.name}.jar"] + launchParams
+                }
+                doLast {
+                    logger.lifecycle("Creating dockerfile for $project.name")
+                }
+            }
+
+            def copyDepsTask = task(type: Copy, "copyDependenciesInContext$machine") {
+                dependsOn tasks['jar']
+                from "build/libs/${project.name}.jar"
+                projectDependencies.keySet().each {
+                    logger.debug("Setup copy from ${new File(machineDir, it)} to $createDockerfileTask.destFile.parentFile")
+                    from new File(machineDir, it)
+                }
+                into createDockerfileTask.destFile.parentFile
+            }
+
+            def buildImageTask = task(type: DockerBuildImage, "buildImage$machine") {
+                File completeMarker = project.file("build/docker/${machine}_img_created")
+                if (!envs.isEmpty()) {
+                    url = envs["DOCKER_HOST"]
+                    certPath = new File(envs["DOCKER_CERT_PATH"])
+                }
+                inputs.dir(createDockerfileTask.destFile.parentFile)
+                outputs.file(completeMarker)
+                dependsOn createDockerfileTask, copyDepsTask
+                dockerFile = createDockerfileTask.destFile
+                inputDir = createDockerfileTask.destFile.parentFile
+                tag = "seraph/$project.name:latest"
+                doLast {
+                    completeMarker.createNewFile()
+                }
+            }
+
+            with(root) {
+                def upTask = tasks.find { it.name == "upOn$machine" }
+                if (upTask == null) {
+                    upTask = task(type: Exec, "upOn$machine") {
+                        def composePath = root.file('deploy/compose/docker-compose.yml').absolutePath
+                        def localComposePath = new File(machineDir, 'docker-compose.yml').absolutePath
+                        inputs.file(composePath)
+                        inputs.file(localComposePath)
+                        logger.debug("Setup up task $name for machine $machine")
+                        environment envs
+                        ignoreExitValue false
+                        workingDir machineDir
+                        commandLine selectComposeExecutable(), '-f', composePath, '-f', localComposePath, 'up'
+                    }
+                }
+                upTask.dependsOn buildImageTask
+            }
+        }
+    }
+}
+
+private ArrayList<File> findMachinesDirectories() {
+    project.file("deploy/machines").listFiles().findAll { it.isDirectory() }
+}
+
+private static String selectComposeExecutable() {
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        return "/usr/local/bin/docker-compose"
+    } else {
+        return "docker-compose"
+    }
+}
+
+private static Map<String, String> parseEnvFile(File file) {
+    Pattern envPattern = Pattern.compile("export (\\w+)=\"(.+)\"")
+    FileReader reader = new FileReader(file)
+    return reader
+            .readLines()
+            .collect { envPattern.matcher(it) }
+            .findAll { it.matches() }
+            .collectEntries { [(it.group(1)): it.group(2)] }
 }

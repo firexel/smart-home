@@ -13,12 +13,9 @@ class ComPortConnection(
 
     init {
         log.i("Scanning for any port of $portName...")
-
-        port = SerialPort.getCommPorts().find { it.systemPortName.contains(portName) }
-                ?: throw IllegalArgumentException("Cannot find port $portName")
+        port = SerialPort.getCommPort(portName)
 
         log.i("Found port ${port.systemPortName}. Opening...")
-
         port.baudRate = settings.baudRate
         port.parity = settings.parity
         port.numDataBits = settings.dataBits

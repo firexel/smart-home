@@ -1,6 +1,5 @@
 package com.seraph.smarthome.server
 
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Endpoint
@@ -22,6 +21,7 @@ class Main {
         @JvmStatic
         fun main(argv: Array<String>) {
             val log = ConsoleLog("Connector")
+            log.i("Started with following params: ${argv.asList()}")
             val params = CommandLineParams(ArgParser(argv))
             val gsonBuilder = GsonBuilder()
             installModelAdapters(gsonBuilder)
