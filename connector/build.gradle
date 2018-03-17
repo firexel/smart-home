@@ -22,9 +22,9 @@ run {
 }
 
 project.ext.additionalDependencies = [
-        "../testdata/connections.json": "connections.json"
+        "connections.json": "/etc/connections.json"
 ]
 
 project.ext.addLaunchParameters = { brokerName ->
-    return ['--list', 'connections.json', '--broker', "tcp://$brokerName:1883"]
+    return ['--list', '/etc/connections.json', '--broker', "tcp://$brokerName:1883"]
 }

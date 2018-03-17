@@ -85,7 +85,7 @@ class DeviceServer(
                     .filter { newState[it] != initialState[it] }
                     .forEach { publishOutput(it, newState[it]) }
             initialState = newState
-            Thread.sleep(10)
+            Thread.sleep(20)
         }
     }
 

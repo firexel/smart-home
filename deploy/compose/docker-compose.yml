@@ -1,0 +1,37 @@
+version: "3"
+services:
+  broker:
+    image: "eclipse-mosquitto:1.4.12"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+  connector:
+    image: "seraph/connector:latest"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+  io:
+    image: "seraph/io:latest"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "5"
+  metadata:
+    image: "seraph/metadata:latest"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+  locic:
+    image: "seraph/logic:latest"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
