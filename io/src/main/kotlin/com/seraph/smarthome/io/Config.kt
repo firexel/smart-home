@@ -27,7 +27,7 @@ enum class Parity {
 
 data class ModbusModule(
         val name: String,
-        val index: Int,
+        val index: Byte,
         val model: ModbusDeviceModel
 )
 

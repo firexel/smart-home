@@ -1,4 +1,4 @@
-package com.seraph.smarthome.logic
+package com.seraph.smarthome.device
 
 import com.seraph.smarthome.domain.*
 import java.util.concurrent.Executors
@@ -13,12 +13,12 @@ class DeviceManager(private val network: Network) {
     private val devicesQueue = Executors.newFixedThreadPool(1)
     private val deviceCounter = AtomicInteger(0)
 
-    fun addDevice(device: VirtualDevice) {
+    fun addDriver(deviceDriver: DeviceDriver) {
         devicesQueue.run {
             val deviceIndex = deviceCounter.getAndIncrement()
             val id = Device.Id(listOf("logic", "$deviceIndex"))
             val visitor = DiscoverVisitor(id)
-            device.configure(visitor)
+            deviceDriver.configure(visitor)
             val descriptor = visitor.formDescriptor()
             brokerQueue.submit {
                 network.publish(descriptor)
@@ -27,14 +27,14 @@ class DeviceManager(private val network: Network) {
         }
     }
 
-    private inner class DiscoverVisitor(private val deviceId: Device.Id) : VirtualDevice.Visitor {
+    private inner class DiscoverVisitor(private val deviceId: Device.Id) : DeviceDriver.Visitor {
 
         private val endpoints = mutableListOf<Endpoint<*>>()
         private val controls = mutableListOf<Control>()
         private val outputs = mutableListOf<OutputImpl<*>>()
 
         override fun <T> declareInput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention):
-                VirtualDevice.Input<T> {
+                DeviceDriver.Input<T> {
 
             val endpoint = Endpoint(
                     Endpoint.Id(id),
@@ -48,7 +48,7 @@ class DeviceManager(private val network: Network) {
         }
 
         override fun <T> declareOutput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention):
-                VirtualDevice.Output<T> {
+                DeviceDriver.Output<T> {
 
             val endpoint = Endpoint(
                     Endpoint.Id(id),
@@ -61,7 +61,7 @@ class DeviceManager(private val network: Network) {
             return OutputImpl(deviceId, endpoint)
         }
 
-        override fun declareIndicator(id: String, priority: Control.Priority, source: VirtualDevice.Output<Boolean>) {
+        override fun declareIndicator(id: String, priority: Control.Priority, source: DeviceDriver.Output<Boolean>) {
             controls.add(Control(
                     Control.Id(id),
                     priority,
@@ -69,7 +69,7 @@ class DeviceManager(private val network: Network) {
             ))
         }
 
-        override fun declareButton(id: String, priority: Control.Priority, input: VirtualDevice.Input<Unit>, alert: String) {
+        override fun declareButton(id: String, priority: Control.Priority, input: DeviceDriver.Input<Unit>, alert: String) {
             controls.add(Control(
                     Control.Id(id),
                     priority,
@@ -91,7 +91,7 @@ class DeviceManager(private val network: Network) {
     inner class OutputImpl<T>(
             private val deviceId: Device.Id,
             val endpoint: Endpoint<T>
-    ) : VirtualDevice.Output<T> {
+    ) : DeviceDriver.Output<T> {
 
         private var source: () -> T = { throw IllegalStateException("Source should be set") }
 
@@ -110,7 +110,7 @@ class DeviceManager(private val network: Network) {
     inner class InputImpl<T>(
             private val deviceId: Device.Id,
             val endpoint: Endpoint<T>
-    ) : VirtualDevice.Input<T> {
+    ) : DeviceDriver.Input<T> {
 
         override fun observe(observer: (T) -> Unit) {
             brokerQueue.run {

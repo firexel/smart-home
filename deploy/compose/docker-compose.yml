@@ -2,6 +2,7 @@ version: "3"
 services:
   broker:
     image: "eclipse-mosquitto:1.4.12"
+    restart: "unless-stopped"
     logging:
       driver: "json-file"
       options:
@@ -9,6 +10,7 @@ services:
         max-file: "5"
   connector:
     image: "seraph/connector:latest"
+    restart: "unless-stopped"
     logging:
       driver: "json-file"
       options:
@@ -16,6 +18,7 @@ services:
         max-file: "5"
   io:
     image: "seraph/io:latest"
+    restart: "unless-stopped"
     logging:
       driver: "json-file"
       options:
@@ -23,6 +26,7 @@ services:
         max-file: "5"
   metadata:
     image: "seraph/metadata:latest"
+    restart: "unless-stopped"
     logging:
       driver: "json-file"
       options:
@@ -30,6 +34,7 @@ services:
         max-file: "5"
   locic:
     image: "seraph/logic:latest"
+    restart: "unless-stopped"
     logging:
       driver: "json-file"
       options:

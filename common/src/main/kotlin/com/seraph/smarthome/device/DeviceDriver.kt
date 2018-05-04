@@ -1,4 +1,4 @@
-package com.seraph.smarthome.logic
+package com.seraph.smarthome.device
 
 import com.seraph.smarthome.domain.Control
 import com.seraph.smarthome.domain.Endpoint
@@ -6,7 +6,7 @@ import com.seraph.smarthome.domain.Endpoint
 /**
  * Created by aleksandr.naumov on 28.12.17.
  */
-interface VirtualDevice {
+interface DeviceDriver {
 
     fun configure(visitor: Visitor)
 

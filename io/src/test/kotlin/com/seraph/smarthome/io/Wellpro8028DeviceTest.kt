@@ -1,7 +1,5 @@
 package com.seraph.smarthome.io
 
-import com.seraph.smarthome.io.hardware.Connection
-import com.seraph.smarthome.io.hardware.Wellpro8028Device
 import com.seraph.smarthome.io.hardware.asHexString
 import junit.framework.AssertionFailedError
 import org.junit.Assert.assertEquals
@@ -42,7 +40,7 @@ class Wellpro8028DeviceTest {
         device.setRelayState(10, true)
     }
 
-    private class MockConnection : Connection {
+    private class MockConnection {
         private var commandBytes: ByteArray? = null
 
         override fun send(byteArray: ByteArray, responseSize:Int):ByteArray {

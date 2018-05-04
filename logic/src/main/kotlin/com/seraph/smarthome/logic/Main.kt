@@ -1,7 +1,8 @@
 package com.seraph.smarthome.logic
 
+import com.seraph.smarthome.device.DeviceManager
 import com.seraph.smarthome.domain.impl.MqttNetwork
-import com.seraph.smarthome.logic.devices.VirtualOverrideSwitch
+import com.seraph.smarthome.logic.devices.OverrideSwitchDriver
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
@@ -21,8 +22,8 @@ class Main {
             val network = MqttNetwork(broker, log.copy("Network"))
             val manager = DeviceManager(network)
 
-            manager.addDevice(VirtualOverrideSwitch())
-            manager.addDevice(VirtualOverrideSwitch())
+            manager.addDriver(OverrideSwitchDriver())
+            manager.addDriver(OverrideSwitchDriver())
         }
     }
 }
