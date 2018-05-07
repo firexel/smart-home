@@ -15,6 +15,8 @@ dependencies {
     compile project(':common')
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile 'org.mockito:mockito-core:2.13.0'
+    testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
 }
 
 run {

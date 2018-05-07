@@ -106,6 +106,7 @@ private data class NormalizedEndpoint(
     class TypeEnumVisitor : Endpoint.Type.Visitor<NormalizedType> {
         override fun onVoid(type: Endpoint.Type<Unit>): NormalizedType = NormalizedType.VOID
         override fun onBoolean(type: Endpoint.Type<Boolean>): NormalizedType = NormalizedType.BOOLEAN
+        override fun onFloat(type: Endpoint.Type<Float>): NormalizedType = NormalizedType.FLOAT
     }
 
     fun makeEndpoint(): Endpoint<*> = Endpoint(
@@ -116,11 +117,12 @@ private data class NormalizedEndpoint(
             type = when (type) {
                 NormalizedType.BOOLEAN -> Types.BOOLEAN
                 NormalizedType.VOID -> Types.VOID
+                NormalizedType.FLOAT -> Types.FLOAT
             }
     )
 
     private enum class NormalizedType {
-        BOOLEAN, VOID
+        BOOLEAN, VOID, FLOAT
     }
 }
 

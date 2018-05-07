@@ -61,6 +61,7 @@ data class Endpoint<N>(
         interface Visitor<out T> {
             fun onVoid(type: Type<Unit>): T
             fun onBoolean(type: Type<Boolean>): T
+            fun onFloat(type: Type<Float>): T
         }
     }
 
@@ -72,11 +73,13 @@ data class Endpoint<N>(
     private inner class BypassVisitor<out T>(private val visitor: Visitor<T>) : Type.Visitor<T> {
         override fun onVoid(type: Type<Unit>): T = visitor.onVoid(this@Endpoint as Endpoint<Unit>)
         override fun onBoolean(type: Type<Boolean>): T = visitor.onBoolean(this@Endpoint as Endpoint<Boolean>)
+        override fun onFloat(type: Type<Float>): T = visitor.onFloat(this@Endpoint as Endpoint<Float>)
     }
 
     interface Visitor<out T> {
         fun onVoid(endpoint: Endpoint<Unit>): T
         fun onBoolean(endpoint: Endpoint<Boolean>): T
+        fun onFloat(endpoint: Endpoint<Float>): T
     }
 }
 

@@ -4,6 +4,8 @@ import java.io.InputStream
 import java.io.OutputStream
 import kotlin.experimental.and
 
+fun byteArrayOf(vararg elements: Int): ByteArray = elements.map { it.toByte() }.toByteArray()
+
 fun ByteArray.asHexString(): String {
     var str = ""
     this.forEach {
@@ -36,10 +38,17 @@ class BinaryInputStream(private val wrapped: InputStream) : InputStream() {
         return BooleanArray(8) { index -> byte and (1 shl index).toByte() > 0 }
     }
 
-    fun readShort(): Short {
+    fun readShort(endianness: Endianness = Endianness.MSB_LAST): Short {
+        return readUshort(endianness).toShort()
+    }
+
+    fun readUshort(endianness: Endianness = Endianness.MSB_LAST): Int {
         val lsb = read()
         val msb = read()
-        return (lsb and (msb shl 8)).toShort()
+        return when (endianness) {
+            Endianness.MSB_LAST -> lsb or (msb shl 8)
+            Endianness.MSB_FIRST -> msb or (lsb shl 8)
+        }
     }
 }
 
@@ -70,8 +79,22 @@ class BinaryOutputStream(private val wrapped: OutputStream) : OutputStream() {
 
     fun write(b: Byte) = write(b.toInt())
 
-    fun write(short: Short) {
-        write(short.and(0xff).toInt().toByte())
-        write(short.and(0xff00.toShort()).shr(8).toByte())
+    fun write(short: Short, endianness: Endianness = Endianness.MSB_LAST) {
+        val msb = short.and(0xff00.toShort()).shr(8).toByte()
+        val lsb = short.and(0xff).toInt().toByte()
+        when (endianness) {
+            Endianness.MSB_FIRST -> {
+                write(msb)
+                write(lsb)
+            }
+            Endianness.MSB_LAST -> {
+                write(lsb)
+                write(msb)
+            }
+        }
     }
+}
+
+enum class Endianness {
+    MSB_FIRST, MSB_LAST
 }

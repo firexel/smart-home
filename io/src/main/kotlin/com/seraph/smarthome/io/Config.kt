@@ -32,5 +32,5 @@ data class ModbusModule(
 )
 
 enum class ModbusDeviceModel {
-    WELLPRO_8028
+    WELLPRO_8028, WELLPRO_3066
 }

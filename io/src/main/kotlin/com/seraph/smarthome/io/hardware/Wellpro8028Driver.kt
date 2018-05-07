@@ -14,7 +14,7 @@ class Wellpro8028Driver(
 
     private val sensorsCount = 8
     private val actorsCount = 8
-    private val sensorsRefreshRateMs = 100L
+    private val sensorsRefreshRateMs = 1L
 
     private var sensorsState = BooleanArray(sensorsCount)
 

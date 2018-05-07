@@ -5,10 +5,7 @@ import com.google.gson.Gson
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.DeviceManager
 import com.seraph.smarthome.domain.impl.MqttNetwork
-import com.seraph.smarthome.io.hardware.ConcurrentScheduler
-import com.seraph.smarthome.io.hardware.Scheduler
-import com.seraph.smarthome.io.hardware.SerialBus
-import com.seraph.smarthome.io.hardware.Wellpro8028Driver
+import com.seraph.smarthome.io.hardware.*
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
@@ -47,6 +44,7 @@ class Main {
 
 private fun ModbusModule.asDriverInstance(scheduler: Scheduler): DeviceDriver = when (model) {
     ModbusDeviceModel.WELLPRO_8028 -> Wellpro8028Driver(scheduler, index)
+    ModbusDeviceModel.WELLPRO_3066 -> Wellpro3066Driver(index, scheduler)
 }
 
 private fun PortSettings.asSerialBusSettings() = SerialBus.Settings(
