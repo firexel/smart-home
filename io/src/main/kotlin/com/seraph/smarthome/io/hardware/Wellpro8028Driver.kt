@@ -36,7 +36,7 @@ class Wellpro8028Driver(
 
     private fun configureSensors(visitor: DeviceDriver.Visitor): List<DeviceDriver.Output<Boolean>> {
         val sensors = (0 until sensorsCount)
-                .map { visitor.declareOutput("sensor_$it", Types.BOOLEAN, Endpoint.Retention.RETAINED) }
+                .map { visitor.declareOutput("switch_$it", Types.BOOLEAN, Endpoint.Retention.RETAINED) }
 
         sensors.forEachIndexed { index, output ->
             output.use {

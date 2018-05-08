@@ -35,7 +35,7 @@ class BinaryInputStream(private val wrapped: InputStream) : InputStream() {
 
     fun readByteAsBits(): BooleanArray {
         val byte = readByte()
-        return BooleanArray(8) { index -> byte and (1 shl index).toByte() > 0 }
+        return BooleanArray(8) { index -> byte.toInt() and (1 shl index) > 0 }
     }
 
     fun readShort(endianness: Endianness = Endianness.MSB_LAST): Short {

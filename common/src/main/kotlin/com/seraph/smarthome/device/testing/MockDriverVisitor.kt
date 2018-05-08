@@ -1,5 +1,6 @@
-package com.seraph.smarthome.device
+package com.seraph.smarthome.device.testing
 
+import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Control
 import com.seraph.smarthome.domain.Endpoint
 
@@ -18,7 +19,7 @@ class MockDriverVisitor : DeviceDriver.Visitor {
     }
 
     override fun <T> declareInput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention): DeviceDriver.Input<T> {
-        TODO("not implemented")
+        return MockInput()
     }
 
     override fun <T> declareOutput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention): DeviceDriver.Output<T> {
@@ -35,3 +36,4 @@ class MockDriverVisitor : DeviceDriver.Visitor {
         TODO("not implemented")
     }
 }
+

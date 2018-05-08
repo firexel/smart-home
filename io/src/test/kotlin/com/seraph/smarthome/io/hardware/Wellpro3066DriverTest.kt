@@ -1,6 +1,6 @@
 package com.seraph.smarthome.io.hardware
 
-import com.seraph.smarthome.device.MockDriverVisitor
+import com.seraph.smarthome.device.testing.MockDriverVisitor
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
