@@ -1,6 +1,4 @@
-package com.seraph.smarthome.io.hardware
-
-import com.seraph.smarthome.device.DeviceDriver
+package com.seraph.smarthome.device
 
 /**
  * Created by aleksandr.naumov on 07.05.18.

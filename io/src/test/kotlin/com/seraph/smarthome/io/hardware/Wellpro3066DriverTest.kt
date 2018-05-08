@@ -1,9 +1,8 @@
 package com.seraph.smarthome.io.hardware
 
-import com.nhaarman.mockito_kotlin.*
-import com.seraph.smarthome.device.DeviceDriver
-import com.seraph.smarthome.domain.Types
+import com.seraph.smarthome.device.MockDriverVisitor
 import org.junit.Assert
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -11,101 +10,109 @@ import org.junit.Test
  */
 
 class Wellpro3066DriverTest {
+
+    private lateinit var mockScheduler: MockScheduler
+    private lateinit var mockVisitor: MockDriverVisitor
+
+    private val tempSensorsResponseDefault = byteArrayOf(
+            0x01, 0x03,
+            0x10,
+            0x00, 0xF2, 0x27, 0xA9,
+            0x00, 0x00, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0x68, 0x9C
+    )
+
+    private val tempSensorsResponseAllOffline = byteArrayOf(
+            0x01, 0x03,
+            0x10,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0x68, 0x9C
+    )
+
+    private val tempSensorsRequest = byteArrayOf(
+            0x01, 0x03,
+            0x00, 0x00,
+            0x00, 0x08,
+            0x44, 0x0C
+    )
+
+    @Before
+    fun setup() {
+        mockScheduler = MockScheduler()
+        mockVisitor = MockDriverVisitor()
+    }
+
     @Test
     fun testPerformsRequestImmediatelyAfterConfigure() {
-        val mockScheduler: Scheduler = mock()
-        val mockVisitor: DeviceDriver.Visitor = mock {
-            on(it.declareOutput(any(), same(Types.FLOAT), any()))
-                    .thenReturn(mock())
-        }
-
         Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
-        verify(mockScheduler, times(1)).post(
-                any<Bus.Command<*>>(),
-                eq(0L),
-                any()
-        )
-        verifyNoMoreInteractions(mockScheduler)
+        Assert.assertEquals(1, mockScheduler.postsInQueue)
     }
 
     @Test
     fun testPublishesDataOnEveryBusReply() {
-        val mockScheduler = MockScheduler()
-        mockScheduler.mockResponse(
-                request = byteArrayOf(
-                        0x01, 0x03,
-                        0x00, 0x00,
-                        0x00, 0x08,
-                        0x44, 0x0C),
-                response = byteArrayOf(
-                        0x01, 0x03,
-                        0x10,
-                        0x00, 0xF2,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0x68, 0x9C
-                )
-        )
+        mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)
 
-        val outputs = (0 until 8).map { mock<DeviceDriver.Output<Float>>() }
-        val visitor: DeviceDriver.Visitor = mock { visitor ->
-            outputs.forEachIndexed { index, output ->
-                on(visitor.declareOutput(eq("temp_sensor_$index"), same(Types.FLOAT), any()))
-                        .thenReturn(output)
-            }
-        }
-
-        outputs.forEach { verify(it, never()).invalidate() }
-        Wellpro3066Driver(1, mockScheduler).configure(visitor)
+        Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
 
         mockScheduler.proceed()
-        outputs.forEach { verify(it, times(1)).invalidate() }
+        mockVisitor.outputs.values.forEach { Assert.assertEquals(1, it.timesInvalidated) }
 
         mockScheduler.proceed()
-        outputs.forEach { verify(it, times(2)).invalidate() }
+        mockVisitor.outputs.values.forEach { Assert.assertEquals(2, it.timesInvalidated) }
     }
 
     @Test
     fun testCorrectParsingOfTemperatureReadings() {
-        val mockScheduler = MockScheduler()
-        mockScheduler.mockResponse(
-                request = byteArrayOf(
-                        0x01, 0x03,
-                        0x00, 0x00,
-                        0x00, 0x08,
-                        0x44, 0x0C),
-                response = byteArrayOf(
-                        0x01, 0x03,
-                        0x10,
-                        0x00, 0xF2,
-                        0x27, 0xA9,
-                        0x00, 0x00,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0xFF, 0xFF,
-                        0x68, 0x9C
-                )
-        )
+        mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)
 
-        val outputs = (0 until 8).map { MockOutput<Float>() }
-        val visitor: DeviceDriver.Visitor = mock { visitor ->
-            outputs.forEachIndexed { index, output ->
-                on(visitor.declareOutput(eq("temp_sensor_$index"), same(Types.FLOAT), any()))
-                        .thenReturn(output)
-            }
+        Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
+        mockScheduler.proceed()
+
+        assertSensorState(0, 24.2f, true)
+        assertSensorState(1, -15.3f, true)
+        assertSensorState(2, 0f, true)
+        (3 until 8).forEach { assertSensorState(it, 0f, false) }
+    }
+
+    @Test
+    fun testSensorsGoesOfflineAndBack() {
+        Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
+
+        with(mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)) {
+            mockScheduler.proceed()
+            (0..7).forEach { assertSensorOnline(it, it in 0..2) }
+            discard()
         }
 
-        Wellpro3066Driver(1, mockScheduler).configure(visitor)
-        mockScheduler.proceed()
-        Assert.assertEquals(24.2f, outputs[0].value , 0.01f)
-        Assert.assertEquals(-15.3f, outputs[1].value , 0.01f)
-        outputs.drop(2).forEach { Assert.assertEquals(0f, it.value, 0.001f) }
+        with(mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseAllOffline)) {
+            mockScheduler.proceed()
+            (0..7).forEach { assertSensorOnline(it, false) }
+            discard()
+        }
+
+        with(mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)) {
+            mockScheduler.proceed()
+            (0..7).forEach { assertSensorOnline(it, it in 0..2) }
+            discard()
+        }
     }
+
+    private fun assertSensorState(index: Int, temp: Float, online: Boolean) {
+        val tempSensor0 = getSensorDeclaration(index)
+        Assert.assertEquals(temp, tempSensor0.outputs["value"]!!.value as Float, 0.01f)
+        Assert.assertEquals(online, tempSensor0.outputs["online"]!!.value as Boolean)
+    }
+
+    private fun assertSensorOnline(index: Int, online: Boolean) {
+        val tempSensor0 = getSensorDeclaration(index)
+        Assert.assertEquals(online, tempSensor0.outputs["online"]!!.value as Boolean)
+    }
+
+    private fun getSensorDeclaration(index: Int) =
+            mockVisitor.innerDevices["temp_sensor_$index"]!!
 }

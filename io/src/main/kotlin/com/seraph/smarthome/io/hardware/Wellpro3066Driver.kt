@@ -24,27 +24,49 @@ class Wellpro3066Driver(
         requestData(outputs)
     }
 
-    private fun declareOutputs(visitor: DeviceDriver.Visitor): List<DeviceDriver.Output<Float>> {
+    private fun declareOutputs(visitor: DeviceDriver.Visitor): List<SingleSensorOutputs> {
         return (0 until sensorsTotal)
                 .map { index ->
-                    val output = visitor.declareOutput(
-                            "temp_sensor_$index",
-                            Types.FLOAT,
-                            Endpoint.Retention.RETAINED
-                    )
-                    output.apply { use { values[index].tempCelsius } }
+                    with(visitor.declareInnerDevice("temp_sensor_$index")) {
+                        val value = declareValueOutput(this, index)
+                        val online = declareOnlineOutput(this, index)
+                        SingleSensorOutputs(value, online)
+                    }
                 }
     }
 
-    private fun requestData(outputs: List<DeviceDriver.Output<Float>>, delay: Long = 0) {
+    private fun declareOnlineOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Boolean> {
+        val online = visitor.declareOutput(
+                "online",
+                Types.BOOLEAN,
+                Endpoint.Retention.RETAINED
+        )
+        online.use { values[index].isPluggedIn }
+        return online
+    }
+
+    private fun declareValueOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Float> {
+        val value = visitor.declareOutput(
+                "value",
+                Types.FLOAT,
+                Endpoint.Retention.RETAINED
+        )
+        value.use { values[index].tempCelsius }
+        return value
+    }
+
+    private fun requestData(outputs: List<SingleSensorOutputs>, delay: Long = 0) {
         scheduler.post(ReadRegisterCommand(moduleIndex, sensorsTotal), delay) { result ->
             values = result
-            outputs.forEach { it.invalidate() }
+            outputs.forEach {
+                it.online.invalidate()
+                it.value.invalidate()
+            }
             requestData(outputs, sensorsUpdatePeriodMs)
         }
     }
 
-    class ReadRegisterCommand(moduleIndex: Byte, private val sensorsTotal: Int)
+    private class ReadRegisterCommand(moduleIndex: Byte, private val sensorsTotal: Int)
         : ModbusRtuCommand<List<TempSensorState>>(moduleIndex, 0x03) {
 
         override fun writeRequestBody(output: BinaryOutputStream) = with(output) {
@@ -67,7 +89,12 @@ class Wellpro3066Driver(
         }
     }
 
-    data class TempSensorState(
+    private data class SingleSensorOutputs(
+            val value: DeviceDriver.Output<Float>,
+            val online: DeviceDriver.Output<Boolean>
+    )
+
+    private data class TempSensorState(
             val isPluggedIn: Boolean,
             val tempCelsius: Float = 0f
     )

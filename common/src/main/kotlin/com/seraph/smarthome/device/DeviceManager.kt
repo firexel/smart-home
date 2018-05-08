@@ -1,30 +1,44 @@
 package com.seraph.smarthome.device
 
 import com.seraph.smarthome.domain.*
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Created by aleksandr.naumov on 29.12.17.
  */
-class DeviceManager(private val network: Network) {
+class DeviceManager(
+        private val network: Network,
+        private val rootId: Device.Id,
+        private val brokerQueue: ExecutorService = Executors.newFixedThreadPool(1),
+        private val devicesQueue: ExecutorService = Executors.newFixedThreadPool(1)
+) {
 
-    private val brokerQueue = Executors.newFixedThreadPool(1)
-    private val devicesQueue = Executors.newFixedThreadPool(1)
-    private val deviceCounter = AtomicInteger(0)
+    private val idCounters = mutableMapOf<String, Int>()
 
-    fun addDriver(deviceDriver: DeviceDriver) {
+    fun addDriver(id: Device.Id, deviceDriver: DeviceDriver) {
         devicesQueue.run {
-            val deviceIndex = deviceCounter.getAndIncrement()
-            val id = Device.Id(listOf("logic", "$deviceIndex"))
-            val visitor = DiscoverVisitor(id)
+            val visitor = DiscoverVisitor(mergeRootAndDeviceIds(id))
             deviceDriver.configure(visitor)
-            val descriptor = visitor.formDescriptor()
+            val descriptors = visitor.formDescriptors()
             brokerQueue.submit {
-                network.publish(descriptor)
+                descriptors.forEach { network.publish(it) }
             }
             visitor.invalidateAll()
         }
+    }
+
+    private fun mergeRootAndDeviceIds(id: Device.Id): Device.Id {
+        return id.segments.dropLast(1)
+                .fold(rootId) { acc, step -> acc.innerId(step) }
+                .innerId("${id.segments.last()}_${nextIdIndex(id.toString())}")
+    }
+
+    private fun nextIdIndex(id: String): Int {
+        idCounters.putIfAbsent(id, 0)
+        val index = idCounters[id]!!
+        idCounters[id] = index + 1
+        return index
     }
 
     private inner class DiscoverVisitor(private val deviceId: Device.Id) : DeviceDriver.Visitor {
@@ -32,6 +46,13 @@ class DeviceManager(private val network: Network) {
         private val endpoints = mutableListOf<Endpoint<*>>()
         private val controls = mutableListOf<Control>()
         private val outputs = mutableListOf<OutputImpl<*>>()
+        private val innerDevices = mutableListOf<DiscoverVisitor>()
+
+        override fun declareInnerDevice(id: String): DeviceDriver.Visitor {
+            val innerVisitor = DiscoverVisitor(deviceId.innerId(id))
+            innerDevices.add(innerVisitor)
+            return innerVisitor
+        }
 
         override fun <T> declareInput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention):
                 DeviceDriver.Input<T> {
@@ -77,14 +98,15 @@ class DeviceManager(private val network: Network) {
             ))
         }
 
-        fun formDescriptor(): Device = Device(
-                deviceId, endpoints, controls
-        )
+        fun formDescriptors(): List<Device> {
+            return listOf(Device(deviceId, endpoints, controls)) +
+                    innerDevices.flatMap { it.formDescriptors() }
+
+        }
 
         fun invalidateAll() {
-            outputs.forEach {
-                it.invalidate()
-            }
+            outputs.forEach { it.invalidate() }
+            innerDevices.forEach { it.invalidateAll() }
         }
     }
 

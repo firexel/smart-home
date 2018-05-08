@@ -13,6 +13,9 @@ class MockScheduler : Scheduler {
     private val mocks = mutableListOf<BusResponseMock>()
     private val posts = mutableListOf<PostRequest<*>>()
 
+    val postsInQueue
+        get() = posts.size
+
     fun mockResponse(request: ByteArray, response: ByteArray): MockHandle {
         val mock = BusResponseMock(request, response)
         mocks.add(mock)
@@ -55,12 +58,12 @@ class MockScheduler : Scheduler {
     }
 
     private inner class MockHandleImpl(private val mock: BusResponseMock) : MockHandle {
-        override fun remove() {
+        override fun discard() {
             mocks.remove(mock)
         }
     }
 
     interface MockHandle {
-        fun remove()
+        fun discard()
     }
 }

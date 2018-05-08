@@ -1,6 +1,7 @@
 package com.seraph.smarthome.logic
 
 import com.seraph.smarthome.device.DeviceManager
+import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.logic.devices.OverrideSwitchDriver
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
@@ -20,10 +21,10 @@ class Main {
             val params = CommandLineParams(ArgParser(argv))
             val broker = StatefulMqttBroker(params.brokerAddress, "Logic Gates Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            val manager = DeviceManager(network)
+            val manager = DeviceManager(network, Device.Id("logic"))
 
-            manager.addDriver(OverrideSwitchDriver())
-            manager.addDriver(OverrideSwitchDriver())
+            manager.addDriver(Device.Id("switch"), OverrideSwitchDriver())
+            manager.addDriver(Device.Id("switch"), OverrideSwitchDriver())
         }
     }
 }

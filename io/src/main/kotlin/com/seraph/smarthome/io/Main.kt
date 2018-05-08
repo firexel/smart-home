@@ -4,6 +4,7 @@ import com.fazecast.jSerialComm.SerialPort
 import com.google.gson.Gson
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.DeviceManager
+import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.io.hardware.*
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
@@ -27,7 +28,7 @@ class Main {
             val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val config = Gson().fromJson(FileReader(params.configFile), Config::class.java)
-            val manager = DeviceManager(network)
+            val manager = DeviceManager(network, Device.Id("io"))
 
             config.buses.forEach { bus ->
                 val settings = bus.settings.asSerialBusSettings()
@@ -35,7 +36,8 @@ class Main {
                 val busScheduler = ConcurrentScheduler(busDriver)
                 bus.modules.forEach { module ->
                     val device = module.asDriverInstance(busScheduler)
-                    manager.addDriver(device)
+                    val id = Device.Id(bus.name, module.model.descriptor)
+                    manager.addDriver(id, device)
                 }
             }
         }

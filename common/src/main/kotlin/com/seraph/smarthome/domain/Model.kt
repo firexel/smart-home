@@ -11,12 +11,15 @@ data class Metainfo(
 
 data class Device(
         val id: Id,
-        val endpoints: List<Endpoint<*>>,
-        val controls: List<Control>
+        val endpoints: List<Endpoint<*>> = emptyList(),
+        val controls: List<Control> = emptyList()
 ) {
     data class Id(val segments: List<String>) {
+        constructor(vararg segments: String) : this(segments.toList())
+
         val value: String = segments.joinToString(":")
         override fun toString(): String = value
+        fun innerId(newSegment: String) = Id(segments + newSegment)
     }
 }
 
