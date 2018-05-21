@@ -90,7 +90,7 @@ class Wellpro8028Driver(
         }
 
         override fun readResponseBody(input: BinaryInputStream): BooleanArray {
-            input.skip(1)
+            input.read()
             return input.readByteAsBits()
         }
     }

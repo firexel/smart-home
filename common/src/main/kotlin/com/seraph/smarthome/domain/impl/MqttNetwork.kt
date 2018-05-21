@@ -17,25 +17,23 @@ class MqttNetwork(
         create()
     }
 
-    override fun publish(metainfo: Metainfo) {
-        publish(Topics.metadata(), JsonSerializer(gson, Metainfo::class), metainfo)
-    }
+    override fun publish(metainfo: Metainfo): Network.Publication =
+            publish(Topics.metadata(), JsonSerializer(gson, Metainfo::class), metainfo)
 
     override fun subscribe(func: (Metainfo) -> Unit) {
         subscribe(Topics.metadata(), JsonSerializer(gson, Metainfo::class), func)
     }
 
-    override fun publish(device: Device) {
-        publish(Topics.structure(device.id), JsonSerializer(gson, Device::class), device)
-    }
+    override fun publish(device: Device): Network.Publication =
+            publish(Topics.structure(device.id), JsonSerializer(gson, Device::class), device)
 
     override fun subscribe(device: Device.Id?, func: (Device) -> Unit) {
         subscribe(Topics.structure(device), JsonSerializer(gson, Device::class), func)
     }
 
-    override fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T) {
-        publish(Topics.endpoint(device, endpoint), endpoint.type.serializer, data)
-    }
+    override fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T): Network.Publication =
+            publish(Topics.endpoint(device, endpoint), endpoint.type.serializer, data)
+
 
     override fun <T> subscribe(
             device: Device.Id,
@@ -59,8 +57,14 @@ class MqttNetwork(
         }
     }
 
-    private fun <T> publish(topic: Topic, serializer: Serializer<T>, data: T) {
+    private fun <T> publish(topic: Topic, serializer: Serializer<T>, data: T): NetworkPublication {
         log.v("$topic <-- $data")
-        transport.publish(topic, serializer.toBytes(data))
+        return NetworkPublication(transport.publish(topic, serializer.toBytes(data)))
+    }
+
+    private class NetworkPublication(private val publication: Broker.Publication) : Network.Publication {
+        override fun waitForCompletion(millis: Long) {
+            publication.waitForCompletion(millis)
+        }
     }
 }

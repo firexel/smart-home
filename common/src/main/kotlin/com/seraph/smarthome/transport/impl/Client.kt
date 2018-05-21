@@ -12,5 +12,9 @@ internal interface Client {
     fun disconnect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit)
 
     fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit)
-    fun publish(topic: Topic, data: ByteArray)
+    fun publish(topic: Topic, data: ByteArray):Publication
+
+    interface Publication {
+        fun waitForCompletion(millis: Long)
+    }
 }

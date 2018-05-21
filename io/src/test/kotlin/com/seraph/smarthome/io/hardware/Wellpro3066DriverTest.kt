@@ -83,22 +83,19 @@ class Wellpro3066DriverTest {
     fun testSensorsGoesOfflineAndBack() {
         Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
 
-        with(mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)) {
-            mockScheduler.proceed()
+        mockScheduler.withSingleMock(tempSensorsRequest, tempSensorsResponseDefault) {
+            proceed()
             (0..7).forEach { assertSensorOnline(it, it in 0..2) }
-            discard()
         }
 
-        with(mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseAllOffline)) {
-            mockScheduler.proceed()
+        mockScheduler.withSingleMock(tempSensorsRequest, tempSensorsResponseAllOffline) {
+            proceed()
             (0..7).forEach { assertSensorOnline(it, false) }
-            discard()
         }
 
-        with(mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)) {
-            mockScheduler.proceed()
+        mockScheduler.withSingleMock(tempSensorsRequest, tempSensorsResponseDefault) {
+            proceed()
             (0..7).forEach { assertSensorOnline(it, it in 0..2) }
-            discard()
         }
     }
 
@@ -114,5 +111,5 @@ class Wellpro3066DriverTest {
     }
 
     private fun getSensorDeclaration(index: Int) =
-            mockVisitor.innerDevices["temp_sensor_$index"]!!
+            mockVisitor.inners["temp_sensor_$index"]!!
 }

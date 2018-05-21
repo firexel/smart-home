@@ -30,8 +30,15 @@ class MockScheduler : Scheduler {
         if (posts.isEmpty()) {
             Assert.fail("No posts in queue to proceed")
         } else {
-            posts.removeAt(posts.size - 1).proceed()
+            posts.removeAt(0).proceed()
         }
+    }
+
+    fun <R> withSingleMock(request: ByteArray, response: ByteArray, block: MockScheduler.() -> R): R {
+        val mock = mockResponse(request, response)
+        val result = block()
+        mock.dispose()
+        return result
     }
 
     private data class BusResponseMock(
@@ -58,12 +65,12 @@ class MockScheduler : Scheduler {
     }
 
     private inner class MockHandleImpl(private val mock: BusResponseMock) : MockHandle {
-        override fun discard() {
+        override fun dispose() {
             mocks.remove(mock)
         }
     }
 
     interface MockHandle {
-        fun discard()
+        fun dispose()
     }
 }

@@ -28,7 +28,7 @@ class Main {
             val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val config = Gson().fromJson(FileReader(params.configFile), Config::class.java)
-            val manager = DeviceManager(network, Device.Id("io"))
+            val manager = DeviceManager(network, Device.Id("io"), log = log.copy("Manager"))
 
             config.buses.forEach { bus ->
                 val settings = bus.settings.asSerialBusSettings()

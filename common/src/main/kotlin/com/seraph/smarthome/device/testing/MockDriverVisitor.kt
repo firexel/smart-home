@@ -10,16 +10,19 @@ import com.seraph.smarthome.domain.Endpoint
 class MockDriverVisitor : DeviceDriver.Visitor {
 
     val outputs = mutableMapOf<String, MockOutput<*>>()
-    val innerDevices = mutableMapOf<String, MockDriverVisitor>()
+    val inners = mutableMapOf<String, MockDriverVisitor>()
+    val inputs = mutableMapOf<String, MockInput<*>>()
 
     override fun declareInnerDevice(id: String): DeviceDriver.Visitor {
         val visitor = MockDriverVisitor()
-        innerDevices.put(id, visitor)
+        inners.put(id, visitor)
         return visitor
     }
 
     override fun <T> declareInput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention): DeviceDriver.Input<T> {
-        return MockInput()
+        val input = MockInput<T>()
+        inputs.put(id, input)
+        return input
     }
 
     override fun <T> declareOutput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention): DeviceDriver.Output<T> {

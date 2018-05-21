@@ -6,7 +6,7 @@ package com.seraph.smarthome.transport
 interface Broker {
     fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit)
 
-    fun publish(topic: Topic, data: ByteArray)
+    fun publish(topic: Topic, data: ByteArray): Publication
 
     fun addStateListener(listener: StateListener)
 
@@ -24,5 +24,9 @@ interface Broker {
             fun onWaitingState(msToReconnect: Long): T
             fun onConnectingState(): T
         }
+    }
+
+    interface Publication {
+        fun waitForCompletion(millis: Long)
     }
 }

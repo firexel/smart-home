@@ -43,11 +43,17 @@ class BinaryInputStream(private val wrapped: InputStream) : InputStream() {
     }
 
     fun readUshort(endianness: Endianness = Endianness.MSB_LAST): Int {
-        val lsb = read()
-        val msb = read()
+        var lsb = read()
+        var msb = read()
+        if (lsb < 0) {
+            lsb += 256
+        }
+        if (msb < 0) {
+            msb += 256
+        }
         return when (endianness) {
             Endianness.MSB_LAST -> lsb or (msb shl 8)
-            Endianness.MSB_FIRST -> msb or (lsb shl 8)
+            Endianness.MSB_FIRST -> (lsb shl 8) or msb
         }
     }
 }

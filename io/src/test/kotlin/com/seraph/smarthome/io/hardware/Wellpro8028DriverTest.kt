@@ -1,6 +1,7 @@
 package com.seraph.smarthome.io.hardware
 
 import com.seraph.smarthome.device.testing.MockDriverVisitor
+import com.seraph.smarthome.device.testing.MockInput
 import com.seraph.smarthome.device.testing.MockOutput
 import org.junit.Assert
 import org.junit.Before
@@ -21,6 +22,12 @@ class Wellpro8028DriverTest {
         scheduler = MockScheduler()
         visitor = MockDriverVisitor()
     }
+
+    private val relaySetRequest = byteArrayOf(
+            0x01, 0x05, 0x00, 0x00, 0xFF, 0x00, 0x8C, 0x3A
+    )
+
+    private val relaySetResponse = relaySetRequest
 
     private val switchesRequest = byteArrayOf(
             0x01, 0x02, 0x00, 0x00, 0x00, 0x08, 0x79, 0xcc
@@ -51,25 +58,44 @@ class Wellpro8028DriverTest {
 
         Wellpro8028Driver(scheduler, 0x01).configure(visitor)
 
-        with(scheduler.mockResponse(switchesRequest, switchesResponseThreeOn)) {
-            scheduler.proceed()
+        scheduler.withSingleMock(switchesRequest, switchesResponseThreeOn) {
+            proceed()
             assertOutputsInvalidated(1)
             assertOutputsEnabled(1, 6, 7)
-            discard()
         }
 
-        with(scheduler.mockResponse(switchesRequest, switchesResponseAllOff)) {
-            scheduler.proceed()
+        scheduler.withSingleMock(switchesRequest, switchesResponseAllOff) {
+            proceed()
             assertOutputsInvalidated(2)
             assertOutputsEnabled(/* none of them */)
-            discard()
         }
 
-        with(scheduler.mockResponse(switchesRequest, switchesResponseThreeOn)) {
-            scheduler.proceed()
+        scheduler.withSingleMock(switchesRequest, switchesResponseThreeOn) {
+            proceed()
             assertOutputsInvalidated(3)
             assertOutputsEnabled(1, 6, 7)
-            discard()
+        }
+    }
+
+    @Test
+    fun testDeviceRelaysUpdate() {
+
+        Wellpro8028Driver(scheduler, 0x01).configure(visitor)
+
+        val input1 = visitor.inputs["relay_0"] as MockInput<Boolean>
+
+        Assert.assertEquals(1, scheduler.postsInQueue)
+        input1.post(true)
+        Assert.assertEquals(2, scheduler.postsInQueue)
+
+        scheduler.withSingleMock(switchesRequest, switchesResponseAllOff) {
+            proceed()
+            Assert.assertEquals(2, scheduler.postsInQueue)
+        }
+
+        scheduler.withSingleMock(relaySetRequest, relaySetResponse) {
+            proceed()
+            Assert.assertEquals(1, scheduler.postsInQueue)
         }
     }
 

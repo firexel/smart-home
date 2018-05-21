@@ -1,6 +1,8 @@
 package com.seraph.smarthome.device
 
 import com.seraph.smarthome.domain.*
+import com.seraph.smarthome.util.Log
+import com.seraph.smarthome.util.NoLog
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -11,7 +13,8 @@ class DeviceManager(
         private val network: Network,
         private val rootId: Device.Id,
         private val brokerQueue: ExecutorService = Executors.newFixedThreadPool(1),
-        private val devicesQueue: ExecutorService = Executors.newFixedThreadPool(1)
+        private val devicesQueue: ExecutorService = Executors.newFixedThreadPool(1),
+        private val log: Log = NoLog()
 ) {
 
     private val idCounters = mutableMapOf<String, Int>()
@@ -22,7 +25,8 @@ class DeviceManager(
             deviceDriver.configure(visitor)
             val descriptors = visitor.formDescriptors()
             brokerQueue.submit {
-                descriptors.forEach { network.publish(it) }
+                descriptors.forEach { network.publish(it)
+                        .waitForCompletion(1000) }
             }
             visitor.invalidateAll()
         }
@@ -45,7 +49,7 @@ class DeviceManager(
 
         private val endpoints = mutableListOf<Endpoint<*>>()
         private val controls = mutableListOf<Control>()
-        private val outputs = mutableListOf<OutputImpl<*>>()
+        private val outputs = mutableListOf<NonRetainedOutput<*>>()
         private val innerDevices = mutableListOf<DiscoverVisitor>()
 
         override fun declareInnerDevice(id: String): DeviceDriver.Visitor {
@@ -79,14 +83,21 @@ class DeviceManager(
             )
 
             endpoints.add(endpoint)
-            return OutputImpl(deviceId, endpoint)
+            return createOutput(endpoint, retention)
+        }
+
+        private fun <T> createOutput(endpoint: Endpoint<T>, retention: Endpoint.Retention): DeviceDriver.Output<T> {
+            return when (retention) {
+                Endpoint.Retention.RETAINED -> RetainedOutput(deviceId, endpoint)
+                Endpoint.Retention.NOT_RETAINED -> NonRetainedOutput(deviceId, endpoint)
+            }
         }
 
         override fun declareIndicator(id: String, priority: Control.Priority, source: DeviceDriver.Output<Boolean>) {
             controls.add(Control(
                     Control.Id(id),
                     priority,
-                    Indicator((source as OutputImpl<Boolean>).endpoint)
+                    Indicator((source as EndpointContainer<Boolean>).endpoint)
             ))
         }
 
@@ -94,7 +105,7 @@ class DeviceManager(
             controls.add(Control(
                     Control.Id(id),
                     priority,
-                    Button((input as InputImpl<Unit>).endpoint, alert)
+                    Button((input as EndpointContainer<Unit>).endpoint, alert)
             ))
         }
 
@@ -110,10 +121,10 @@ class DeviceManager(
         }
     }
 
-    inner class OutputImpl<T>(
+    private inner class NonRetainedOutput<T>(
             private val deviceId: Device.Id,
-            val endpoint: Endpoint<T>
-    ) : DeviceDriver.Output<T> {
+            override val endpoint: Endpoint<T>
+    ) : DeviceDriver.Output<T>, EndpointContainer<T> {
 
         private var source: () -> T = { throw IllegalStateException("Source should be set") }
 
@@ -125,14 +136,45 @@ class DeviceManager(
             val data = source()
             brokerQueue.run {
                 network.publish(deviceId, endpoint, data)
+                        .waitForCompletion(1000)
             }
         }
     }
 
+    private inner class RetainedOutput<T>(
+            private val deviceId: Device.Id,
+            override val endpoint: Endpoint<T>
+    ) : DeviceDriver.Output<T>, EndpointContainer<T> {
+
+        private var source: () -> T = { throw IllegalStateException("Source should be set") }
+        private var wasSet = false
+        private var retainedValue: T? = null
+
+        override fun use(source: () -> T) {
+            this.source = source
+        }
+
+        override fun invalidate() {
+            val newValue = source()
+            if (!wasSet || newValue != retainedValue) {
+                wasSet = true
+                retainedValue = newValue
+                brokerQueue.run {
+                    network.publish(deviceId, endpoint, newValue)
+                            .waitForCompletion(1000)
+                }
+            }
+        }
+    }
+
+    private interface EndpointContainer<T> {
+        val endpoint: Endpoint<T>
+    }
+
     inner class InputImpl<T>(
             private val deviceId: Device.Id,
-            val endpoint: Endpoint<T>
-    ) : DeviceDriver.Input<T> {
+            override val endpoint: Endpoint<T>
+    ) : DeviceDriver.Input<T>, EndpointContainer<T> {
 
         override fun observe(observer: (T) -> Unit) {
             brokerQueue.run {
