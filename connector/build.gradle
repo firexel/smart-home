@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     compile "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
     compile project(':common')
     testCompile group: 'junit', name: 'junit', version: '4.12'

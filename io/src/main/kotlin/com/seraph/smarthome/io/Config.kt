@@ -8,7 +8,7 @@ data class Config(
 )
 
 data class Rs485Bus(
-        val name:String,
+        val name: String,
         val settings: PortSettings,
         val modules: List<ModbusModule>
 )
@@ -27,10 +27,11 @@ enum class Parity {
 
 data class ModbusModule(
         val name: String,
-        val index: Int,
+        val index: Byte,
         val model: ModbusDeviceModel
 )
 
-enum class ModbusDeviceModel {
-    WELLPRO_8028
+enum class ModbusDeviceModel(val descriptor: String) {
+    WELLPRO_8028("io_controller"),
+    WELLPRO_3066("temp_sensor_hub")
 }

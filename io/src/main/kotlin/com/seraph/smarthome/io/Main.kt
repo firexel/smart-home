@@ -2,12 +2,13 @@ package com.seraph.smarthome.io
 
 import com.fazecast.jSerialComm.SerialPort
 import com.google.gson.Gson
+import com.seraph.smarthome.device.DeviceDriver
+import com.seraph.smarthome.device.DeviceManager
+import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
-import com.seraph.smarthome.io.hardware.ComPortConnection
-import com.seraph.smarthome.io.hardware.Wellpro8028Device
+import com.seraph.smarthome.io.hardware.*
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
-import com.seraph.smarthome.util.NoLog
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.SystemExitException
 import com.xenomachina.argparser.default
@@ -27,23 +28,28 @@ class Main {
             val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val config = Gson().fromJson(FileReader(params.configFile), Config::class.java)
+            val manager = DeviceManager(network, Device.Id("io"), log = log.copy("Manager"))
+
             config.buses.forEach { bus ->
-                val settings = bus.settings.asPortSettings()
-                val connection = ComPortConnection(bus.settings.path, settings, log.copy("Com"))
+                val settings = bus.settings.asSerialBusSettings()
+                val busDriver = SerialBus(bus.settings.path, settings, log.copy("Serial"))
+                val busScheduler = ConcurrentScheduler(busDriver)
                 bus.modules.forEach { module ->
-                    val device = module.asDeviceInstance(connection)
-                    DeviceServer(network, device, "${bus.name}:${module.name}").serve()
+                    val device = module.asDriverInstance(busScheduler)
+                    val id = Device.Id(bus.name, module.model.descriptor)
+                    manager.addDriver(id, device)
                 }
             }
         }
     }
 }
 
-private fun ModbusModule.asDeviceInstance(connection: ComPortConnection): IoDevice = when (model) {
-    ModbusDeviceModel.WELLPRO_8028 -> Wellpro8028Device(connection, index.toByte())
+private fun ModbusModule.asDriverInstance(scheduler: Scheduler): DeviceDriver = when (model) {
+    ModbusDeviceModel.WELLPRO_8028 -> Wellpro8028Driver(scheduler, index)
+    ModbusDeviceModel.WELLPRO_3066 -> Wellpro3066Driver(index, scheduler)
 }
 
-private fun PortSettings.asPortSettings() = ComPortConnection.Settings(
+private fun PortSettings.asSerialBusSettings() = SerialBus.Settings(
         baudRate, parity.asConnectionParityIndex(), dataBits, stopBits
 )
 

@@ -1,19 +1,19 @@
 package com.seraph.smarthome.logic.devices
 
+import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Control
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
-import com.seraph.smarthome.logic.VirtualDevice
 
 /**
  * Created by aleksandr.naumov on 01.01.18.
  */
 
-class VirtualOverrideSwitch : VirtualDevice {
+class OverrideSwitchDriver : DeviceDriver {
 
     private var state: Boolean = false
 
-    override fun configure(visitor: VirtualDevice.Visitor) {
+    override fun configure(visitor: DeviceDriver.Visitor) {
         val stateInput = visitor.declareInput(
                 "state",
                 Types.BOOLEAN,

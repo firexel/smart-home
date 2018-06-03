@@ -68,6 +68,12 @@ class Connector(
                 network.publish(dst.device, dstEndpoint as Endpoint<Boolean>, data)
             }
         }
+
+        override fun onFloat(endpoint: Endpoint<Float>) {
+            network.subscribe(src.device, endpoint) { _, _, data ->
+                network.publish(dst.device, dstEndpoint as Endpoint<Float>, data)
+            }
+        }
     }
 
     data class GlobalEndpointId(

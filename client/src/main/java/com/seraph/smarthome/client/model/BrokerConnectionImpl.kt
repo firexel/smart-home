@@ -62,6 +62,7 @@ class BrokerConnectionImpl(credentials: BrokerCredentials, log: Log) : BrokerCon
     override fun <T> publish(deviceId: Device.Id, endpoint: Endpoint<T>, value: T): Observable<Unit> {
         return Observable.fromCallable {
             network.publish(deviceId, endpoint, value)
+            Unit
         }
     }
 

@@ -31,7 +31,7 @@ internal class PahoClientWrapper(
             })
         }
 
-    override fun connect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit) = safe("connect") {
+    override fun connect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit): Unit = safe("connect") {
         client.connect(
                 MqttConnectOptions().apply {
                     isAutomaticReconnect = options.autoReconnect
@@ -54,7 +54,7 @@ internal class PahoClientWrapper(
         )
     }
 
-    override fun disconnect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit) = safe("disconnect") {
+    override fun disconnect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit): Unit = safe("disconnect") {
         client.disconnect(null, object : IMqttActionListener {
             override fun onSuccess(asyncActionToken: IMqttToken?) {
                 log.i("Disconnected")
@@ -69,19 +69,19 @@ internal class PahoClientWrapper(
         })
     }
 
-    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit) = safe("subscribe") {
+    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit): Unit = safe("subscribe") {
         client.subscribe(topic.toString(), options.subscribeQos) { topic, message ->
             listener(Topic.fromString(topic), message.payload)
         }
     }
 
-    override fun publish(topic: Topic, data: ByteArray) = safe("publish") {
-        client.publish(topic.toString(), data, options.publishQos, topic.persisted)
+    override fun publish(topic: Topic, data: ByteArray): Client.Publication = safe("publish") {
+        return MqttPublication(client.publish(topic.toString(), data, options.publishQos, topic.persisted))
     }
 
-    private inline fun safe(name: String, operation: () -> Unit) {
+    private inline fun <T> safe(name: String, operation: () -> T): T {
         try {
-            operation()
+            return operation()
         } catch (ex: MqttException) {
             throwClientException(ex, name)
         } catch (ex: IOException) {
@@ -89,7 +89,7 @@ internal class PahoClientWrapper(
         }
     }
 
-    private fun throwClientException(ex: Throwable, name: String) {
+    private fun throwClientException(ex: Throwable, name: String): Nothing {
         with(PahoClientException(ex)) {
             log.w("Error occurred during $name: $message")
             throw this
@@ -104,4 +104,10 @@ internal class PahoClientWrapper(
             val autoReconnect: Boolean = false,
             val keepAliveInterval: Int = 10
     )
+
+    private class MqttPublication(val token: IMqttDeliveryToken) : Client.Publication {
+        override fun waitForCompletion(millis: Long) {
+            token.waitForCompletion(millis)
+        }
+    }
 }

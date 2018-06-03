@@ -43,15 +43,23 @@ class StatefulMqttBroker(
         }
     }
 
-    override fun publish(topic: Topic, data: ByteArray) = exchanger.sync {
+    override fun publish(topic: Topic, data: ByteArray): Broker.Publication = exchanger.sync {
+        var publication: StatefulPublication? = null
         it.state.execute { client ->
-            client.publish(topic, data)
+            publication = StatefulPublication(client.publish(topic, data))
         }
+        publication!!
     }
 
     override fun addStateListener(listener: Broker.StateListener) = exchanger.sync {
         listeners.add(listener)
         listener.onStateChanged(it.state)
+    }
+
+    private class StatefulPublication(private val publication: Client.Publication) : Broker.Publication {
+        override fun waitForCompletion(millis: Long) {
+            publication.waitForCompletion(millis)
+        }
     }
 }
 
