@@ -20,7 +20,7 @@ class Main {
     companion object {
         @JvmStatic
         fun main(argv: Array<String>) {
-            val log = ConsoleLog("Connector")
+            val log = ConsoleLog("Connector").apply { i("Starting...") }
             log.i("Started with following params: ${argv.asList()}")
             val params = CommandLineParams(ArgParser(argv))
             val gsonBuilder = GsonBuilder()

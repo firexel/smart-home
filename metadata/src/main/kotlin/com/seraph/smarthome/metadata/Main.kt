@@ -15,7 +15,7 @@ class Main {
     companion object {
         @JvmStatic
         fun main(argv: Array<String>) {
-            val log = ConsoleLog("Metainfo")
+            val log = ConsoleLog("Metainfo").apply { i("Starting...") }
             val params = CommandLineParams(ArgParser(argv))
             val broker = StatefulMqttBroker(params.brokerAddress, "MetadataService", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))

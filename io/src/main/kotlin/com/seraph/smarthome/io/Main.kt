@@ -24,7 +24,7 @@ class Main {
         @JvmStatic
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
-            val log = ConsoleLog()
+            val log = ConsoleLog("IO").apply { i("Starting...") }
             val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val config = Gson().fromJson(FileReader(params.configFile), Config::class.java)
