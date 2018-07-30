@@ -16,9 +16,6 @@ class Wellpro3066Driver(
     private val sensorsTotal = 8
     private val sensorsUpdatePeriodMs = 1000L
 
-    private var values: List<TempSensorState>
-            = (0 until sensorsTotal).map { TempSensorState(false, 0f) }
-
     override fun configure(visitor: DeviceDriver.Visitor) {
         val outputs = declareOutputs(visitor)
         requestData(outputs)
@@ -36,31 +33,26 @@ class Wellpro3066Driver(
     }
 
     private fun declareOnlineOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Boolean> {
-        val online = visitor.declareOutput(
+        return visitor.declareOutput(
                 "online",
                 Types.BOOLEAN,
                 Endpoint.Retention.RETAINED
         )
-        online.use { values[index].isPluggedIn }
-        return online
     }
 
     private fun declareValueOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Float> {
-        val value = visitor.declareOutput(
+        return visitor.declareOutput(
                 "value",
                 Types.FLOAT,
                 Endpoint.Retention.RETAINED
         )
-        value.use { values[index].tempCelsius }
-        return value
     }
 
     private fun requestData(outputs: List<SingleSensorOutputs>, delay: Long = 0) {
-        scheduler.post(ReadRegisterCommand(moduleIndex, sensorsTotal), delay) { result ->
-            values = result
-            outputs.forEach {
-                it.online.invalidate()
-                it.value.invalidate()
+        scheduler.post(ReadRegisterCommand(moduleIndex, sensorsTotal), delay) { values ->
+            outputs.forEachIndexed { index, output ->
+                output.online.set(values[index].isPluggedIn)
+                output.value.set(values[index].tempCelsius)
             }
             requestData(outputs, sensorsUpdatePeriodMs)
         }

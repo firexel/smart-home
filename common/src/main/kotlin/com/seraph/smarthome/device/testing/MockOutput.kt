@@ -8,7 +8,7 @@ import com.seraph.smarthome.device.DeviceDriver
 class MockOutput<T> : DeviceDriver.Output<T> {
 
     private var invalidateCount = 0
-    private var source: () -> T = { throw IllegalStateException("Source should be set") }
+    private var source: () -> T = { throw IllegalStateException("Value not set yet") }
 
     val value: T
         get() = source()
@@ -16,11 +16,8 @@ class MockOutput<T> : DeviceDriver.Output<T> {
     val timesInvalidated: Int
         get() = invalidateCount
 
-    override fun use(source: () -> T) {
-        this.source = source
-    }
-
-    override fun invalidate() {
+    override fun set(update: T) {
+        source = { update }
         invalidateCount++
     }
 }

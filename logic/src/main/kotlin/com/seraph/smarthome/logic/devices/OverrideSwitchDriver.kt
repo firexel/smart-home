@@ -36,10 +36,8 @@ class OverrideSwitchDriver : DeviceDriver {
         visitor.declareIndicator("state", Control.Priority.MAIN, overridenOutput)
 
         fun switchState(newState: Boolean) {
-            if (newState != state) {
-                state = newState
-                overridenOutput.invalidate()
-            }
+            state = newState
+            overridenOutput.set(newState)
         }
 
         stateInput.observe {
@@ -49,7 +47,5 @@ class OverrideSwitchDriver : DeviceDriver {
         impulseInput.observe {
             switchState(!state)
         }
-
-        overridenOutput.use { state }
     }
 }

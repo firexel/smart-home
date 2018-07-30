@@ -1,13 +1,11 @@
 package com.seraph.smarthome.device
 
-import com.nhaarman.mockito_kotlin.argumentCaptor
-import com.nhaarman.mockito_kotlin.mock
-import com.nhaarman.mockito_kotlin.times
-import com.nhaarman.mockito_kotlin.verify
+import com.nhaarman.mockito_kotlin.*
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Network
 import org.junit.Assert
 import org.junit.Test
+import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -17,18 +15,16 @@ import java.util.concurrent.TimeUnit
 class DeviceManagerTest {
     @Test
     fun testInnedDevices() {
-        val brokerExecutor = Executors.newSingleThreadExecutor()
-        val deviceExecutor = Executors.newSingleThreadExecutor()
-        val network = mock<Network>()
+        val executor = Executors.newSingleThreadExecutor()
+        val network = mock<Network> {
+            whenever(it.publish(any<Device>())).thenReturn(ImmediatePublication())
+        }
 
-        DeviceManager(network, Device.Id("root"), brokerExecutor, deviceExecutor)
-                .addDriver(Device.Id("level1"), TestMultilevelDriver())
+        DeviceManager(network, Device.Id("root"), executor)
+                .addDriver(Device.Id("level1"), TestMultilevelDriver(), ImmediateExecutor())
 
-        deviceExecutor.shutdown()
-        deviceExecutor.awaitTermination(5, TimeUnit.SECONDS)
-        brokerExecutor.shutdown()
-        brokerExecutor.awaitTermination(5, TimeUnit.SECONDS)
-
+        executor.shutdown()
+        executor.awaitTermination(5, TimeUnit.SECONDS)
         val captor = argumentCaptor<Device>()
         verify(network, times(7)).publish(captor.capture())
         val published = captor.allValues.iterator()
@@ -43,6 +39,12 @@ class DeviceManagerTest {
         Assert.assertFalse(published.hasNext())
     }
 
+    class ImmediatePublication : Network.Publication {
+        override fun waitForCompletion(millis: Long) {
+            // do nothing
+        }
+    }
+
     class TestMultilevelDriver : DeviceDriver {
         override fun configure(visitor: DeviceDriver.Visitor) {
             (0..1).forEach {
@@ -51,6 +53,12 @@ class DeviceManagerTest {
                     level2Visitor.declareInnerDevice("level3_$it")
                 }
             }
+        }
+    }
+
+    class ImmediateExecutor : Executor {
+        override fun execute(p0: Runnable?) {
+            p0?.run()
         }
     }
 }

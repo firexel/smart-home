@@ -16,8 +16,6 @@ class Wellpro8028Driver(
     private val actorsCount = 8
     private val sensorsRefreshRateMs = 1L
 
-    private var sensorsState = BooleanArray(sensorsCount)
-
     override fun configure(visitor: DeviceDriver.Visitor) {
         configureActors(visitor)
         val sensors = configureSensors(visitor)
@@ -35,26 +33,15 @@ class Wellpro8028Driver(
     }
 
     private fun configureSensors(visitor: DeviceDriver.Visitor): List<DeviceDriver.Output<Boolean>> {
-        val sensors = (0 until sensorsCount)
+        return (0 until sensorsCount)
                 .map { visitor.declareOutput("switch_$it", Types.BOOLEAN, Endpoint.Retention.RETAINED) }
-
-        sensors.forEachIndexed { index, output ->
-            output.use {
-                synchronized(this@Wellpro8028Driver) {
-                    sensorsState[index]
-                }
-            }
-        }
-
-        return sensors
     }
 
     private fun sendReadCommand(sensors: List<DeviceDriver.Output<Boolean>>) {
-        scheduler.post(ReadSensorsStateCommand(moduleIndex), sensorsRefreshRateMs) { sensorsState ->
-            synchronized(this@Wellpro8028Driver) {
-                this.sensorsState = sensorsState
+        scheduler.post(ReadSensorsStateCommand(moduleIndex), sensorsRefreshRateMs) { state ->
+            sensors.forEachIndexed { index, sensor ->
+                sensor.set(state[index])
             }
-            sensors.forEach { it.invalidate() }
             sendReadCommand(sensors)
         }
     }

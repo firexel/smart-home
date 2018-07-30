@@ -20,8 +20,7 @@ interface DeviceDriver {
     }
 
     interface Output<in T> {
-        fun use(source: () -> T)
-        fun invalidate()
+        fun set(update: T)
     }
 
     interface Input<out T> {
