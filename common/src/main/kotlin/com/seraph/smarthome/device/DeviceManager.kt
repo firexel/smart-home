@@ -4,7 +4,6 @@ import com.seraph.smarthome.domain.*
 import com.seraph.smarthome.util.Log
 import com.seraph.smarthome.util.NoLog
 import java.util.concurrent.Executor
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
@@ -13,7 +12,7 @@ import java.util.concurrent.Executors
 class DeviceManager(
         private val network: Network,
         private val rootId: Device.Id,
-        private val brokerQueue: ExecutorService = Executors.newFixedThreadPool(1),
+        private val brokerQueue: Executor = Executors.newFixedThreadPool(1),
         private val log: Log = NoLog()
 ) {
 
@@ -123,7 +122,7 @@ class DeviceManager(
         fun configure(driver: DeviceDriver) {
             driver.configure(this)
             val descriptors = formDescriptors()
-            brokerQueue.submit {
+            brokerQueue.execute {
                 descriptors.forEach {
                     network.publish(it)
                             .waitForCompletion(1000)
@@ -133,7 +132,7 @@ class DeviceManager(
         }
 
         fun invalidateAll() {
-            retainedOutputs.forEach { it.invalidate() }
+            retainedOutputs.forEach { it.publishSetValue() }
             innerDevices.forEach { it.invalidateAll() }
         }
     }
@@ -146,7 +145,7 @@ class DeviceManager(
         override fun set(update: T) {
             context.run {
                 if (!context.outputLocked) {
-                    brokerQueue.run {
+                    brokerQueue.execute {
                         network.publish(context.id, endpoint, update)
                                 .waitForCompletion(1000)
                     }
@@ -160,41 +159,39 @@ class DeviceManager(
             override val endpoint: Endpoint<T>
     ) : DeviceDriver.Output<T>, EndpointContainer<T> {
 
-        private var wasSet = false
-        private var wasLocked = false
+        private var valueIsSet = false
+
+        private val isLocked
+            get() = context.outputLocked
+
         private var retainedValue: T? = null
 
         override fun set(update: T) {
             context.run {
-                if (!postingSameAsRetained(update)) {
+                if (!isLocked && !postingSameAsRetained(update)) {
                     retainValue(update)
-                    if (!context.outputLocked) {
-                        fireUpdate(update)
-                    } else {
-                        wasLocked = true
-                    }
+                    fireUpdate(update)
                 }
             }
         }
 
         private fun fireUpdate(update: T) {
-            wasLocked = false
-            brokerQueue.run {
+            brokerQueue.execute {
                 network.publish(context.id, endpoint, update)
                         .waitForCompletion(1000)
             }
         }
 
         private fun retainValue(update: T) {
-            wasSet = true
+            valueIsSet = true
             retainedValue = update
         }
 
-        private fun postingSameAsRetained(update: T) = wasSet && update == retainedValue
+        private fun postingSameAsRetained(update: T) = valueIsSet && update == retainedValue
 
-        fun invalidate() {
+        fun publishSetValue() {
             val value = retainedValue
-            if (wasSet && wasLocked && value != null) {
+            if (valueIsSet && !isLocked && value != null) {
                 fireUpdate(value)
             }
         }
@@ -210,7 +207,7 @@ class DeviceManager(
     ) : DeviceDriver.Input<T>, EndpointContainer<T> {
 
         override fun observe(observer: (T) -> Unit) {
-            brokerQueue.run {
+            brokerQueue.execute {
                 network.subscribe(context.id, endpoint) { _, _, data ->
                     context.run {
                         context.notifyInputGained(endpoint.id)
@@ -232,7 +229,8 @@ class DeviceManager(
 
         fun inner(newId: String): DeviceContext = copy(id = id.innerId(newId))
 
-        val outputLocked: Boolean = outputPolicy.locked
+        val outputLocked: Boolean
+            get() = outputPolicy.locked
 
         fun notifyInputExits(endpoint: Endpoint.Id) {
             outputPolicy.lock(endpoint)
@@ -254,7 +252,7 @@ class DeviceManager(
         private val locks = mutableSetOf<Endpoint.Id>()
 
         override val locked: Boolean
-            get() = locks.isEmpty()
+            get() = locks.isNotEmpty()
 
         override fun lock(endpoint: Endpoint.Id) {
             locks.add(endpoint)
