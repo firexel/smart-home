@@ -3,14 +3,16 @@ package com.seraph.smarthome.io.hardware
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
+import com.seraph.smarthome.util.Log
 import java.io.IOException
 
 /**
  * Created by aleksandr.naumov on 06.05.18.
  */
 class Wellpro3066Driver(
+        private val scheduler: Scheduler,
         private val moduleIndex: Byte,
-        private val scheduler: Scheduler)
+        private val log: Log)
     : DeviceDriver {
 
     private val sensorsTotal = 8
@@ -25,14 +27,14 @@ class Wellpro3066Driver(
         return (0 until sensorsTotal)
                 .map { index ->
                     with(visitor.declareInnerDevice("temp_sensor_$index")) {
-                        val value = declareValueOutput(this, index)
-                        val online = declareOnlineOutput(this, index)
+                        val value = declareValueOutput(this)
+                        val online = declareOnlineOutput(this)
                         SingleSensorOutputs(value, online)
                     }
                 }
     }
 
-    private fun declareOnlineOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Boolean> {
+    private fun declareOnlineOutput(visitor: DeviceDriver.Visitor): DeviceDriver.Output<Boolean> {
         return visitor.declareOutput(
                 "online",
                 Types.BOOLEAN,
@@ -40,7 +42,7 @@ class Wellpro3066Driver(
         )
     }
 
-    private fun declareValueOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Float> {
+    private fun declareValueOutput(visitor: DeviceDriver.Visitor): DeviceDriver.Output<Float> {
         return visitor.declareOutput(
                 "value",
                 Types.FLOAT,
@@ -50,9 +52,13 @@ class Wellpro3066Driver(
 
     private fun requestData(outputs: List<SingleSensorOutputs>, delay: Long = 0) {
         scheduler.post(ReadRegisterCommand(moduleIndex, sensorsTotal), delay) { values ->
-            outputs.forEachIndexed { index, output ->
-                output.online.set(values[index].isPluggedIn)
-                output.value.set(values[index].tempCelsius)
+            try {
+                outputs.forEachIndexed { index, output ->
+                    output.online.set(values.data[index].isPluggedIn)
+                    output.value.set(values.data[index].tempCelsius)
+                }
+            } catch (ex: Bus.CommunicationException) {
+                log.w("Error reading sensors data")
             }
             requestData(outputs, sensorsUpdatePeriodMs)
         }

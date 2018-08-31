@@ -62,9 +62,17 @@ class MqttNetwork(
         return NetworkPublication(transport.publish(topic, serializer.toBytes(data)))
     }
 
+    override var statusListener: Network.StatusListener = NoListener()
+
     private class NetworkPublication(private val publication: Broker.Publication) : Network.Publication {
         override fun waitForCompletion(millis: Long) {
             publication.waitForCompletion(millis)
+        }
+    }
+
+    class NoListener : Network.StatusListener {
+        override fun onStatusChanged(status: Network.Status) {
+            // do nothing
         }
     }
 }

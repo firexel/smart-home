@@ -1,8 +1,9 @@
 package com.seraph.smarthome.transport.impl
 
+import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
 
-internal class ConnectingState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
+internal class ConnectingState(exchanger: Exchanger<BaseState, SharedData>) : BaseState(exchanger) {
 
     override fun engage() = transact { data ->
         try {

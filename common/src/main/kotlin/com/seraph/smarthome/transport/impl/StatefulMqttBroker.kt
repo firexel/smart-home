@@ -1,5 +1,6 @@
 package com.seraph.smarthome.transport.impl
 
+import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
 import com.seraph.smarthome.util.Log
@@ -15,7 +16,7 @@ class StatefulMqttBroker(
 ) : Broker {
 
     private val listeners = mutableListOf<Broker.StateListener>()
-    private var exchanger: Exchanger<SharedData> = Exchanger(log.copy("Exchanger")) { state ->
+    private var exchanger: Exchanger<BaseState, SharedData> = Exchanger(log.copy("Exchanger")) { state ->
         listeners.forEach { it.onStateChanged(state) }
     }
 

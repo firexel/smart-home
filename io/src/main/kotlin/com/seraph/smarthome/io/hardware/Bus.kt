@@ -13,5 +13,23 @@ interface Bus {
     interface Command<out T> {
         fun writeRequest(bus: OutputStream)
         fun readResponse(bus: InputStream): T
+
+        interface Result<out T> {
+            val data: T
+            val isSuccess: Boolean
+        }
+
+        class ResultOk<out T>(override val data: T) : Result<T> {
+            override val isSuccess: Boolean = true
+        }
+
+        class ResultError<out T>(private val error: CommunicationException) : Result<T> {
+            override val data: T
+                get() = throw error
+
+            override val isSuccess: Boolean = false
+        }
     }
+
+    class CommunicationException(cause: Throwable) : RuntimeException(cause)
 }

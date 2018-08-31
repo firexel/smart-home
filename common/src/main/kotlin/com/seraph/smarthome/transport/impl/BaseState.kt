@@ -1,6 +1,10 @@
 package com.seraph.smarthome.transport.impl
 
-internal abstract class BaseState(protected val exchanger: Exchanger<SharedData>) : State {
+import com.seraph.smarthome.transport.Broker
+import com.seraph.smarthome.util.Exchanger
+import com.seraph.smarthome.util.State
+
+internal abstract class BaseState(protected val exchanger: Exchanger<BaseState, SharedData>) : State, Broker.BrokerState {
     protected fun transact(action: (SharedData) -> SharedData) {
         exchanger.transact { data ->
             if (data.state === this) {
@@ -18,4 +22,6 @@ internal abstract class BaseState(protected val exchanger: Exchanger<SharedData>
     }
 
     override fun toString(): String = this::class.simpleName.toString()
+
+    abstract fun execute(key: Any? = null, action: (Client) -> Unit)
 }

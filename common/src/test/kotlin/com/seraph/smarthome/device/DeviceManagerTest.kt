@@ -148,6 +148,9 @@ class DeviceManagerTest {
             endpointSubscriptions.add(EndpointClosure(device, endpoint, func))
         }
 
+        override val statusListener: Network.StatusListener
+            get() = TODO("not implemented")
+
         fun <T> emulateDataReceived(device: String, endpoint: String, data: T) {
             val deviceId = Device.Id(device.split(":"))
             val endpointId = Endpoint.Id(endpoint)

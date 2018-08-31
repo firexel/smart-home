@@ -3,6 +3,7 @@ package com.seraph.smarthome.io.hardware
 import com.seraph.smarthome.device.testing.MockDriverVisitor
 import com.seraph.smarthome.device.testing.MockInput
 import com.seraph.smarthome.device.testing.MockOutput
+import com.seraph.smarthome.util.NoLog
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -45,7 +46,7 @@ class Wellpro8028DriverTest {
     fun testStartsCyclicRequestsAfterConfiguration() {
         scheduler.mockResponse(switchesRequest, switchesResponseThreeOn)
 
-        Wellpro8028Driver(scheduler, 0x01).configure(MockDriverVisitor())
+        Wellpro8028Driver(scheduler, 0x01, NoLog()).configure(MockDriverVisitor())
 
         Assert.assertEquals(1, scheduler.postsInQueue)
         scheduler.proceed()
@@ -56,7 +57,7 @@ class Wellpro8028DriverTest {
     @Test
     fun testCorrectParsingOfSwitchesState() {
 
-        Wellpro8028Driver(scheduler, 0x01).configure(visitor)
+        Wellpro8028Driver(scheduler, 0x01, NoLog()).configure(visitor)
 
         scheduler.withSingleMock(switchesRequest, switchesResponseThreeOn) {
             proceed()
@@ -80,7 +81,7 @@ class Wellpro8028DriverTest {
     @Test
     fun testDeviceRelaysUpdate() {
 
-        Wellpro8028Driver(scheduler, 0x01).configure(visitor)
+        Wellpro8028Driver(scheduler, 0x01, NoLog()).configure(visitor)
 
         val input1 = visitor.inputs["relay_0"] as MockInput<Boolean>
 

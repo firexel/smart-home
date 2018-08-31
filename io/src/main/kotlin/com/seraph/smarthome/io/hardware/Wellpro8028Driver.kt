@@ -1,25 +1,35 @@
 package com.seraph.smarthome.io.hardware
 
 import com.seraph.smarthome.device.DeviceDriver
+import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
+import com.seraph.smarthome.util.Log
 
 /**
  * Created by aleksandr.naumov on 02.05.18.
  */
 class Wellpro8028Driver(
         private val scheduler: Scheduler,
-        private val moduleIndex: Byte)
+        private val moduleIndex: Byte,
+        private val log: Log)
     : DeviceDriver {
 
     private val sensorsCount = 8
     private val actorsCount = 8
     private val sensorsRefreshRateMs = 1L
 
+    private var stateOutput: DeviceDriver.Output<DeviceState>? = null
+
     override fun configure(visitor: DeviceDriver.Visitor) {
+        configureDeviceState(visitor)
         configureActors(visitor)
         val sensors = configureSensors(visitor)
         sendReadCommand(sensors)
+    }
+
+    private fun configureDeviceState(visitor: DeviceDriver.Visitor) {
+        stateOutput = visitor.declareOutput("state", Types.DEVICE_STATE, Endpoint.Retention.NOT_RETAINED)
     }
 
     private fun configureActors(visitor: DeviceDriver.Visitor) {
@@ -39,8 +49,12 @@ class Wellpro8028Driver(
 
     private fun sendReadCommand(sensors: List<DeviceDriver.Output<Boolean>>) {
         scheduler.post(ReadSensorsStateCommand(moduleIndex), sensorsRefreshRateMs) { state ->
-            sensors.forEachIndexed { index, sensor ->
-                sensor.set(state[index])
+            try {
+                sensors.forEachIndexed { index, sensor ->
+                    sensor.set(state.data[index])
+                }
+            } catch (ex: Bus.CommunicationException) {
+                log.w("Cannot read sensors state")
             }
             sendReadCommand(sensors)
         }

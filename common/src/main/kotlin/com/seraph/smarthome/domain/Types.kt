@@ -20,7 +20,19 @@ class Types {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onVoid(this)
             override val serializer: Serializer<Unit> = VoidConverter()
         }
+
+        val DEVICE_STATE = object : Endpoint.Type<DeviceState> {
+            override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onDeviceState(this)
+            override val serializer: Serializer<DeviceState> = DeviceStateConverter()
+        }
     }
+}
+
+enum class DeviceState {
+    ONLINE,
+    DEGRADED,
+    MALFUNCTION,
+    OFFLINE
 }
 
 abstract class Serializer<T> {
@@ -36,11 +48,9 @@ abstract class Serializer<T> {
 }
 
 internal abstract class BaseStringConverter<T> : Serializer<T>() {
-    override final fun fromBytes(bytes: ByteArray): T
-            = fromString(String(bytes, Charsets.UTF_8))
+    override final fun fromBytes(bytes: ByteArray): T = fromString(String(bytes, Charsets.UTF_8))
 
-    override final fun toBytes(data: T): ByteArray
-            = toString(data).toByteArray(Charsets.UTF_8)
+    override final fun toBytes(data: T): ByteArray = toString(data).toByteArray(Charsets.UTF_8)
 
     abstract fun fromString(string: String): T
     abstract fun toString(data: T): String
@@ -66,6 +76,18 @@ internal class FloatConverter : BaseStringConverter<Float>() {
     }
 
     override fun toString(data: Float): String = String.format("%10.1f", data)
+}
+
+internal class DeviceStateConverter : BaseStringConverter<DeviceState>() {
+    override fun fromString(string: String): DeviceState {
+        try {
+            return DeviceState.valueOf(string)
+        } catch (ex: IllegalArgumentException) {
+            throw Serializer.TypeMismatchException("Unknown device state $string", ex)
+        }
+    }
+
+    override fun toString(data: DeviceState): String = data.name
 }
 
 internal class VoidConverter : BaseStringConverter<Unit>() {

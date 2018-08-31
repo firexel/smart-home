@@ -3,6 +3,8 @@ package com.seraph.smarthome.transport.impl
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.doAnswer
 import com.nhaarman.mockito_kotlin.mock
+import com.seraph.smarthome.util.Exchanger
+import com.seraph.smarthome.util.State
 import org.junit.Test
 
 /**
