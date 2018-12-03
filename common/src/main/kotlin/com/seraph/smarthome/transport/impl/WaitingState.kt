@@ -1,11 +1,12 @@
 package com.seraph.smarthome.transport.impl
 
+import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
 import java.lang.Integer.min
 import java.util.*
 
 internal class WaitingState(
-        exchanger: Exchanger<SharedData>,
+        exchanger: Exchanger<BaseState, SharedData>,
         private val clock: Clock = SystemClock()
 ) : BaseState(exchanger) {
 

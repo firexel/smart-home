@@ -3,6 +3,8 @@ services:
   broker:
     image: "eclipse-mosquitto:1.4.12"
     restart: "unless-stopped"
+    ports:
+          - "1883:1883"
     logging:
       driver: "json-file"
       options:

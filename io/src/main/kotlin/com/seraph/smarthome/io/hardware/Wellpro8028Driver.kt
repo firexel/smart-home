@@ -1,32 +1,41 @@
 package com.seraph.smarthome.io.hardware
 
 import com.seraph.smarthome.device.DeviceDriver
+import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
+import com.seraph.smarthome.util.Log
 
 /**
  * Created by aleksandr.naumov on 02.05.18.
  */
 class Wellpro8028Driver(
         private val scheduler: Scheduler,
-        private val moduleIndex: Byte)
+        private val moduleIndex: Byte,
+        private val log: Log)
     : DeviceDriver {
 
     private val sensorsCount = 8
     private val actorsCount = 8
     private val sensorsRefreshRateMs = 1L
 
-    private var sensorsState = BooleanArray(sensorsCount)
+    private var stateOutput: DeviceDriver.Output<DeviceState>? = null
 
     override fun configure(visitor: DeviceDriver.Visitor) {
+        visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.ALWAYS_ALLOW)
+        configureDeviceState(visitor)
         configureActors(visitor)
         val sensors = configureSensors(visitor)
         sendReadCommand(sensors)
     }
 
+    private fun configureDeviceState(visitor: DeviceDriver.Visitor) {
+        stateOutput = visitor.declareOutput("state", Types.DEVICE_STATE, Endpoint.Retention.NOT_RETAINED)
+    }
+
     private fun configureActors(visitor: DeviceDriver.Visitor) {
         (0 until actorsCount)
-                .map { visitor.declareInput("relay_$it", Types.BOOLEAN, Endpoint.Retention.RETAINED) }
+                .map { visitor.declareInput("relay_$it", Types.BOOLEAN, Endpoint.Retention.NOT_RETAINED) }
                 .forEachIndexed { index, actor ->
                     actor.observe { value ->
                         sendWriteCommand(index, value)
@@ -35,26 +44,19 @@ class Wellpro8028Driver(
     }
 
     private fun configureSensors(visitor: DeviceDriver.Visitor): List<DeviceDriver.Output<Boolean>> {
-        val sensors = (0 until sensorsCount)
+        return (0 until sensorsCount)
                 .map { visitor.declareOutput("switch_$it", Types.BOOLEAN, Endpoint.Retention.RETAINED) }
-
-        sensors.forEachIndexed { index, output ->
-            output.use {
-                synchronized(this@Wellpro8028Driver) {
-                    sensorsState[index]
-                }
-            }
-        }
-
-        return sensors
     }
 
     private fun sendReadCommand(sensors: List<DeviceDriver.Output<Boolean>>) {
-        scheduler.post(ReadSensorsStateCommand(moduleIndex), sensorsRefreshRateMs) { sensorsState ->
-            synchronized(this@Wellpro8028Driver) {
-                this.sensorsState = sensorsState
+        scheduler.post(ReadSensorsStateCommand(moduleIndex), sensorsRefreshRateMs) { state ->
+            try {
+                sensors.forEachIndexed { index, sensor ->
+                    sensor.set(state.data[index])
+                }
+            } catch (ex: Bus.CommunicationException) {
+                log.w("Cannot read sensors state")
             }
-            sensors.forEach { it.invalidate() }
             sendReadCommand(sensors)
         }
     }

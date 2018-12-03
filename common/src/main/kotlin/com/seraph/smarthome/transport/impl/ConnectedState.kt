@@ -1,8 +1,10 @@
 package com.seraph.smarthome.transport.impl
 
+import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
+import com.seraph.smarthome.util.State
 
-internal class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
+internal class ConnectedState(exchanger: Exchanger<BaseState, SharedData>) : BaseState(exchanger) {
 
     override fun engage() = transact { data ->
         data.client.disconnectionCallback = { cause ->
@@ -34,7 +36,7 @@ internal class ConnectedState(exchanger: Exchanger<SharedData>) : BaseState(exch
         }
     }
 
-    private fun inferNextState(ex: ClientException): State = when (ex.reason) {
+    private fun inferNextState(ex: ClientException): BaseState = when (ex.reason) {
         ClientException.Reason.BAD_BROKER_STATE,
         ClientException.Reason.BAD_NETWORK,
         ClientException.Reason.BAD_CLIENT_LOGIC

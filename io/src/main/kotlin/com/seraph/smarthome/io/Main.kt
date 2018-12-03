@@ -9,6 +9,7 @@ import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.io.hardware.*
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
+import com.seraph.smarthome.util.Log
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.SystemExitException
 import com.xenomachina.argparser.default
@@ -24,7 +25,7 @@ class Main {
         @JvmStatic
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
-            val log = ConsoleLog()
+            val log = ConsoleLog("IO").apply { i("Starting...") }
             val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val config = Gson().fromJson(FileReader(params.configFile), Config::class.java)
@@ -35,8 +36,8 @@ class Main {
                 val busDriver = SerialBus(bus.settings.path, settings, log.copy("Serial"))
                 val busScheduler = ConcurrentScheduler(busDriver)
                 bus.modules.forEach { module ->
-                    val device = module.asDriverInstance(busScheduler)
                     val id = Device.Id(bus.name, module.model.descriptor)
+                    val device = module.asDriverInstance(busScheduler, log.copy("Device_$id"))
                     manager.addDriver(id, device)
                 }
             }
@@ -44,9 +45,9 @@ class Main {
     }
 }
 
-private fun ModbusModule.asDriverInstance(scheduler: Scheduler): DeviceDriver = when (model) {
-    ModbusDeviceModel.WELLPRO_8028 -> Wellpro8028Driver(scheduler, index)
-    ModbusDeviceModel.WELLPRO_3066 -> Wellpro3066Driver(index, scheduler)
+private fun ModbusModule.asDriverInstance(scheduler: Scheduler, log: Log): DeviceDriver = when (model) {
+    ModbusDeviceModel.WELLPRO_8028 -> Wellpro8028Driver(scheduler, index, log)
+    ModbusDeviceModel.WELLPRO_3066 -> Wellpro3066Driver(scheduler, index, log)
 }
 
 private fun PortSettings.asSerialBusSettings() = SerialBus.Settings(

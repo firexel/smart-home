@@ -22,7 +22,7 @@ class MockScheduler : Scheduler {
         return MockHandleImpl(mock)
     }
 
-    override fun <T> post(cmd: Bus.Command<T>, delay: Long, callback: (T) -> Unit) {
+    override fun <T> post(cmd: Bus.Command<T>, delay: Long, callback: (Bus.Command.Result<T>) -> Unit) {
         posts.add(PostRequest(cmd, callback))
     }
 
@@ -48,7 +48,7 @@ class MockScheduler : Scheduler {
 
     private inner class PostRequest<T>(
             val cmd: Bus.Command<T>,
-            val callback: (T) -> Unit
+            val callback: (Bus.Command.Result<T>) -> Unit
     ) {
         fun proceed() {
             val request = ByteArrayOutputStream()
@@ -59,7 +59,7 @@ class MockScheduler : Scheduler {
                 Assert.fail("Cannot find mock for request ${requestBytes.asHexString()}")
             } else {
                 val parseResult = cmd.readResponse(ByteArrayInputStream(mock.response))
-                callback(parseResult)
+                callback(Bus.Command.ResultOk(parseResult))
             }
         }
     }

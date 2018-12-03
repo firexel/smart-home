@@ -11,21 +11,20 @@ class ConcurrentScheduler(private val bus: Bus) : Scheduler {
 
     private val executor = Executors.newScheduledThreadPool(1)
 
-    override fun <T> post(cmd: Bus.Command<T>, delay: Long, callback: (T) -> Unit) {
+    override fun <T> post(cmd: Bus.Command<T>, delay: Long, callback: (Bus.Command.Result<T>) -> Unit) {
         executor.schedule(CommandCallable(cmd, callback), max(delay, 1), TimeUnit.MILLISECONDS)
     }
 
     inner class CommandCallable<T>(
             private val cmd: Bus.Command<T>,
-            private val callback: (T) -> Unit)
+            private val callback: (Bus.Command.Result<T>) -> Unit)
         : Runnable {
 
         override fun run() {
             try {
-                callback(bus.send(cmd))
+                callback(Bus.Command.ResultOk(bus.send(cmd)))
             } catch (ex: Exception) {
-                ex.printStackTrace()
-                TODO("Kill entire process")
+                callback(Bus.Command.ResultError(Bus.CommunicationException(ex)))
             }
         }
     }

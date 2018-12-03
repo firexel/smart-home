@@ -1,6 +1,7 @@
 package com.seraph.smarthome.io.hardware
 
 import com.seraph.smarthome.device.testing.MockDriverVisitor
+import com.seraph.smarthome.util.NoLog
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -49,7 +50,7 @@ class Wellpro3066DriverTest {
 
     @Test
     fun testPerformsRequestImmediatelyAfterConfigure() {
-        Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
+        Wellpro3066Driver(mockScheduler, 1, NoLog()).configure(mockVisitor)
         Assert.assertEquals(1, mockScheduler.postsInQueue)
     }
 
@@ -57,7 +58,7 @@ class Wellpro3066DriverTest {
     fun testPublishesDataOnEveryBusReply() {
         mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)
 
-        Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
+        Wellpro3066Driver(mockScheduler, 1, NoLog()).configure(mockVisitor)
 
         mockScheduler.proceed()
         mockVisitor.outputs.values.forEach { Assert.assertEquals(1, it.timesInvalidated) }
@@ -70,7 +71,7 @@ class Wellpro3066DriverTest {
     fun testCorrectParsingOfTemperatureReadings() {
         mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)
 
-        Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
+        Wellpro3066Driver(mockScheduler, 1, NoLog()).configure(mockVisitor)
         mockScheduler.proceed()
 
         assertSensorState(0, 24.2f, true)
@@ -81,7 +82,7 @@ class Wellpro3066DriverTest {
 
     @Test
     fun testSensorsGoesOfflineAndBack() {
-        Wellpro3066Driver(1, mockScheduler).configure(mockVisitor)
+        Wellpro3066Driver(mockScheduler, 1, NoLog()).configure(mockVisitor)
 
         mockScheduler.withSingleMock(tempSensorsRequest, tempSensorsResponseDefault) {
             proceed()

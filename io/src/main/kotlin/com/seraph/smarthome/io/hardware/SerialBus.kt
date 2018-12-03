@@ -5,6 +5,7 @@ import com.seraph.smarthome.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.concurrent.TimeoutException
+import kotlin.math.min
 
 /**
  * Created by aleksandr.naumov on 22.04.18.
@@ -43,8 +44,13 @@ class SerialBus(
     }
 
     override fun <T> send(command: Bus.Command<T>): T {
-        writeRequest(command)
-        return command.readResponse(SerialPortInputStream(port))
+        try {
+            writeRequest(command)
+            return command.readResponse(SerialPortInputStream(port))
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            throw t
+        }
     }
 
     private fun <T> writeRequest(command: Bus.Command<T>) {
@@ -61,7 +67,7 @@ class SerialBus(
             val stopBits: Int = 1
     )
 
-    class SerialPortInputStream(private val port: SerialPort) : InputStream() {
+    inner class SerialPortInputStream(private val port: SerialPort) : InputStream() {
         override fun read(): Int {
             waitForBytes()
             val singleByteArray = ByteArray(1)
@@ -76,9 +82,15 @@ class SerialBus(
                 if (bytesAvailable == 0) {
                     throw TimeoutException("Serial port read timeout")
                 } else {
-                    val readBytes = readBytes(bytesAvailable)
+                    val readBytes = readBytes(min(bytesAvailable, bytesToRead))
+                    try {
+                        System.arraycopy(readBytes, 0, buffer, readOffset + readLen - bytesToRead, readBytes.size)
+                    } catch (t: Throwable) {
+                        log.v("Buffer size: ${buffer.size} readOffset: $readOffset read len: $readLen\n" +
+                                "System.arraycopy($readBytes, 0, $buffer, ${readOffset + readLen - bytesToRead}, ${readBytes.size}")
+                        throw t
+                    }
                     bytesToRead -= readBytes.size
-                    System.arraycopy(readBytes, 0, buffer, readOffset + readLen - bytesToRead, readBytes.size)
                 }
             }
             return readLen

@@ -1,6 +1,7 @@
 package com.seraph.smarthome.server
 
 import com.seraph.smarthome.domain.Device
+import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Network
 import com.seraph.smarthome.util.Log
@@ -72,6 +73,12 @@ class Connector(
         override fun onFloat(endpoint: Endpoint<Float>) {
             network.subscribe(src.device, endpoint) { _, _, data ->
                 network.publish(dst.device, dstEndpoint as Endpoint<Float>, data)
+            }
+        }
+
+        override fun onDeviceState(endpoint: Endpoint<DeviceState>) {
+            network.subscribe(src.device, endpoint) { _, _, data ->
+                network.publish(dst.device, dstEndpoint as Endpoint<DeviceState>, data)
             }
         }
     }

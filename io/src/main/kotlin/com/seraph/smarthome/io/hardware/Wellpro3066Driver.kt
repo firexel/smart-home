@@ -3,21 +3,20 @@ package com.seraph.smarthome.io.hardware
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
+import com.seraph.smarthome.util.Log
 import java.io.IOException
 
 /**
  * Created by aleksandr.naumov on 06.05.18.
  */
 class Wellpro3066Driver(
+        private val scheduler: Scheduler,
         private val moduleIndex: Byte,
-        private val scheduler: Scheduler)
+        private val log: Log)
     : DeviceDriver {
 
     private val sensorsTotal = 8
     private val sensorsUpdatePeriodMs = 1000L
-
-    private var values: List<TempSensorState>
-            = (0 until sensorsTotal).map { TempSensorState(false, 0f) }
 
     override fun configure(visitor: DeviceDriver.Visitor) {
         val outputs = declareOutputs(visitor)
@@ -28,39 +27,38 @@ class Wellpro3066Driver(
         return (0 until sensorsTotal)
                 .map { index ->
                     with(visitor.declareInnerDevice("temp_sensor_$index")) {
-                        val value = declareValueOutput(this, index)
-                        val online = declareOnlineOutput(this, index)
+                        val value = declareValueOutput(this)
+                        val online = declareOnlineOutput(this)
                         SingleSensorOutputs(value, online)
                     }
                 }
     }
 
-    private fun declareOnlineOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Boolean> {
-        val online = visitor.declareOutput(
+    private fun declareOnlineOutput(visitor: DeviceDriver.Visitor): DeviceDriver.Output<Boolean> {
+        return visitor.declareOutput(
                 "online",
                 Types.BOOLEAN,
                 Endpoint.Retention.RETAINED
         )
-        online.use { values[index].isPluggedIn }
-        return online
     }
 
-    private fun declareValueOutput(visitor: DeviceDriver.Visitor, index: Int): DeviceDriver.Output<Float> {
-        val value = visitor.declareOutput(
+    private fun declareValueOutput(visitor: DeviceDriver.Visitor): DeviceDriver.Output<Float> {
+        return visitor.declareOutput(
                 "value",
                 Types.FLOAT,
                 Endpoint.Retention.RETAINED
         )
-        value.use { values[index].tempCelsius }
-        return value
     }
 
     private fun requestData(outputs: List<SingleSensorOutputs>, delay: Long = 0) {
-        scheduler.post(ReadRegisterCommand(moduleIndex, sensorsTotal), delay) { result ->
-            values = result
-            outputs.forEach {
-                it.online.invalidate()
-                it.value.invalidate()
+        scheduler.post(ReadRegisterCommand(moduleIndex, sensorsTotal), delay) { values ->
+            try {
+                outputs.forEachIndexed { index, output ->
+                    output.online.set(values.data[index].isPluggedIn)
+                    output.value.set(values.data[index].tempCelsius)
+                }
+            } catch (ex: Bus.CommunicationException) {
+                log.w("Error reading sensors data")
             }
             requestData(outputs, sensorsUpdatePeriodMs)
         }

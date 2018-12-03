@@ -15,7 +15,17 @@ interface Network {
     fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T): Publication
     fun <T> subscribe(device: Device.Id, endpoint: Endpoint<T>, func: (Device.Id, Endpoint<T>, data: T) -> Unit)
 
+    val statusListener: StatusListener
+
     interface Publication {
         fun waitForCompletion(millis: Long)
+    }
+
+    interface StatusListener {
+        fun onStatusChanged(status: Status)
+    }
+
+    enum class Status {
+        ONLINE, OFFLINE
     }
 }

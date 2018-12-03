@@ -1,7 +1,9 @@
 package com.seraph.smarthome.transport.impl
 
 import com.nhaarman.mockito_kotlin.mock
+import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
+import com.seraph.smarthome.util.State
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test

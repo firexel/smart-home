@@ -31,6 +31,10 @@ class MockDriverVisitor : DeviceDriver.Visitor {
         return output
     }
 
+    override fun declareOutputPolicy(policy: DeviceDriver.OutputPolicy) {
+        // ignore
+    }
+
     override fun declareIndicator(id: String, priority: Control.Priority, source: DeviceDriver.Output<Boolean>) {
         TODO("not implemented")
     }

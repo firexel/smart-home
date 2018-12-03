@@ -1,12 +1,10 @@
-package com.seraph.smarthome.transport.impl
+package com.seraph.smarthome.util
 
-import com.seraph.smarthome.util.Log
-import com.seraph.smarthome.util.NoLog
 import java.util.*
 
-internal class Exchanger<D : Exchanger.StateData>(
+class Exchanger<S : State, D : Exchanger.StateData<S>>(
         private val log: Log = NoLog(),
-        private var listener: (State) -> Unit = {}
+        private var listener: (S) -> Unit = {}
 ) {
 
     private lateinit var sharedData: D
@@ -54,7 +52,7 @@ internal class Exchanger<D : Exchanger.StateData>(
         }
     }
 
-    interface StateData {
-        val state: State
+    interface StateData<S : State> {
+        val state: S
     }
 }

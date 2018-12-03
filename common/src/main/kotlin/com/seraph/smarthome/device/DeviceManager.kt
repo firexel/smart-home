@@ -3,7 +3,7 @@ package com.seraph.smarthome.device
 import com.seraph.smarthome.domain.*
 import com.seraph.smarthome.util.Log
 import com.seraph.smarthome.util.NoLog
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 /**
@@ -12,23 +12,20 @@ import java.util.concurrent.Executors
 class DeviceManager(
         private val network: Network,
         private val rootId: Device.Id,
-        private val brokerQueue: ExecutorService = Executors.newFixedThreadPool(1),
-        private val devicesQueue: ExecutorService = Executors.newFixedThreadPool(1),
+        private val brokerQueue: Executor = Executors.newFixedThreadPool(1),
         private val log: Log = NoLog()
 ) {
 
     private val idCounters = mutableMapOf<String, Int>()
 
-    fun addDriver(id: Device.Id, deviceDriver: DeviceDriver) {
-        devicesQueue.run {
-            val visitor = DiscoverVisitor(mergeRootAndDeviceIds(id))
-            deviceDriver.configure(visitor)
-            val descriptors = visitor.formDescriptors()
-            brokerQueue.submit {
-                descriptors.forEach { network.publish(it)
-                        .waitForCompletion(1000) }
-            }
-            visitor.invalidateAll()
+    fun addDriver(
+            id: Device.Id,
+            deviceDriver: DeviceDriver,
+            executor: Executor = Executors.newFixedThreadPool(1)) {
+
+        val context = DeviceContext(id = mergeRootAndDeviceIds(id), executor = executor)
+        context.run {
+            DiscoverVisitor(context).configure(deviceDriver)
         }
     }
 
@@ -45,15 +42,24 @@ class DeviceManager(
         return index
     }
 
-    private inner class DiscoverVisitor(private val deviceId: Device.Id) : DeviceDriver.Visitor {
+    private inner class DiscoverVisitor(
+            private var context: DeviceContext
+    ) : DeviceDriver.Visitor {
+
+        override fun declareOutputPolicy(policy: DeviceDriver.OutputPolicy) {
+            context = context.changePolicy(when (policy) {
+                DeviceDriver.OutputPolicy.WAIT_FOR_ALL_INPUTS -> WaitForAllInputsPolicy()
+                DeviceDriver.OutputPolicy.ALWAYS_ALLOW -> AlwaysAllowPolicy()
+            })
+        }
 
         private val endpoints = mutableListOf<Endpoint<*>>()
         private val controls = mutableListOf<Control>()
-        private val outputs = mutableListOf<NonRetainedOutput<*>>()
+        private val retainedOutputs = mutableListOf<RetainedOutput<*>>()
         private val innerDevices = mutableListOf<DiscoverVisitor>()
 
         override fun declareInnerDevice(id: String): DeviceDriver.Visitor {
-            val innerVisitor = DiscoverVisitor(deviceId.innerId(id))
+            val innerVisitor = DiscoverVisitor(context.inner(id))
             innerDevices.add(innerVisitor)
             return innerVisitor
         }
@@ -68,8 +74,9 @@ class DeviceManager(
                     retention
             )
 
+            context.notifyInputExits(endpoint.id)
             endpoints.add(endpoint)
-            return InputImpl(deviceId, endpoint)
+            return InputImpl(context, endpoint)
         }
 
         override fun <T> declareOutput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention):
@@ -88,8 +95,12 @@ class DeviceManager(
 
         private fun <T> createOutput(endpoint: Endpoint<T>, retention: Endpoint.Retention): DeviceDriver.Output<T> {
             return when (retention) {
-                Endpoint.Retention.RETAINED -> RetainedOutput(deviceId, endpoint)
-                Endpoint.Retention.NOT_RETAINED -> NonRetainedOutput(deviceId, endpoint)
+                Endpoint.Retention.RETAINED -> {
+                    RetainedOutput(context, endpoint).apply { retainedOutputs.add(this) }
+                }
+                Endpoint.Retention.NOT_RETAINED -> {
+                    NonRetainedOutput(context, endpoint)
+                }
             }
         }
 
@@ -110,59 +121,85 @@ class DeviceManager(
         }
 
         fun formDescriptors(): List<Device> {
-            return listOf(Device(deviceId, endpoints, controls)) +
+            return listOf(Device(context.id, endpoints, controls)) +
                     innerDevices.flatMap { it.formDescriptors() }
 
         }
 
+        fun configure(driver: DeviceDriver) {
+            driver.configure(this)
+            val descriptors = formDescriptors()
+            brokerQueue.execute {
+                descriptors.forEach {
+                    network.publish(it)
+                            .waitForCompletion(1000)
+                }
+            }
+            invalidateAll()
+        }
+
         fun invalidateAll() {
-            outputs.forEach { it.invalidate() }
+            retainedOutputs.forEach { it.publishSetValue() }
             innerDevices.forEach { it.invalidateAll() }
         }
     }
 
     private inner class NonRetainedOutput<T>(
-            private val deviceId: Device.Id,
+            private val context: DeviceContext,
             override val endpoint: Endpoint<T>
     ) : DeviceDriver.Output<T>, EndpointContainer<T> {
 
-        private var source: () -> T = { throw IllegalStateException("Source should be set") }
-
-        override fun use(source: () -> T) {
-            this.source = source
-        }
-
-        override fun invalidate() {
-            val data = source()
-            brokerQueue.run {
-                network.publish(deviceId, endpoint, data)
-                        .waitForCompletion(1000)
+        override fun set(update: T) {
+            context.run {
+                if (!context.outputLocked) {
+                    brokerQueue.execute {
+                        network.publish(context.id, endpoint, update)
+                                .waitForCompletion(1000)
+                    }
+                }
             }
         }
     }
 
     private inner class RetainedOutput<T>(
-            private val deviceId: Device.Id,
+            private val context: DeviceContext,
             override val endpoint: Endpoint<T>
     ) : DeviceDriver.Output<T>, EndpointContainer<T> {
 
-        private var source: () -> T = { throw IllegalStateException("Source should be set") }
-        private var wasSet = false
+        private var valueIsSet = false
+
+        private val isLocked
+            get() = context.outputLocked
+
         private var retainedValue: T? = null
 
-        override fun use(source: () -> T) {
-            this.source = source
+        override fun set(update: T) {
+            context.run {
+                if (!isLocked && !postingSameAsRetained(update)) {
+                    retainValue(update)
+                    fireUpdate(update)
+                }
+            }
         }
 
-        override fun invalidate() {
-            val newValue = source()
-            if (!wasSet || newValue != retainedValue) {
-                wasSet = true
-                retainedValue = newValue
-                brokerQueue.run {
-                    network.publish(deviceId, endpoint, newValue)
-                            .waitForCompletion(1000)
-                }
+        private fun fireUpdate(update: T) {
+            brokerQueue.execute {
+                network.publish(context.id, endpoint, update)
+                        .waitForCompletion(1000)
+            }
+        }
+
+        private fun retainValue(update: T) {
+            valueIsSet = true
+            retainedValue = update
+        }
+
+        private fun postingSameAsRetained(update: T) = valueIsSet && update == retainedValue
+
+        fun publishSetValue() {
+            val value = retainedValue
+            if (valueIsSet && !isLocked && value != null) {
+                fireUpdate(value)
             }
         }
     }
@@ -172,18 +209,76 @@ class DeviceManager(
     }
 
     inner class InputImpl<T>(
-            private val deviceId: Device.Id,
+            private val context: DeviceContext,
             override val endpoint: Endpoint<T>
     ) : DeviceDriver.Input<T>, EndpointContainer<T> {
 
         override fun observe(observer: (T) -> Unit) {
-            brokerQueue.run {
-                network.subscribe(deviceId, endpoint) { _, _, data ->
-                    devicesQueue.run {
+            brokerQueue.execute {
+                network.subscribe(context.id, endpoint) { _, _, data ->
+                    context.run {
+                        context.notifyInputGained(endpoint.id)
                         observer(data)
                     }
                 }
             }
+        }
+    }
+
+    data class DeviceContext(
+            val executor: Executor,
+            private val outputPolicy: OutputPolicy = AlwaysAllowPolicy(),
+            val id: Device.Id
+    ) {
+        inline fun <R> run(block: () -> R): R {
+            return executor.run { block() }
+        }
+
+        fun inner(newId: String): DeviceContext = copy(id = id.innerId(newId))
+
+        fun changePolicy(policy: OutputPolicy) = copy(outputPolicy = policy)
+
+        val outputLocked: Boolean
+            get() = outputPolicy.locked
+
+        fun notifyInputExits(endpoint: Endpoint.Id) {
+            outputPolicy.lock(endpoint)
+        }
+
+        fun notifyInputGained(endpoint: Endpoint.Id) {
+            outputPolicy.unlock(endpoint)
+        }
+    }
+
+    interface OutputPolicy {
+        val locked: Boolean
+        fun lock(endpoint: Endpoint.Id)
+        fun unlock(endpoint: Endpoint.Id)
+    }
+
+    class AlwaysAllowPolicy : OutputPolicy {
+        override val locked: Boolean = false
+
+        override fun lock(endpoint: Endpoint.Id) {
+        }
+
+        override fun unlock(endpoint: Endpoint.Id) {
+        }
+    }
+
+    class WaitForAllInputsPolicy : OutputPolicy {
+
+        private val locks = mutableSetOf<Endpoint.Id>()
+
+        override val locked: Boolean
+            get() = locks.isNotEmpty()
+
+        override fun lock(endpoint: Endpoint.Id) {
+            locks.add(endpoint)
+        }
+
+        override fun unlock(endpoint: Endpoint.Id) {
+            locks.remove(endpoint)
         }
     }
 }

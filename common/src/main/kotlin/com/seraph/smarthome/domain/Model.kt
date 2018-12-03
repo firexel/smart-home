@@ -65,6 +65,7 @@ data class Endpoint<N>(
             fun onVoid(type: Type<Unit>): T
             fun onBoolean(type: Type<Boolean>): T
             fun onFloat(type: Type<Float>): T
+            fun onDeviceState(type: Type<DeviceState>): T
         }
     }
 
@@ -77,12 +78,14 @@ data class Endpoint<N>(
         override fun onVoid(type: Type<Unit>): T = visitor.onVoid(this@Endpoint as Endpoint<Unit>)
         override fun onBoolean(type: Type<Boolean>): T = visitor.onBoolean(this@Endpoint as Endpoint<Boolean>)
         override fun onFloat(type: Type<Float>): T = visitor.onFloat(this@Endpoint as Endpoint<Float>)
+        override fun onDeviceState(type: Type<DeviceState>): T = visitor.onDeviceState(this@Endpoint as Endpoint<DeviceState>)
     }
 
     interface Visitor<out T> {
         fun onVoid(endpoint: Endpoint<Unit>): T
         fun onBoolean(endpoint: Endpoint<Boolean>): T
         fun onFloat(endpoint: Endpoint<Float>): T
+        fun onDeviceState(endpoint: Endpoint<DeviceState>): T
     }
 }
 
