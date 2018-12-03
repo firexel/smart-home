@@ -3,7 +3,8 @@ package com.seraph.smarthome.logic
 import com.seraph.smarthome.device.DeviceManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
-import com.seraph.smarthome.logic.devices.OverrideSwitchDriver
+import com.seraph.smarthome.logic.devices.Splitter
+import com.seraph.smarthome.logic.devices.Switch
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
@@ -23,8 +24,9 @@ class Main {
             val network = MqttNetwork(broker, log.copy("Network"))
             val manager = DeviceManager(network, Device.Id("logic"))
 
-            manager.addDriver(Device.Id("switch"), OverrideSwitchDriver())
-            manager.addDriver(Device.Id("switch"), OverrideSwitchDriver())
+            manager.addDriver(Device.Id("switch_light_3"), Switch())
+            manager.addDriver(Device.Id("switch_light_52_53"), Switch())
+            manager.addDriver(Device.Id("splitter_light_1"), Splitter())
         }
     }
 }

@@ -9,31 +9,31 @@ import com.seraph.smarthome.domain.Types
  * Created by aleksandr.naumov on 01.01.18.
  */
 
-class OverrideSwitchDriver : DeviceDriver {
+class Switch : DeviceDriver {
 
     private var state: Boolean = false
 
     override fun configure(visitor: DeviceDriver.Visitor) {
         val stateInput = visitor.declareInput(
-                "state",
+                "state_in",
                 Types.BOOLEAN,
                 Endpoint.Retention.RETAINED
         )
 
         val impulseInput = visitor.declareInput(
-                "impulse",
+                "switch",
                 Types.VOID,
                 Endpoint.Retention.NOT_RETAINED
         )
 
         val overridenOutput = visitor.declareOutput(
-                "overriden",
+                "state_out",
                 Types.BOOLEAN,
                 Endpoint.Retention.RETAINED
         )
 
-        visitor.declareButton("override", Control.Priority.MAIN, impulseInput)
-        visitor.declareIndicator("state", Control.Priority.MAIN, overridenOutput)
+        visitor.declareButton("switch", Control.Priority.MAIN, impulseInput)
+        visitor.declareIndicator("state_indicator", Control.Priority.MAIN, overridenOutput)
 
         fun switchState(newState: Boolean) {
             state = newState
