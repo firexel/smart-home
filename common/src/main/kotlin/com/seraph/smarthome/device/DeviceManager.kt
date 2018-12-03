@@ -43,8 +43,15 @@ class DeviceManager(
     }
 
     private inner class DiscoverVisitor(
-            private val context: DeviceContext
+            private var context: DeviceContext
     ) : DeviceDriver.Visitor {
+
+        override fun declareOutputPolicy(policy: DeviceDriver.OutputPolicy) {
+            context = context.changePolicy(when (policy) {
+                DeviceDriver.OutputPolicy.WAIT_FOR_ALL_INPUTS -> WaitForAllInputsPolicy()
+                DeviceDriver.OutputPolicy.ALWAYS_ALLOW -> AlwaysAllowPolicy()
+            })
+        }
 
         private val endpoints = mutableListOf<Endpoint<*>>()
         private val controls = mutableListOf<Control>()
@@ -220,7 +227,7 @@ class DeviceManager(
 
     data class DeviceContext(
             val executor: Executor,
-            private val outputPolicy: OutputPolicy = WaitForAllInputsPolicy(),
+            private val outputPolicy: OutputPolicy = AlwaysAllowPolicy(),
             val id: Device.Id
     ) {
         inline fun <R> run(block: () -> R): R {
@@ -228,6 +235,8 @@ class DeviceManager(
         }
 
         fun inner(newId: String): DeviceContext = copy(id = id.innerId(newId))
+
+        fun changePolicy(policy: OutputPolicy) = copy(outputPolicy = policy)
 
         val outputLocked: Boolean
             get() = outputPolicy.locked
@@ -245,6 +254,16 @@ class DeviceManager(
         val locked: Boolean
         fun lock(endpoint: Endpoint.Id)
         fun unlock(endpoint: Endpoint.Id)
+    }
+
+    class AlwaysAllowPolicy : OutputPolicy {
+        override val locked: Boolean = false
+
+        override fun lock(endpoint: Endpoint.Id) {
+        }
+
+        override fun unlock(endpoint: Endpoint.Id) {
+        }
     }
 
     class WaitForAllInputsPolicy : OutputPolicy {

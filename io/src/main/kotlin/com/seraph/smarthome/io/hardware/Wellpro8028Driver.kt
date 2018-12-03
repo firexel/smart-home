@@ -22,6 +22,7 @@ class Wellpro8028Driver(
     private var stateOutput: DeviceDriver.Output<DeviceState>? = null
 
     override fun configure(visitor: DeviceDriver.Visitor) {
+        visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.ALWAYS_ALLOW)
         configureDeviceState(visitor)
         configureActors(visitor)
         val sensors = configureSensors(visitor)
@@ -34,7 +35,7 @@ class Wellpro8028Driver(
 
     private fun configureActors(visitor: DeviceDriver.Visitor) {
         (0 until actorsCount)
-                .map { visitor.declareInput("relay_$it", Types.BOOLEAN, Endpoint.Retention.RETAINED) }
+                .map { visitor.declareInput("relay_$it", Types.BOOLEAN, Endpoint.Retention.NOT_RETAINED) }
                 .forEachIndexed { index, actor ->
                     actor.observe { value ->
                         sendWriteCommand(index, value)

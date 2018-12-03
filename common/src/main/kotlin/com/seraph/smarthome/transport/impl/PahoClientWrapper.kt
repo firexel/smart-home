@@ -25,7 +25,14 @@ internal class PahoClientWrapper(
             field = value
             if (value == null) client.setCallback(null)
             else client.setCallback(object : MqttCallback {
-                override fun connectionLost(cause: Throwable?) = value(PahoClientException(cause))
+                override fun connectionLost(cause: Throwable?) {
+                    log.w("Disconnecting due to $cause")
+                    if(cause is MqttException && cause.cause != null) {
+                        cause.cause!!.printStackTrace()
+                    }
+                    value(PahoClientException(cause))
+                }
+
                 override fun messageArrived(topic: String?, message: MqttMessage?) = Unit
                 override fun deliveryComplete(token: IMqttDeliveryToken?) = Unit
             })
@@ -45,8 +52,7 @@ internal class PahoClientWrapper(
                         onSuccess()
                     }
 
-                    override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?)
-                            = with(PahoClientException(exception)) {
+                    override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) = with(PahoClientException(exception)) {
                         log.w("Connection failed because of $message")
                         onFail(this)
                     }
@@ -61,8 +67,7 @@ internal class PahoClientWrapper(
                 onSuccess()
             }
 
-            override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?)
-                    = with(PahoClientException(exception)) {
+            override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) = with(PahoClientException(exception)) {
                 log.w("Connection failed because of $message")
                 onFail(this)
             }
