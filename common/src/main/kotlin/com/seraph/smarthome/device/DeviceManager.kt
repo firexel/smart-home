@@ -127,7 +127,7 @@ class DeviceManager(
         }
 
         fun configure(driver: DeviceDriver) {
-            driver.configure(this)
+            driver.bind(this)
             val descriptors = formDescriptors()
             brokerQueue.execute {
                 descriptors.forEach {

@@ -93,7 +93,7 @@ class DeviceManagerTest {
     }
 
     class TestMultilevelDriver : DeviceDriver {
-        override fun configure(visitor: DeviceDriver.Visitor) {
+        override fun bind(visitor: DeviceDriver.Visitor) {
             (0..1).forEach {
                 val level2Visitor = visitor.declareInnerDevice("level2_$it")
                 (0..1).forEach {
@@ -176,7 +176,7 @@ class DeviceManagerTest {
         private var inputs: List<DeviceDriver.Input<Boolean>> = emptyList()
         private var outputs: List<DeviceDriver.Output<Boolean>> = emptyList()
 
-        override fun configure(visitor: DeviceDriver.Visitor) {
+        override fun bind(visitor: DeviceDriver.Visitor) {
             outputs = listOf("out1", "out2").map {
                 visitor.declareOutput(it, Types.BOOLEAN, Endpoint.Retention.RETAINED)
             }

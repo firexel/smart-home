@@ -18,7 +18,7 @@ class Wellpro3066Driver(
     private val sensorsTotal = 8
     private val sensorsUpdatePeriodMs = 1000L
 
-    override fun configure(visitor: DeviceDriver.Visitor) {
+    override fun bind(visitor: DeviceDriver.Visitor) {
         val outputs = declareOutputs(visitor)
         requestData(outputs)
     }

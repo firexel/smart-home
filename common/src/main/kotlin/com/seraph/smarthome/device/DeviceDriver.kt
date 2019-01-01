@@ -8,7 +8,7 @@ import com.seraph.smarthome.domain.Endpoint
  */
 interface DeviceDriver {
 
-    fun configure(visitor: Visitor)
+    fun bind(visitor: Visitor)
 
     interface Visitor {
         fun declareOutputPolicy(policy: OutputPolicy)

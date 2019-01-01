@@ -1,15 +1,11 @@
 package com.seraph.smarthome.io
 
 import com.fazecast.jSerialComm.SerialPort
-import com.google.gson.Gson
-import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.DeviceManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
-import com.seraph.smarthome.io.hardware.*
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
-import com.seraph.smarthome.util.Log
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.SystemExitException
 import com.xenomachina.argparser.default
@@ -28,38 +24,38 @@ class Main {
             val log = ConsoleLog("IO").apply { i("Starting...") }
             val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            val config = Gson().fromJson(FileReader(params.configFile), Config::class.java)
+            val config = readConfig(FileReader(params.configFile))
             val manager = DeviceManager(network, Device.Id("io"), log = log.copy("Manager"))
 
-            config.buses.forEach { bus ->
-                val settings = bus.settings.asSerialBusSettings()
-                val busDriver = SerialBus(bus.settings.path, settings, log.copy("Serial"))
-                val busScheduler = ConcurrentScheduler(busDriver)
-                bus.modules.forEach { module ->
-                    val id = Device.Id(bus.name, module.model.descriptor)
-                    val device = module.asDriverInstance(busScheduler, log.copy("Device_$id"))
-                    manager.addDriver(id, device)
-                }
+//            config.buses.forEach { bus ->
+//                val settings = bus.settings.asSerialBusSettings()
+//                val busDriver = SerialBusNode(bus.settings.path, settings, log.copy("${bus.name.capitalize()}Bus"))
+//                val busScheduler = ConcurrentScheduler(busDriver)
+//                bus.modules.forEach { location ->
+//                    val id = Device.Id(bus.name, location.value.name)
+//                    val device = location.value.asDriverInstance(location.key, busScheduler, log.copy("Device_$id"))
+//                    manager.addDriver(id, device)
+//                }
             }
         }
     }
-}
+//}
+//
+//private fun Module.asDriverInstance(index: Byte, scheduler: Scheduler, log: Log): DeviceDriver = when (model) {
+//    DeviceDriverNameNode.WELLPRO_8028 -> Wellpro8028Driver(scheduler, index, log)
+//    DeviceDriverNameNode.WELLPRO_3066 -> Wellpro3066Driver(scheduler, index, log)
+//}
+//
+//private fun PortSettingsNode.asSerialBusSettings() = SerialBusNode.Settings(
+//        baudRate, parity.asConnectionParityIndex(), dataBits, stopBits
+//)
 
-private fun ModbusModule.asDriverInstance(scheduler: Scheduler, log: Log): DeviceDriver = when (model) {
-    ModbusDeviceModel.WELLPRO_8028 -> Wellpro8028Driver(scheduler, index, log)
-    ModbusDeviceModel.WELLPRO_3066 -> Wellpro3066Driver(scheduler, index, log)
-}
-
-private fun PortSettings.asSerialBusSettings() = SerialBus.Settings(
-        baudRate, parity.asConnectionParityIndex(), dataBits, stopBits
-)
-
-private fun Parity.asConnectionParityIndex() = when (this) {
-    Parity.NO -> SerialPort.NO_PARITY
-    Parity.ODD -> SerialPort.ODD_PARITY
-    Parity.EVEN -> SerialPort.EVEN_PARITY
-    Parity.MARK -> SerialPort.MARK_PARITY
-    Parity.SPACE -> SerialPort.SPACE_PARITY
+private fun ParityNode.asConnectionParityIndex() = when (this) {
+    ParityNode.NO -> SerialPort.NO_PARITY
+    ParityNode.ODD -> SerialPort.ODD_PARITY
+    ParityNode.EVEN -> SerialPort.EVEN_PARITY
+    ParityNode.MARK -> SerialPort.MARK_PARITY
+    ParityNode.SPACE -> SerialPort.SPACE_PARITY
 }
 
 class CommandLineParams(parser: ArgParser) {

@@ -13,7 +13,7 @@ class Switch : DeviceDriver {
 
     private var state: Boolean = false
 
-    override fun configure(visitor: DeviceDriver.Visitor) {
+    override fun bind(visitor: DeviceDriver.Visitor) {
         val stateInput = visitor.declareInput(
                 "state_in",
                 Types.BOOLEAN,
