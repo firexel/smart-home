@@ -27,16 +27,13 @@ class Wellpro8028DriverTest {
     fun setup() {
         scheduler = MockScheduler()
         visitor = MockDriverVisitor()
-        configuration = object : DriverConfiguration<ModbusDeviceSettingsNode> {
-            override val settings: ModbusDeviceSettingsNode
-                get() = ModbusDeviceSettingsNode(0x01)
-
-            override val connections: Connections
-                get() = Connections(
+        configuration = DriverConfiguration(
+                ModbusDeviceSettingsNode(0x01),
+                Connections(
                         switchesRange.map { "DI_0$it" to Alias("test_di_$it") }.toMap() +
                                 switchesRange.map { "DO_0$it" to Alias("test_do_$it") }.toMap()
                 )
-        }
+        )
     }
 
     private val relaySetRequest = byteArrayOf(
@@ -149,15 +146,10 @@ class Wellpro8028DriverTest {
     }
 
     private fun makeInvalidConfig(invalidIoName: String): DriverConfiguration<ModbusDeviceSettingsNode> {
-        return object : DriverConfiguration<ModbusDeviceSettingsNode> {
-            override val settings: ModbusDeviceSettingsNode
-                get() = ModbusDeviceSettingsNode(0x01)
-
-            override val connections: Connections
-                get() = Connections(
-                        mapOf(invalidIoName to Alias("test_di_invalid"))
-                )
-        }
+        return DriverConfiguration(
+                ModbusDeviceSettingsNode(0x01),
+                Connections(mapOf(invalidIoName to Alias("test_invalid")))
+        )
     }
 
     private fun assertOutputsEnabled(vararg listOfEnabled: Int) {

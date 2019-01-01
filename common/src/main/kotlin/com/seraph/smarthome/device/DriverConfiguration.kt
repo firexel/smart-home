@@ -1,9 +1,7 @@
 package com.seraph.smarthome.device
 
 
-interface DriverConfiguration<out S> {
-    val settings: S
-    val connections: Connections
+data class DriverConfiguration<out S>(val settings: S, val connections: Connections) {
 
     fun validate(validator: DriverConfiguration<S>.() -> List<InvalidData>) {
         val invalidFields = try {

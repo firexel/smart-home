@@ -39,7 +39,7 @@ enum class ParityNode {
 }
 
 data class DeviceNode(
-        val driver: DeviceDriverNameNode,
+        val driver: DriverNameNode,
         val settings: Any,
         val connections: Map<String, AliasNode>
 )
@@ -48,7 +48,7 @@ data class AliasNode(
         val names: List<String>
 )
 
-enum class DeviceDriverNameNode(val settingsClass: KClass<*>) {
+enum class DriverNameNode(val settingsClass: KClass<*>) {
     WELLPRO_8028(ModbusDeviceSettingsNode::class),
     WELLPRO_3066(ModbusDeviceSettingsNode::class)
 }
@@ -100,7 +100,7 @@ private class AliasParser : JsonDeserializer<AliasNode> {
 private class ModuleDeserializer : JsonDeserializer<DeviceNode> {
     override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext): DeviceNode {
         if (json is JsonObject) {
-            val driver = context.deserialize<DeviceDriverNameNode>(json.get("driver"), DeviceDriverNameNode::class.java)
+            val driver = context.deserialize<DriverNameNode>(json.get("driver"), DriverNameNode::class.java)
             val settings = context.deserialize<Any>(json.get("settings"), driver.settingsClass.java)
             val connections = json.getAsJsonObject("connections")
                     .entrySet()

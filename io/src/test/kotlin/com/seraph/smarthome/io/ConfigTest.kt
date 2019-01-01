@@ -68,7 +68,7 @@ class ConfigTest {
 
         val actualBus = config.buses["foo_bus"]!!
         val expectedDevice = DeviceNode(
-                DeviceDriverNameNode.WELLPRO_8028,
+                DriverNameNode.WELLPRO_8028,
                 ModbusDeviceSettingsNode(0x07),
                 mapOf("DI_02" to AliasNode(listOf("foo")), "DO_08" to AliasNode(listOf("bar", "boob")))
         )
