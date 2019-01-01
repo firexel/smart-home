@@ -12,7 +12,7 @@ import org.junit.Test
  */
 internal class ConnectingStateTest : BaseStateTest() {
 
-    override fun createState(exchanger: Exchanger<SharedData>): State
+    override fun createState(exchanger: Exchanger<BaseState, SharedData>): BaseState
             = ConnectingState(exchanger)
 
     @Test

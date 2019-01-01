@@ -13,7 +13,7 @@ internal class ExchangerTest {
 
     @Test
     fun testBeginEngagesFirstState() {
-        val exchanger = Exchanger<MockData>()
+        val exchanger = Exchanger<State, MockData>()
         val state1: State = mock()
         val data = MockData(state1)
         verify(state1, never()).engage()
@@ -26,7 +26,7 @@ internal class ExchangerTest {
 
     @Test
     fun testStateChange() {
-        val exchanger = Exchanger<MockData>()
+        val exchanger = Exchanger<State, MockData>()
         val state1: State = mock()
         val state2: State = mock()
         val data = MockData(state1)
@@ -45,7 +45,7 @@ internal class ExchangerTest {
 
     @Test
     fun testStateChangeDuringBegin() {
-        val exchanger = Exchanger<MockData>()
+        val exchanger = Exchanger<State, MockData>()
         val state2: State = mock()
         val state1: State = mock {
             on { it.engage() } doAnswer { exchanger.transact { it.copy(state = state2) } }
@@ -65,7 +65,7 @@ internal class ExchangerTest {
 
     @Test
     fun testStateChangeDuringBeginAndEngage() {
-        val exchanger = Exchanger<MockData>()
+        val exchanger = Exchanger<State, MockData>()
         val state3: State = mock()
         val state2: State = mock {
             on { it.engage() } doAnswer { exchanger.transact { it.copy(state = state3) } }
@@ -90,7 +90,7 @@ internal class ExchangerTest {
 
     @Test
     fun testStateChangeDuringNestedTransacts() {
-        val exchanger = Exchanger<MockData>()
+        val exchanger = Exchanger<State, MockData>()
         val state2: State = mock()
         val state1: State = mock {
             on { it.engage() } doAnswer {
@@ -115,5 +115,5 @@ internal class ExchangerTest {
 
     private data class MockData(
             override val state: State
-    ) : Exchanger.StateData
+    ) : Exchanger.StateData<State>
 }

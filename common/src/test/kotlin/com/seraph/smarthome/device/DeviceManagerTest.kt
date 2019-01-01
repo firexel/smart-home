@@ -177,6 +177,7 @@ class DeviceManagerTest {
         private var outputs: List<DeviceDriver.Output<Boolean>> = emptyList()
 
         override fun bind(visitor: DeviceDriver.Visitor) {
+            visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.WAIT_FOR_ALL_INPUTS)
             outputs = listOf("out1", "out2").map {
                 visitor.declareOutput(it, Types.BOOLEAN, Endpoint.Retention.RETAINED)
             }
