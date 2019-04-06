@@ -1,5 +1,6 @@
 package com.seraph.smarthome.io.hardware
 
+import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
@@ -11,10 +12,11 @@ import java.io.IOException
  */
 class Wellpro3066Driver(
         private val scheduler: Scheduler,
-        private val moduleIndex: Byte,
+        settings: Settings,
         private val log: Log)
     : DeviceDriver {
 
+    private val moduleIndex: Byte = settings.addressAtBus
     private val sensorsTotal = 8
     private val sensorsUpdatePeriodMs = 1000L
 
@@ -95,5 +97,10 @@ class Wellpro3066Driver(
     private data class TempSensorState(
             val isPluggedIn: Boolean,
             val tempCelsius: Float = 0f
+    )
+
+    public data class Settings(
+            @SerializedName("address_at_bus")
+            val addressAtBus: Byte
     )
 }

@@ -1,12 +1,9 @@
 package com.seraph.smarthome.io.hardware
 
-import com.seraph.smarthome.device.DriverConfiguration
-import com.seraph.smarthome.device.DriverConfiguration.Alias
-import com.seraph.smarthome.device.DriverConfiguration.Connections
+import com.seraph.smarthome.device.ValidationException
 import com.seraph.smarthome.device.testing.MockDriverVisitor
 import com.seraph.smarthome.device.testing.MockInput
 import com.seraph.smarthome.device.testing.MockOutput
-import com.seraph.smarthome.io.ModbusDeviceSettingsNode
 import com.seraph.smarthome.util.NoLog
 import org.junit.Assert
 import org.junit.Before
@@ -21,18 +18,16 @@ class Wellpro8028DriverTest {
 
     private lateinit var scheduler: MockScheduler
     private lateinit var visitor: MockDriverVisitor
-    private lateinit var configuration: DriverConfiguration<ModbusDeviceSettingsNode>
+    private lateinit var configuration: Wellpro8028Driver.Settings
 
     @Before
     fun setup() {
         scheduler = MockScheduler()
         visitor = MockDriverVisitor()
-        configuration = DriverConfiguration(
-                ModbusDeviceSettingsNode(0x01),
-                Connections(
-                        switchesRange.map { "DI_0$it" to Alias("test_di_$it") }.toMap() +
-                                switchesRange.map { "DO_0$it" to Alias("test_do_$it") }.toMap()
-                )
+        configuration = Wellpro8028Driver.Settings(
+                0x01,
+                switchesRange.map { "DI_0$it" to "test_di_$it" }.toMap() +
+                        switchesRange.map { "DO_0$it" to "test_do_$it" }.toMap()
         )
     }
 
@@ -98,7 +93,7 @@ class Wellpro8028DriverTest {
         Wellpro8028Driver(scheduler, configuration, NoLog())
                 .bind(visitor)
 
-        val input1 = visitor.inputs["DO_01"] as MockInput<Boolean>
+        val input1 = visitor.inputs["test_do_1"] as MockInput<Boolean>
 
         Assert.assertEquals(1, scheduler.postsInQueue)
         input1.post(true)
@@ -115,40 +110,40 @@ class Wellpro8028DriverTest {
         }
     }
 
-    @Test(expected = DriverConfiguration.ValidationException::class)
+    @Test(expected = ValidationException::class)
     fun testDeviceInitWithInvalidConfig_DI_OutOfRange() {
         Wellpro8028Driver(scheduler, makeInvalidConfig("DI_09"), NoLog())
     }
 
-    @Test(expected = DriverConfiguration.ValidationException::class)
+    @Test(expected = ValidationException::class)
     fun testDeviceInitWithInvalidConfig_DO_OutOfRange() {
         Wellpro8028Driver(scheduler, makeInvalidConfig("DO_09"), NoLog())
     }
 
-    @Test(expected = DriverConfiguration.ValidationException::class)
+    @Test(expected = ValidationException::class)
     fun testDeviceInitWithInvalidConfig_DI_Zero() {
         Wellpro8028Driver(scheduler, makeInvalidConfig("DI_00"), NoLog())
     }
 
-    @Test(expected = DriverConfiguration.ValidationException::class)
+    @Test(expected = ValidationException::class)
     fun testDeviceInitWithInvalidConfig_DO_Zero() {
         Wellpro8028Driver(scheduler, makeInvalidConfig("DO_00"), NoLog())
     }
 
-    @Test(expected = DriverConfiguration.ValidationException::class)
+    @Test(expected = ValidationException::class)
     fun testDeviceInitWithInvalidConfig_DO_Misformat() {
         Wellpro8028Driver(scheduler, makeInvalidConfig("DO01"), NoLog())
     }
 
-    @Test(expected = DriverConfiguration.ValidationException::class)
+    @Test(expected = ValidationException::class)
     fun testDeviceInitWithInvalidConfig_UnknownShit() {
         Wellpro8028Driver(scheduler, makeInvalidConfig("invalid"), NoLog())
     }
 
-    private fun makeInvalidConfig(invalidIoName: String): DriverConfiguration<ModbusDeviceSettingsNode> {
-        return DriverConfiguration(
-                ModbusDeviceSettingsNode(0x01),
-                Connections(mapOf(invalidIoName to Alias("test_invalid")))
+    private fun makeInvalidConfig(invalidIoName: String): Wellpro8028Driver.Settings {
+        return Wellpro8028Driver.Settings(
+                0x01,
+                mapOf(invalidIoName to "test_invalid")
         )
     }
 
@@ -171,5 +166,5 @@ class Wellpro8028DriverTest {
     }
 
     private fun getOutput(it: Int) =
-            visitor.outputs["DI_0$it"]!! as MockOutput<Boolean>
+            visitor.outputs["test_di_$it"]!! as MockOutput<Boolean>
 }

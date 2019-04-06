@@ -49,7 +49,9 @@ data class Endpoint<N>(
         val retention: Retention,
         val units: Units = Units.NO
 ) {
-    data class Id(val value: String)
+    data class Id(val value: String) {
+        override fun toString(): String = value
+    }
 
     enum class Retention { RETAINED, NOT_RETAINED }
 

@@ -1,5 +1,6 @@
 package com.seraph.smarthome.io.hardware
 
+import com.nhaarman.mockito_kotlin.mock
 import com.seraph.smarthome.device.testing.MockDriverVisitor
 import com.seraph.smarthome.util.NoLog
 import org.junit.Assert
@@ -14,6 +15,7 @@ class Wellpro3066DriverTest {
 
     private lateinit var mockScheduler: MockScheduler
     private lateinit var mockVisitor: MockDriverVisitor
+    private lateinit var mockSettings: Wellpro3066Driver.Settings
 
     private val tempSensorsResponseDefault = byteArrayOf(
             0x01, 0x03,
@@ -46,11 +48,12 @@ class Wellpro3066DriverTest {
     fun setup() {
         mockScheduler = MockScheduler()
         mockVisitor = MockDriverVisitor()
+        mockSettings = Wellpro3066Driver.Settings(1)
     }
 
     @Test
     fun testPerformsRequestImmediatelyAfterConfigure() {
-        Wellpro3066Driver(mockScheduler, 1, NoLog()).bind(mockVisitor)
+        Wellpro3066Driver(mockScheduler, mockSettings, NoLog()).bind(mockVisitor)
         Assert.assertEquals(1, mockScheduler.postsInQueue)
     }
 
@@ -58,7 +61,7 @@ class Wellpro3066DriverTest {
     fun testPublishesDataOnEveryBusReply() {
         mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)
 
-        Wellpro3066Driver(mockScheduler, 1, NoLog()).bind(mockVisitor)
+        Wellpro3066Driver(mockScheduler, mockSettings, NoLog()).bind(mockVisitor)
 
         mockScheduler.proceed()
         mockVisitor.outputs.values.forEach { Assert.assertEquals(1, it.timesInvalidated) }
@@ -71,7 +74,7 @@ class Wellpro3066DriverTest {
     fun testCorrectParsingOfTemperatureReadings() {
         mockScheduler.mockResponse(tempSensorsRequest, tempSensorsResponseDefault)
 
-        Wellpro3066Driver(mockScheduler, 1, NoLog()).bind(mockVisitor)
+        Wellpro3066Driver(mockScheduler, mockSettings, NoLog()).bind(mockVisitor)
         mockScheduler.proceed()
 
         assertSensorState(0, 24.2f, true)
@@ -82,7 +85,7 @@ class Wellpro3066DriverTest {
 
     @Test
     fun testSensorsGoesOfflineAndBack() {
-        Wellpro3066Driver(mockScheduler, 1, NoLog()).bind(mockVisitor)
+        Wellpro3066Driver(mockScheduler, mockSettings, NoLog()).bind(mockVisitor)
 
         mockScheduler.withSingleMock(tempSensorsRequest, tempSensorsResponseDefault) {
             proceed()

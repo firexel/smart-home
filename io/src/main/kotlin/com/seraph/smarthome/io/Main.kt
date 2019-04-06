@@ -2,11 +2,11 @@ package com.seraph.smarthome.io
 
 import com.fazecast.jSerialComm.SerialPort
 import com.seraph.smarthome.device.DeviceDriver
-import com.seraph.smarthome.device.DeviceManager
-import com.seraph.smarthome.device.DriverConfiguration
+import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.io.hardware.*
+import com.seraph.smarthome.transport.impl.LocalBroker
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.Log
@@ -16,7 +16,6 @@ import com.xenomachina.argparser.default
 import java.io.File
 import java.io.FileReader
 import kotlin.reflect.KClass
-import kotlin.reflect.full.cast
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -28,38 +27,45 @@ class Main {
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
             val log = ConsoleLog("IO").apply { i("Starting...") }
-            val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
+            val broker = StatefulMqttBroker(params.brokerAddress, "I/TransformationVisitor Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            val config = readConfig(FileReader(params.configFile))
-            val manager = DeviceManager(network, Device.Id("io"), log = log.copy("Manager"))
+            val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
+            val manager = DriversManager(network, Device.Id("io"), log = log.copy("Manager"))
 
-            config.buses.forEach { (busId, busNode) ->
+            configNode.buses.forEach { (busId, busNode) ->
                 val settings = busNode.settings.mapToSerialBusSettings()
                 val busLog = log.copy(busId)
                 val busDriver = SerialBus(busNode.settings.path, settings, busLog)
                 val busScheduler = ConcurrentScheduler(busDriver)
-                busNode.devices.forEach { (deviceId, deviceNode) ->
-                    val driver = deviceNode.instantiateDriver(busScheduler, busLog.copy(deviceId))
-                    manager.addDriver(Device.Id(busId, deviceId), driver)
+                busNode.devices.forEach { (deviceName, deviceNode) ->
+                    val driver = deviceNode.instantiateDriver(busScheduler, busLog.copy(deviceName))
+                    val deviceId = Device.Id(busId, deviceName)
+                    manager.addDriver(deviceId, driver)
                 }
             }
         }
     }
 }
 
-private fun <S : Any> DeviceNode.instantiateConfig(classToCast: KClass<S>)
-        : DriverConfiguration<S> {
-
-    val map = this.connections.map { it.key to DriverConfiguration.Alias(it.value.names) }.toMap()
-    return DriverConfiguration(classToCast.cast(settings), DriverConfiguration.Connections(map))
+enum class Drivers(val settingsClass: KClass<*>) {
+    WELLPRO_8028(Wellpro8028Driver.Settings::class),
+    WELLPRO_3066(Wellpro3066Driver.Settings::class)
 }
 
-private fun DeviceNode.instantiateDriver(scheduler: Scheduler, log: Log): DeviceDriver = when (driver) {
-    DriverNameNode.WELLPRO_8028 ->
-        Wellpro8028Driver(scheduler, instantiateConfig(ModbusDeviceSettingsNode::class), log)
+private fun driverSettings(name: String): DriverInfo {
+    return DriverInfo(Drivers.valueOf(name).settingsClass)
+}
 
-    DriverNameNode.WELLPRO_3066 ->
-        Wellpro3066Driver(scheduler, instantiateConfig(ModbusDeviceSettingsNode::class).settings.addressAtBus, log)
+private fun DeviceNode.instantiateDriver(scheduler: Scheduler, log: Log): DeviceDriver {
+    return when (Drivers.valueOf(driver)) {
+        Drivers.WELLPRO_8028 -> {
+            Wellpro8028Driver(scheduler, settings as Wellpro8028Driver.Settings, log)
+        }
+
+        Drivers.WELLPRO_3066 -> {
+            Wellpro3066Driver(scheduler, settings as Wellpro3066Driver.Settings, log)
+        }
+    }
 }
 
 private fun PortSettingsNode.mapToSerialBusSettings() = SerialBus.Settings(

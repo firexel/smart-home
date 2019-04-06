@@ -12,7 +12,7 @@ import java.util.concurrent.Executor
 /**
  * Created by aleksandr.naumov on 08.05.18.
  */
-class DeviceManagerTest {
+class DriversManagerTest {
 
     private lateinit var executor: StepByStepExecutor
     private lateinit var network: TestNetwork
@@ -25,8 +25,8 @@ class DeviceManagerTest {
 
     @Test
     fun testInnedDevices() {
-        DeviceManager(network, Device.Id("root"), executor)
-                .addDriver(Device.Id("level1"), TestMultilevelDriver(), ImmediateExecutor())
+        DriversManager(network, Device.Id("root"), executor)
+                .addDriver(Device.Id("level1"), TestMultilevelDriver(), executor = ImmediateExecutor())
 
         executor.fastForward()
 
@@ -34,13 +34,13 @@ class DeviceManagerTest {
         verify(network, times(7)).publish(captor.capture())
         val published = captor.allValues.iterator()
 
-        Assert.assertEquals(Device(Device.Id("root", "level1_0")), published.next())
-        Assert.assertEquals(Device(Device.Id("root", "level1_0", "level2_0")), published.next())
-        Assert.assertEquals(Device(Device.Id("root", "level1_0", "level2_0", "level3_0")), published.next())
-        Assert.assertEquals(Device(Device.Id("root", "level1_0", "level2_0", "level3_1")), published.next())
-        Assert.assertEquals(Device(Device.Id("root", "level1_0", "level2_1")), published.next())
-        Assert.assertEquals(Device(Device.Id("root", "level1_0", "level2_1", "level3_0")), published.next())
-        Assert.assertEquals(Device(Device.Id("root", "level1_0", "level2_1", "level3_1")), published.next())
+        Assert.assertEquals(Device(Device.Id("root", "level1")), published.next())
+        Assert.assertEquals(Device(Device.Id("root", "level1", "level2_0")), published.next())
+        Assert.assertEquals(Device(Device.Id("root", "level1", "level2_0", "level3_0")), published.next())
+        Assert.assertEquals(Device(Device.Id("root", "level1", "level2_0", "level3_1")), published.next())
+        Assert.assertEquals(Device(Device.Id("root", "level1", "level2_1")), published.next())
+        Assert.assertEquals(Device(Device.Id("root", "level1", "level2_1", "level3_0")), published.next())
+        Assert.assertEquals(Device(Device.Id("root", "level1", "level2_1", "level3_1")), published.next())
         Assert.assertFalse(published.hasNext())
     }
 
@@ -48,8 +48,8 @@ class DeviceManagerTest {
     fun testDeviceOutputsNotUpdatedUntilAllInputsSet() {
         val driver = TestEarlyPoster()
 
-        DeviceManager(network, Device.Id("root"), executor)
-                .addDriver(Device.Id("early_poster"), driver, ImmediateExecutor())
+        DriversManager(network, Device.Id("root"), executor)
+                .addDriver(Device.Id("early_poster"), driver, executor = ImmediateExecutor())
 
         executor.fastForward()
 
@@ -61,7 +61,7 @@ class DeviceManagerTest {
 
         verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
 
-        network.emulateDataReceived("root:early_poster_0", "in1", true)
+        network.emulateDataReceived("root:early_poster", "in1", true)
         executor.fastForward()
 
         verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
@@ -71,7 +71,7 @@ class DeviceManagerTest {
 
         verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
 
-        network.emulateDataReceived("root:early_poster_0", "in2", true)
+        network.emulateDataReceived("root:early_poster", "in2", true)
         executor.fastForward()
 
         verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
@@ -80,7 +80,7 @@ class DeviceManagerTest {
         executor.fastForward()
 
         verify(network, times(2)).publish(
-                eq(Device.Id("root").innerId("early_poster_0")),
+                eq(Device.Id("root").innerId("early_poster")),
                 any<Endpoint<*>>(),
                 any()
         )
@@ -148,8 +148,9 @@ class DeviceManagerTest {
             endpointSubscriptions.add(EndpointClosure(device, endpoint, func))
         }
 
-        override val statusListener: Network.StatusListener
+        override var statusListener: Network.StatusListener
             get() = TODO("not implemented")
+            set(value) = TODO()
 
         fun <T> emulateDataReceived(device: String, endpoint: String, data: T) {
             val deviceId = Device.Id(device.split(":"))

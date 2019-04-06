@@ -39,23 +39,8 @@ enum class ParityNode {
 }
 
 data class DeviceNode(
-        val driver: DriverNameNode,
-        val settings: Any,
-        val connections: Map<String, AliasNode>
-)
-
-data class AliasNode(
-        val names: List<String>
-)
-
-enum class DriverNameNode(val settingsClass: KClass<*>) {
-    WELLPRO_8028(ModbusDeviceSettingsNode::class),
-    WELLPRO_3066(ModbusDeviceSettingsNode::class)
-}
-
-data class ModbusDeviceSettingsNode(
-        @SerializedName("address_at_bus")
-        val addressAtBus: Byte
+        val driver: String,
+        val settings: Any
 )
 
 private class ConfigDeserializer : JsonDeserializer<ConfigNode> {
@@ -87,38 +72,27 @@ private class BusDeserializer : JsonDeserializer<SerialBusNode> {
     }
 }
 
-private class AliasParser : JsonDeserializer<AliasNode> {
-    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext): AliasNode {
-        return when (json) {
-            is JsonArray -> AliasNode(json.map { it.asString })
-            is JsonPrimitive -> AliasNode(listOf(json.asString))
-            else -> throw JsonParseException("Unknown type of node $json")
-        }
-    }
-}
-
-private class ModuleDeserializer : JsonDeserializer<DeviceNode> {
+private class DeviceNodeDeserializer(private val driverCatalogue: (String) -> DriverInfo) : JsonDeserializer<DeviceNode> {
     override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext): DeviceNode {
         if (json is JsonObject) {
-            val driver = context.deserialize<DriverNameNode>(json.get("driver"), DriverNameNode::class.java)
-            val settings = context.deserialize<Any>(json.get("settings"), driver.settingsClass.java)
-            val connections = json.getAsJsonObject("connections")
-                    .entrySet()
-                    .map { it.key to context.deserialize<AliasNode>(it.value, AliasNode::class.java) }
-                    .toMap()
-
-            return DeviceNode(driver, settings, connections)
+            val driverName = json.get("driver").asString
+            val factory = driverCatalogue(driverName)
+            val settings = context.deserialize<Any>(json.get("settings"), factory.settingsClass.java)
+            return DeviceNode(driverName, settings)
         } else {
             throw JsonParseException("Unknown type of node $json")
         }
     }
 }
 
-fun readConfig(reader: Reader): ConfigNode {
+fun readConfig(reader: Reader, driverCatalogue: (String) -> DriverInfo): ConfigNode {
     val builder = GsonBuilder()
-    builder.registerTypeAdapter(AliasNode::class.java, AliasParser())
-    builder.registerTypeAdapter(DeviceNode::class.java, ModuleDeserializer())
+    builder.registerTypeAdapter(DeviceNode::class.java, DeviceNodeDeserializer(driverCatalogue))
     builder.registerTypeAdapter(SerialBusNode::class.java, BusDeserializer())
     builder.registerTypeAdapter(ConfigNode::class.java, ConfigDeserializer())
     return builder.create().fromJson(reader, ConfigNode::class.java)
 }
+
+data class DriverInfo(
+        val settingsClass: KClass<*>
+)

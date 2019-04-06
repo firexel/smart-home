@@ -1,6 +1,6 @@
 package com.seraph.smarthome.logic
 
-import com.seraph.smarthome.device.DeviceManager
+import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.logic.devices.Splitter
@@ -22,11 +22,10 @@ class Main {
             val params = CommandLineParams(ArgParser(argv))
             val broker = StatefulMqttBroker(params.brokerAddress, "Logic Gates Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            val manager = DeviceManager(network, Device.Id("logic"))
+            val manager = DriversManager(network, Device.Id("logic"))
 
             manager.addDriver(Device.Id("switch_light_3"), Switch())
             manager.addDriver(Device.Id("switch_light_52_53"), Switch())
-            manager.addDriver(Device.Id("splitter_light_1"), Splitter())
         }
     }
 }

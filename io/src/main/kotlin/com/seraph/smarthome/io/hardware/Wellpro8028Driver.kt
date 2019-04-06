@@ -1,11 +1,12 @@
 package com.seraph.smarthome.io.hardware
 
+import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
+import com.seraph.smarthome.device.InvalidData
+import com.seraph.smarthome.device.validate
 import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
-import com.seraph.smarthome.device.DriverConfiguration
-import com.seraph.smarthome.io.ModbusDeviceSettingsNode
 import com.seraph.smarthome.util.Log
 
 /**
@@ -13,32 +14,32 @@ import com.seraph.smarthome.util.Log
  */
 class Wellpro8028Driver(
         private val scheduler: Scheduler,
-        configuration: DriverConfiguration<ModbusDeviceSettingsNode>,
+        settings: Settings,
         private val log: Log)
     : DeviceDriver {
 
     private val sensorsRefreshRateMs = 1L
     private val sensorsConnected: Map<Int, String>
     private val relaysConnected: Map<Int, String>
-    private val moduleIndex: Byte = configuration.settings.addressAtBus
+    private val moduleIndex: Byte = settings.addressAtBus
 
     private var stateOutput: DeviceDriver.Output<DeviceState>? = null
 
     init {
-        configuration.validate {
+        settings.validate {
             val ioPattern = Regex("D[IO]_0[1-8]")
             connections.keys.filter { !it.matches(ioPattern) }
-                    .map { DriverConfiguration.InvalidData(it, "Should match $ioPattern") }
+                    .map { InvalidData(it, "Should match $ioPattern") }
         }
 
-        sensorsConnected = configuration.connections.keys
+        sensorsConnected = settings.connections.keys
                 .filter { it.startsWith("DI") }
-                .map { it.takeLast(1).toInt() - 1 to it }
+                .map { it.takeLast(1).toInt() - 1 to settings.connections.getValue(it) }
                 .toMap()
 
-        relaysConnected = configuration.connections.keys
+        relaysConnected = settings.connections.keys
                 .filter { it.startsWith("DO") }
-                .map { it.takeLast(1).toInt() - 1 to it }
+                .map { it.takeLast(1).toInt() - 1 to settings.connections.getValue(it) }
                 .toMap()
     }
 
@@ -115,4 +116,10 @@ class Wellpro8028Driver(
             return input.readByteAsBits()
         }
     }
+
+    data class Settings(
+            @SerializedName("address_at_bus")
+            val addressAtBus: Byte,
+            val connections: Map<String, String>
+    )
 }
