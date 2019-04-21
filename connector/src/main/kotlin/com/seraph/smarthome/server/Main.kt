@@ -5,6 +5,7 @@ import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.domain.impl.installModelAdapters
+import com.seraph.smarthome.transport.impl.LocalBroker
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser

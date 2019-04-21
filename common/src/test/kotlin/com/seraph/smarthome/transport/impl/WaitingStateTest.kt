@@ -1,9 +1,8 @@
 package com.seraph.smarthome.transport.impl
 
 import com.nhaarman.mockito_kotlin.mock
-import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
-import com.seraph.smarthome.util.State
+import com.seraph.smarthome.util.Exchanger
 import org.junit.Assert
 import org.junit.Test
 
@@ -11,8 +10,7 @@ import org.junit.Test
  * Created by aleksandr.naumov on 04.01.18.
  */
 internal class WaitingStateTest : BaseStateTest() {
-    override fun createState(exchanger: Exchanger<SharedData>): State
-            = WaitingState(exchanger, StoppedClock(0))
+    override fun createState(exchanger: Exchanger<BaseState, SharedData>): BaseState = WaitingState(exchanger, StoppedClock(0))
 
     @Test
     fun testTimeToWaitInFirstTry() {

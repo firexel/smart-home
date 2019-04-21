@@ -9,37 +9,26 @@ import java.util.concurrent.Executors
 /**
  * Created by aleksandr.naumov on 29.12.17.
  */
-class DeviceManager(
+class DriversManager(
         private val network: Network,
         private val rootId: Device.Id,
         private val brokerQueue: Executor = Executors.newFixedThreadPool(1),
         private val log: Log = NoLog()
 ) {
 
-    private val idCounters = mutableMapOf<String, Int>()
-
     fun addDriver(
             id: Device.Id,
-            deviceDriver: DeviceDriver,
+            driver: DeviceDriver,
             executor: Executor = Executors.newFixedThreadPool(1)) {
 
         val context = DeviceContext(id = mergeRootAndDeviceIds(id), executor = executor)
         context.run {
-            DiscoverVisitor(context).configure(deviceDriver)
+            DiscoverVisitor(context).bind(driver)
         }
     }
 
     private fun mergeRootAndDeviceIds(id: Device.Id): Device.Id {
-        return id.segments.dropLast(1)
-                .fold(rootId) { acc, step -> acc.innerId(step) }
-                .innerId("${id.segments.last()}_${nextIdIndex(id.toString())}")
-    }
-
-    private fun nextIdIndex(id: String): Int {
-        idCounters.putIfAbsent(id, 0)
-        val index = idCounters[id]!!
-        idCounters[id] = index + 1
-        return index
+        return Device.Id(rootId.segments + id.segments)
     }
 
     private inner class DiscoverVisitor(
@@ -126,8 +115,8 @@ class DeviceManager(
 
         }
 
-        fun configure(driver: DeviceDriver) {
-            driver.configure(this)
+        fun bind(driver: DeviceDriver) {
+            driver.bind(this)
             val descriptors = formDescriptors()
             brokerQueue.execute {
                 descriptors.forEach {

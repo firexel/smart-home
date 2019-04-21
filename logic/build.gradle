@@ -22,6 +22,10 @@ run {
     }
 }
 
+project.ext.additionalDependencies = [
+        "logic.json": "/etc/logic.json"
+]
+
 project.ext.addLaunchParameters = { brokerName ->
     return ['--broker', "tcp://$brokerName:1883"]
 }

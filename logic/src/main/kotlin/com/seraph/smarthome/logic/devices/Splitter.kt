@@ -5,7 +5,7 @@ import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 
 class Splitter : DeviceDriver {
-    override fun configure(visitor: DeviceDriver.Visitor) {
+    override fun bind(visitor: DeviceDriver.Visitor) {
         val input = visitor.declareInput(
                 "input",
                 Types.BOOLEAN,

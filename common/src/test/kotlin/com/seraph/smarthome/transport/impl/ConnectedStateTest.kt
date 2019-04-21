@@ -2,7 +2,6 @@ package com.seraph.smarthome.transport.impl
 
 import com.nhaarman.mockito_kotlin.mock
 import com.seraph.smarthome.util.Exchanger
-import com.seraph.smarthome.util.State
 import org.junit.Assert
 import org.junit.Test
 
@@ -10,7 +9,7 @@ import org.junit.Test
  * Created by aleksandr.naumov on 03.01.18.
  */
 internal class ConnectedStateTest : BaseStateTest() {
-    override fun createState(exchanger: Exchanger<SharedData>): State
+    override fun createState(exchanger: Exchanger<BaseState, SharedData>): BaseState
             = ConnectedState(exchanger)
 
     @Test

@@ -1,6 +1,9 @@
 package com.seraph.smarthome.io.hardware
 
+import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
+import com.seraph.smarthome.device.InvalidData
+import com.seraph.smarthome.device.validate
 import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
@@ -11,21 +14,40 @@ import com.seraph.smarthome.util.Log
  */
 class Wellpro8028Driver(
         private val scheduler: Scheduler,
-        private val moduleIndex: Byte,
+        settings: Settings,
         private val log: Log)
     : DeviceDriver {
 
-    private val sensorsCount = 8
-    private val actorsCount = 8
     private val sensorsRefreshRateMs = 1L
+    private val sensorsConnected: Map<Int, String>
+    private val relaysConnected: Map<Int, String>
+    private val moduleIndex: Byte = settings.addressAtBus
 
     private var stateOutput: DeviceDriver.Output<DeviceState>? = null
 
-    override fun configure(visitor: DeviceDriver.Visitor) {
+    init {
+        settings.validate {
+            val ioPattern = Regex("D[IO]_0[1-8]")
+            connections.keys.filter { !it.matches(ioPattern) }
+                    .map { InvalidData(it, "Should match $ioPattern") }
+        }
+
+        sensorsConnected = settings.connections.keys
+                .filter { it.startsWith("DI") }
+                .map { it.takeLast(1).toInt() - 1 to settings.connections.getValue(it) }
+                .toMap()
+
+        relaysConnected = settings.connections.keys
+                .filter { it.startsWith("DO") }
+                .map { it.takeLast(1).toInt() - 1 to settings.connections.getValue(it) }
+                .toMap()
+    }
+
+    override fun bind(visitor: DeviceDriver.Visitor) {
         visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.ALWAYS_ALLOW)
         configureDeviceState(visitor)
-        configureActors(visitor)
-        val sensors = configureSensors(visitor)
+        declareRelayEndpoints(visitor)
+        val sensors = declareSensorEndpoints(visitor)
         sendReadCommand(sensors)
     }
 
@@ -33,26 +55,24 @@ class Wellpro8028Driver(
         stateOutput = visitor.declareOutput("state", Types.DEVICE_STATE, Endpoint.Retention.NOT_RETAINED)
     }
 
-    private fun configureActors(visitor: DeviceDriver.Visitor) {
-        (0 until actorsCount)
-                .map { visitor.declareInput("relay_$it", Types.BOOLEAN, Endpoint.Retention.NOT_RETAINED) }
-                .forEachIndexed { index, actor ->
-                    actor.observe { value ->
-                        sendWriteCommand(index, value)
-                    }
-                }
+    private fun declareRelayEndpoints(visitor: DeviceDriver.Visitor) {
+        relaysConnected.forEach {
+            visitor.declareInput(it.value, Types.BOOLEAN, Endpoint.Retention.NOT_RETAINED)
+                    .observe { value -> sendWriteCommand(it.key, value) }
+        }
     }
 
-    private fun configureSensors(visitor: DeviceDriver.Visitor): List<DeviceDriver.Output<Boolean>> {
-        return (0 until sensorsCount)
-                .map { visitor.declareOutput("switch_$it", Types.BOOLEAN, Endpoint.Retention.RETAINED) }
+    private fun declareSensorEndpoints(visitor: DeviceDriver.Visitor): Map<Int, DeviceDriver.Output<Boolean>> {
+        return sensorsConnected
+                .map { it.key to visitor.declareOutput(it.value, Types.BOOLEAN, Endpoint.Retention.RETAINED) }
+                .toMap()
     }
 
-    private fun sendReadCommand(sensors: List<DeviceDriver.Output<Boolean>>) {
+    private fun sendReadCommand(sensors: Map<Int, DeviceDriver.Output<Boolean>>) {
         scheduler.post(ReadSensorsStateCommand(moduleIndex), sensorsRefreshRateMs) { state ->
             try {
-                sensors.forEachIndexed { index, sensor ->
-                    sensor.set(state.data[index])
+                state.data.forEachIndexed { index, sensorState ->
+                    sensors[index]?.set(sensorState)
                 }
             } catch (ex: Bus.CommunicationException) {
                 log.w("Cannot read sensors state")
@@ -96,4 +116,10 @@ class Wellpro8028Driver(
             return input.readByteAsBits()
         }
     }
+
+    data class Settings(
+            @SerializedName("address_at_bus")
+            val addressAtBus: Byte,
+            val connections: Map<String, String>
+    )
 }

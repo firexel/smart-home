@@ -5,6 +5,7 @@ import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Network
 import com.seraph.smarthome.util.Log
+import java.util.*
 
 /**
  * Created by aleksandr.naumov on 02.12.2017.
@@ -25,7 +26,25 @@ class Connector(
         })
     }
 
+    private val timer = Timer("Connection watchdog")
+
     public fun serve() {
+        val reportTask = object : TimerTask() {
+            override fun run() {
+//                synchronized(pendingConnections) {
+                    if (pendingConnections.isNotEmpty()) {
+                        val unresolvedSet = pendingConnections
+                                .map { it.unresolvedGlobalendpoints }
+                                .toSet()
+
+                        log.w("Still waiting for $unresolvedSet")
+                    } else {
+                        log.i("All connections are successfully resolved")
+                    }
+//                }
+            }
+        }
+        timer.schedule(reportTask, 5)
         network.subscribe(null) { device: Device ->
             device.endpoints.forEach { endpoint ->
                 val gid = GlobalEndpointId(device.id, endpoint.id)
@@ -108,5 +127,12 @@ class Connector(
                 srcEndpoint.accept(MakeConnectionVisitor(network, src, dst, dstEndpoint))
             }
         }
+
+        val unresolvedGlobalendpoints: List<GlobalEndpointId>
+            get() {
+                return listOf<GlobalEndpointId>() +
+                        if (srcEndpoint == null) listOf(src) else emptyList<GlobalEndpointId>() +
+                                if (dstEndpoint == null) listOf(dst) else emptyList()
+            }
     }
 }

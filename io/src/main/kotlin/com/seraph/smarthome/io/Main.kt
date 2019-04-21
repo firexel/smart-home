@@ -1,9 +1,8 @@
 package com.seraph.smarthome.io
 
 import com.fazecast.jSerialComm.SerialPort
-import com.google.gson.Gson
 import com.seraph.smarthome.device.DeviceDriver
-import com.seraph.smarthome.device.DeviceManager
+import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.io.hardware.*
@@ -15,6 +14,7 @@ import com.xenomachina.argparser.SystemExitException
 import com.xenomachina.argparser.default
 import java.io.File
 import java.io.FileReader
+import kotlin.reflect.KClass
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -26,40 +26,57 @@ class Main {
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
             val log = ConsoleLog("IO").apply { i("Starting...") }
-            val broker = StatefulMqttBroker(params.brokerAddress, "I/O Service", log.copy("Broker"))
+            val broker = StatefulMqttBroker(params.brokerAddress, "I/TransformationVisitor Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            val config = Gson().fromJson(FileReader(params.configFile), Config::class.java)
-            val manager = DeviceManager(network, Device.Id("io"), log = log.copy("Manager"))
+            val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
+            val manager = DriversManager(network, Device.Id("io"), log = log.copy("Manager"))
 
-            config.buses.forEach { bus ->
-                val settings = bus.settings.asSerialBusSettings()
-                val busDriver = SerialBus(bus.settings.path, settings, log.copy("Serial"))
+            configNode.buses.forEach { (busId, busNode) ->
+                val settings = busNode.settings.mapToSerialBusSettings()
+                val busLog = log.copy(busId)
+                val busDriver = SerialBus(busNode.settings.path, settings, busLog)
                 val busScheduler = ConcurrentScheduler(busDriver)
-                bus.modules.forEach { module ->
-                    val id = Device.Id(bus.name, module.model.descriptor)
-                    val device = module.asDriverInstance(busScheduler, log.copy("Device_$id"))
-                    manager.addDriver(id, device)
+                busNode.devices.forEach { (deviceName, deviceNode) ->
+                    val driver = deviceNode.instantiateDriver(busScheduler, busLog.copy(deviceName))
+                    val deviceId = Device.Id(busId, deviceName)
+                    manager.addDriver(deviceId, driver)
                 }
             }
         }
     }
 }
 
-private fun ModbusModule.asDriverInstance(scheduler: Scheduler, log: Log): DeviceDriver = when (model) {
-    ModbusDeviceModel.WELLPRO_8028 -> Wellpro8028Driver(scheduler, index, log)
-    ModbusDeviceModel.WELLPRO_3066 -> Wellpro3066Driver(scheduler, index, log)
+enum class Drivers(val settingsClass: KClass<*>) {
+    WELLPRO_8028(Wellpro8028Driver.Settings::class),
+    WELLPRO_3066(Wellpro3066Driver.Settings::class)
 }
 
-private fun PortSettings.asSerialBusSettings() = SerialBus.Settings(
-        baudRate, parity.asConnectionParityIndex(), dataBits, stopBits
+private fun driverSettings(name: String): DriverInfo {
+    return DriverInfo(Drivers.valueOf(name).settingsClass)
+}
+
+private fun DeviceNode.instantiateDriver(scheduler: Scheduler, log: Log): DeviceDriver {
+    return when (Drivers.valueOf(driver)) {
+        Drivers.WELLPRO_8028 -> {
+            Wellpro8028Driver(scheduler, settings as Wellpro8028Driver.Settings, log)
+        }
+
+        Drivers.WELLPRO_3066 -> {
+            Wellpro3066Driver(scheduler, settings as Wellpro3066Driver.Settings, log)
+        }
+    }
+}
+
+private fun PortSettingsNode.mapToSerialBusSettings() = SerialBus.Settings(
+        baudRate, parity.mapToConnectionParityIndex(), dataBits, stopBits
 )
 
-private fun Parity.asConnectionParityIndex() = when (this) {
-    Parity.NO -> SerialPort.NO_PARITY
-    Parity.ODD -> SerialPort.ODD_PARITY
-    Parity.EVEN -> SerialPort.EVEN_PARITY
-    Parity.MARK -> SerialPort.MARK_PARITY
-    Parity.SPACE -> SerialPort.SPACE_PARITY
+private fun ParityNode.mapToConnectionParityIndex() = when (this) {
+    ParityNode.NO -> SerialPort.NO_PARITY
+    ParityNode.ODD -> SerialPort.ODD_PARITY
+    ParityNode.EVEN -> SerialPort.EVEN_PARITY
+    ParityNode.MARK -> SerialPort.MARK_PARITY
+    ParityNode.SPACE -> SerialPort.SPACE_PARITY
 }
 
 class CommandLineParams(parser: ArgParser) {
@@ -73,5 +90,4 @@ class CommandLineParams(parser: ArgParser) {
             throw SystemExitException("Config not found at ${value.absoluteFile}", -1)
         }
     }
-
 }

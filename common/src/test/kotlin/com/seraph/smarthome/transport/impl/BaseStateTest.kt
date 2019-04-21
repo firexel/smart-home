@@ -14,8 +14,8 @@ import kotlin.reflect.KClass
  */
 internal open class BaseStateTest {
 
-    protected lateinit var exchanger: Exchanger<SharedData>
-    protected lateinit var state: State
+    protected lateinit var exchanger: Exchanger<BaseState, SharedData>
+    protected lateinit var state: BaseState
 
     @Before
     fun setup() {
@@ -23,12 +23,12 @@ internal open class BaseStateTest {
         state = createState(exchanger)
     }
 
-    protected open fun createState(exchanger: Exchanger<SharedData>): State
+    protected open fun createState(exchanger: Exchanger<BaseState, SharedData>): BaseState
             = MockBaseState(exchanger)
 
     @Test
     fun testTransactionCalledOnCurrentState() {
-        val exchanger = Exchanger<SharedData>()
+        val exchanger = Exchanger<BaseState, SharedData>()
         val state = MockBaseState(exchanger)
         exchanger.begin(SharedData(
                 mock(),
@@ -41,7 +41,7 @@ internal open class BaseStateTest {
 
     @Test
     fun testTransactionDoesNotCalledOnNonCurrentState() {
-        val exchanger = Exchanger<SharedData>()
+        val exchanger = Exchanger<BaseState, SharedData>()
         val state1 = MockBaseState(exchanger)
         exchanger.begin(SharedData(
                 mock(),
@@ -73,7 +73,7 @@ internal open class BaseStateTest {
         }
     }
 
-    private class MockBaseState(exchanger: Exchanger<SharedData>) : BaseState(exchanger) {
+    private class MockBaseState(exchanger: Exchanger<BaseState, SharedData>) : BaseState(exchanger) {
         override fun engage() = Unit
         override fun disengage() = Unit
         override fun <T> accept(visitor: Broker.BrokerState.Visitor<T>): T = throw IllegalStateException("Mock")
