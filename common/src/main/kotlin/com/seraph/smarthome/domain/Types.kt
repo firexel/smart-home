@@ -11,6 +11,11 @@ class Types {
             override val serializer: Serializer<Float> = FloatConverter()
         }
 
+        val INTEGER = object : Endpoint.Type<Int> {
+            override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onInt(this)
+            override val serializer: Serializer<Int> = IntConverter()
+        }
+
         val BOOLEAN = object : Endpoint.Type<Boolean> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onBoolean(this)
             override val serializer: Serializer<Boolean> = BooleanConverter()
@@ -76,6 +81,18 @@ internal class FloatConverter : BaseStringConverter<Float>() {
     }
 
     override fun toString(data: Float): String = String.format("%10.1f", data)
+}
+
+internal class IntConverter : BaseStringConverter<Int>() {
+    override fun fromString(string: String): Int {
+        try {
+            return string.toInt(10)
+        } catch (ex: NumberFormatException) {
+            throw Serializer.TypeMismatchException("Unknown int $string", ex)
+        }
+    }
+
+    override fun toString(data: Int): String = String.format("%d", data)
 }
 
 internal class DeviceStateConverter : BaseStringConverter<DeviceState>() {

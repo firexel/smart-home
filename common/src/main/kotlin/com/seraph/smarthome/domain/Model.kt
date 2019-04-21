@@ -67,6 +67,7 @@ data class Endpoint<N>(
             fun onVoid(type: Type<Unit>): T
             fun onBoolean(type: Type<Boolean>): T
             fun onFloat(type: Type<Float>): T
+            fun onInt(type: Type<Int>): T
             fun onDeviceState(type: Type<DeviceState>): T
         }
     }
@@ -77,6 +78,7 @@ data class Endpoint<N>(
 
     @Suppress("UNCHECKED_CAST")
     private inner class BypassVisitor<out T>(private val visitor: Visitor<T>) : Type.Visitor<T> {
+        override fun onInt(type: Type<Int>): T = visitor.onInt(this@Endpoint as Endpoint<Int>)
         override fun onVoid(type: Type<Unit>): T = visitor.onVoid(this@Endpoint as Endpoint<Unit>)
         override fun onBoolean(type: Type<Boolean>): T = visitor.onBoolean(this@Endpoint as Endpoint<Boolean>)
         override fun onFloat(type: Type<Float>): T = visitor.onFloat(this@Endpoint as Endpoint<Float>)
@@ -84,6 +86,7 @@ data class Endpoint<N>(
     }
 
     interface Visitor<out T> {
+        fun onInt(endpoint: Endpoint<Int>): T
         fun onVoid(endpoint: Endpoint<Unit>): T
         fun onBoolean(endpoint: Endpoint<Boolean>): T
         fun onFloat(endpoint: Endpoint<Float>): T

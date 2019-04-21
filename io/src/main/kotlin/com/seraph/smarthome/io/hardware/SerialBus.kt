@@ -38,7 +38,7 @@ class SerialBus(
             throw IllegalStateException("Cannot open port ${port.systemPortName}")
         }
         port.setComPortTimeouts(
-                SerialPort.TIMEOUT_READ_SEMI_BLOCKING and SerialPort.TIMEOUT_WRITE_SEMI_BLOCKING,
+                SerialPort.TIMEOUT_READ_SEMI_BLOCKING,
                 500, 500
         )
     }
@@ -48,7 +48,6 @@ class SerialBus(
             writeRequest(command)
             return command.readResponse(SerialPortInputStream(port))
         } catch (t: Throwable) {
-            t.printStackTrace()
             throw t
         }
     }
@@ -61,18 +60,21 @@ class SerialBus(
     }
 
     data class Settings(
-            val baudRate: Int = 9200,
+            val baudRate: Int = 9600,
             val parity: Int = SerialPort.NO_PARITY,
             val dataBits: Int = 8,
-            val stopBits: Int = 1
+            val stopBits: Int = 2
     )
 
     inner class SerialPortInputStream(private val port: SerialPort) : InputStream() {
         override fun read(): Int {
-            waitForBytes()
-            val singleByteArray = ByteArray(1)
-            port.readBytes(singleByteArray, 1)
-            return singleByteArray[0].toInt()
+            if (waitForBytes() <= 0) {
+                throw TimeoutException("Serial port read timeout")
+            } else {
+                val singleByteArray = ByteArray(1)
+                port.readBytes(singleByteArray, 1)
+                return singleByteArray[0].toInt()
+            }
         }
 
         override fun read(buffer: ByteArray, readOffset: Int, readLen: Int): Int {
