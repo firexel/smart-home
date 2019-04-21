@@ -25,7 +25,7 @@ class Main {
         @JvmStatic
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
-            val log = ConsoleLog("IO").apply { i("Starting...") }
+            val log = ConsoleLog("IO").apply { i("Starting witch commandline ${argv.toList()}...") }
             val broker = StatefulMqttBroker(params.brokerAddress, "I/TransformationVisitor Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
@@ -48,7 +48,8 @@ class Main {
 
 enum class Drivers(val settingsClass: KClass<*>) {
     WELLPRO_8028(Wellpro8028Driver.Settings::class),
-    WELLPRO_3066(Wellpro3066Driver.Settings::class)
+    WELLPRO_3066(Wellpro3066Driver.Settings::class),
+    WIRENBOARD_WBMSW3(WirenboardWbmsw3Driver.Settings::class)
 }
 
 private fun driverSettings(name: String): DriverInfo {
@@ -63,6 +64,10 @@ private fun DeviceNode.instantiateDriver(scheduler: Scheduler, log: Log): Device
 
         Drivers.WELLPRO_3066 -> {
             Wellpro3066Driver(scheduler, settings as Wellpro3066Driver.Settings, log)
+        }
+
+        Drivers.WIRENBOARD_WBMSW3 -> {
+            WirenboardWbmsw3Driver(scheduler, settings as WirenboardWbmsw3Driver.Settings, log)
         }
     }
 }

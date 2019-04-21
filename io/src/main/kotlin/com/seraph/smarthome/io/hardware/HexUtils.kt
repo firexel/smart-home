@@ -42,6 +42,11 @@ class BinaryInputStream(private val wrapped: InputStream) : InputStream() {
         return readUshort(endianness).toShort()
     }
 
+
+    fun readInt(endianness: Endianness = Endianness.MSB_LAST): Int {
+        return (readUshort(endianness) shl 16) or readUshort(endianness)
+    }
+
     fun readUshort(endianness: Endianness = Endianness.MSB_LAST): Int {
         var lsb = read()
         var msb = read()

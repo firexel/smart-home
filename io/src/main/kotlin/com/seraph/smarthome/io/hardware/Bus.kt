@@ -17,13 +17,14 @@ interface Bus {
         interface Result<out T> {
             val data: T
             val isSuccess: Boolean
+            val latency: Long
         }
 
-        class ResultOk<out T>(override val data: T) : Result<T> {
+        class ResultOk<out T>(override val data: T, override val latency: Long) : Result<T> {
             override val isSuccess: Boolean = true
         }
 
-        class ResultError<out T>(private val error: CommunicationException) : Result<T> {
+        class ResultError<out T>(private val error: CommunicationException, override val latency: Long) : Result<T> {
             override val data: T
                 get() = throw error
 

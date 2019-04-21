@@ -76,6 +76,11 @@ class Connector(
             private val dst: GlobalEndpointId,
             private val dstEndpoint: Endpoint<*>
     ) : Endpoint.Visitor<Unit> {
+        override fun onInt(endpoint: Endpoint<Int>) {
+            network.subscribe(src.device, endpoint) { _, _, data ->
+                network.publish(dst.device, dstEndpoint as Endpoint<Int>, data)
+            }
+        }
 
         override fun onVoid(endpoint: Endpoint<Unit>) {
             network.subscribe(src.device, endpoint) { _, _, data ->

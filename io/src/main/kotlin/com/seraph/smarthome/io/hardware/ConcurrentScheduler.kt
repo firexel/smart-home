@@ -21,10 +21,12 @@ class ConcurrentScheduler(private val bus: Bus) : Scheduler {
         : Runnable {
 
         override fun run() {
+            val reqStart = System.nanoTime()
             try {
-                callback(Bus.Command.ResultOk(bus.send(cmd)))
+                callback(Bus.Command.ResultOk(bus.send(cmd), (System.nanoTime() - reqStart) / 1000000))
             } catch (ex: Exception) {
-                callback(Bus.Command.ResultError(Bus.CommunicationException(ex)))
+                ex.printStackTrace()
+                callback(Bus.Command.ResultError(Bus.CommunicationException(ex), (System.nanoTime() - reqStart) / 1000000))
             }
         }
     }
