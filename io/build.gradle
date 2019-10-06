@@ -1,6 +1,16 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.10'
+    }
+}
+
 apply plugin: 'java'
 apply plugin: 'kotlin'
 apply plugin: 'application'
+apply plugin: 'com.google.protobuf'
 
 mainClassName = 'com.seraph.smarthome.io.Main'
 
@@ -13,11 +23,37 @@ dependencies {
     compile "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
     compile 'com.fazecast:jSerialComm:[2.0.0,3.0.0)'
     compile project(':common')
+    compile 'com.google.protobuf:protobuf-java:3.9.1'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile 'org.mockito:mockito-core:2.13.0'
     testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
     testCompile project(":common")
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'gen/main/java'
+        }
+        proto {
+            srcDir 'src/main/proto'
+        }
+    }
+}
+
+protobuf {
+    generatedFilesBaseDir = "$projectDir/gen"
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.9.1' // use already compiled protoc
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {}
+            }
+        }
+    }
 }
 
 run {
@@ -31,5 +67,5 @@ project.ext.additionalDependencies = [
 ]
 
 project.ext.addLaunchParameters = { brokerName ->
-    return ['--broker', "tcp://$brokerName:1883"]
+    return ['--broker', "tcp://localhost:1883"]
 }

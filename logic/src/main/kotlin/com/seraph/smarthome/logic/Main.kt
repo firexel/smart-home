@@ -4,6 +4,7 @@ import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
+import com.seraph.smarthome.logic.devices.Dimmer
 import com.seraph.smarthome.logic.devices.Splitter
 import com.seraph.smarthome.logic.devices.Switch
 import com.seraph.smarthome.logic.devices.Thermostat
@@ -40,6 +41,7 @@ class Main {
 private fun DeviceNode.instantiateDevice(): DeviceDriver {
     return when (Drivers.valueOf(driver)) {
         Drivers.SWITCH -> Switch()
+        Drivers.DIMMER -> Dimmer()
         Drivers.SPLITTER -> Splitter()
         Drivers.THERMOSTAT -> Thermostat(settings as Thermostat.Settings)
     }
@@ -47,6 +49,7 @@ private fun DeviceNode.instantiateDevice(): DeviceDriver {
 
 enum class Drivers(val settingsClass: KClass<*>?) {
     SWITCH(null),
+    DIMMER(null),
     SPLITTER(null),
     THERMOSTAT(Thermostat.Settings::class)
 }

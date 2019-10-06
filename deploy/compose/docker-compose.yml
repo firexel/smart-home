@@ -19,6 +19,7 @@ services:
         max-size: "10m"
         max-file: "5"
   io:
+    network_mode: host
     image: "seraph/io:latest"
     restart: "unless-stopped"
     logging:
