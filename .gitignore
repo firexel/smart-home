@@ -7,6 +7,7 @@
 /build
 /logic/build
 /io/build
+/io/gen
 /common/build
 /client/build
 /metadata/build
