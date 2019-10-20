@@ -7,6 +7,7 @@ import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.io.hardware.*
 import com.seraph.smarthome.io.hardware.dmx.UniverseController
+import com.seraph.smarthome.io.hardware.dmx.fixture.BezierInterpolator
 import com.seraph.smarthome.io.hardware.dmx.fixture.LinearInterpolator
 import com.seraph.smarthome.io.hardware.dmx.fixture.StandaloneLightFixture
 import com.seraph.smarthome.io.hardware.dmx.ola.OlaClient
@@ -55,7 +56,7 @@ class Main {
                             universeNode.deviceName, universeNode.devicePort
                     ), dmxLog.copy(universeName.toLowerCase().capitalize()))
                     universeNode.fixtures.forEach { (fixtureName, fixtureNode) ->
-                        val fixture = StandaloneLightFixture(LinearInterpolator(0.0))
+                        val fixture = StandaloneLightFixture(BezierInterpolator(0.0, log = log.copy("Interpolator")))
                         val deviceId = Device.Id(universeName, fixtureName)
                         manager.addDriver(deviceId, fixture)
                         controller.addFixture(fixture, fixtureNode.addressAtBus)
