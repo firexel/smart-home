@@ -5,9 +5,10 @@ import kotlin.math.pow
 
 class BezierInterpolator(
         initialValue: Double,
-        private val maxAnimTimeNs: Long = 1_100_000_000,
+        private val maxAnimTimeNs: Long = 1_500_000_000,
         private val intermediateStepsCount: Int = 100,
-        private val steepness: Double = 0.2,
+        private val startSteepness: Double = 0.1,
+        private val endSteepness: Double = 0.7,
         private val log: Log
 ) : StandaloneLightFixture.Interpolator {
 
@@ -18,11 +19,12 @@ class BezierInterpolator(
     override fun setTarget(target: Float) {
         log.v("Request to go from ${current.v} to $target in $maxAnimTimeNs nanos")
 
-        val temporalOffset = (maxAnimTimeNs * steepness).toLong()
+        val temporalOffsetStart = (maxAnimTimeNs * startSteepness).toLong()
+        val temporalOffsetEnd = (maxAnimTimeNs * endSteepness).toLong()
 
         val p0 = Point(0L, current.v)
-        val p1 = Point(temporalOffset, current.v)
-        val p2 = Point(maxAnimTimeNs - temporalOffset, target.toDouble())
+        val p1 = Point(temporalOffsetStart, current.v)
+        val p2 = Point(maxAnimTimeNs - temporalOffsetEnd, target.toDouble())
         val p3 = Point(maxAnimTimeNs, target.toDouble())
 
         val points = ArrayList<Point>(intermediateStepsCount + 1)
@@ -48,13 +50,22 @@ class BezierInterpolator(
             val currentT = current.t + nanosPassed
             val nearestRightIndex = points.indexOfFirst { it.t >= currentT }
             if (nearestRightIndex < 0) {
-                log.v("Last point of sequence currentT=$currentT. Finishing.")
                 current = points.last().copy(t = 0)
                 previous = current.copy(t = -100)
                 points = emptyList()
-            } else {
+            } else if (nearestRightIndex == 0) {
                 current = Point(currentT, points[nearestRightIndex].v)
-                log.v("T+$currentT Selected V: ${current.v}")
+                log.v("T:\t$currentT\tSelected V:\t${current.v}")
+            } else {
+                val r = points[nearestRightIndex]
+                val l = points[nearestRightIndex - 1]
+                val d = Math.abs(r.t - l.t)
+                val dr = Math.abs(r.t - currentT).toDouble()
+                val vr = r.v
+                val vl = l.v
+                val currentV = (1.0 - dr / d) * vr + (dr / d) * vl
+                current = Point(currentT, currentV)
+                log.v("T:\t$currentT\tSelected V:\t${current.v}")
             }
         }
         return current.v.toFloat()
@@ -67,7 +78,7 @@ class BezierInterpolator(
 
     private data class Point(val t: Long, val v: Double) {
         override fun toString(): String {
-            return "$t - $v"
+            return "T:$t V:$v"
         }
     }
 }
