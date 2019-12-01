@@ -1,6 +1,7 @@
 package com.seraph.smarthome.io.hardware.dmx.fixture
 
 import com.seraph.smarthome.util.Log
+import com.seraph.smarthome.util.NoLog
 import kotlin.math.pow
 
 class BezierInterpolator(
@@ -9,7 +10,7 @@ class BezierInterpolator(
         private val intermediateStepsCount: Int = 100,
         private val startSteepness: Double = 0.1,
         private val endSteepness: Double = 0.7,
-        private val log: Log
+        private val log: Log = NoLog()
 ) : StandaloneLightFixture.Interpolator {
 
     private var current = Point(0L, initialValue)

@@ -56,7 +56,7 @@ class Main {
                             universeNode.deviceName, universeNode.devicePort
                     ), dmxLog.copy(universeName.toLowerCase().capitalize()))
                     universeNode.fixtures.forEach { (fixtureName, fixtureNode) ->
-                        val fixture = StandaloneLightFixture(BezierInterpolator(0.0, log = log.copy("Interpolator")))
+                        val fixture = StandaloneLightFixture(BezierInterpolator(0.0))
                         val deviceId = Device.Id(universeName, fixtureName)
                         manager.addDriver(deviceId, fixture)
                         controller.addFixture(fixture, fixtureNode.addressAtBus)
