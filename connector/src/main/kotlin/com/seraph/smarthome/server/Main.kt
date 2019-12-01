@@ -29,7 +29,7 @@ class Main {
             val gson = gsonBuilder.create()
             val connections = gson.fromJson(FileReader(params.configPath), ConnectionsList::class.java)
             val broker = StatefulMqttBroker(params.brokerAddress, "SHCS", log.copy("Broker"))
-            val network = MqttNetwork(broker, log.copy("Network"))
+            val network = MqttNetwork(LocalBroker(broker), log.copy("Network"))
             Connector(network, connections.connections, log).serve()
         }
     }
