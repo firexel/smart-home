@@ -2,11 +2,13 @@ package com.seraph.smarthome.io.hardware.dmx
 
 import com.seraph.smarthome.io.hardware.dmx.ola.DmxSession
 import com.seraph.smarthome.util.Log
+import kotlin.math.roundToInt
 
 class UniverseController(private val session: DmxSession, private val log: Log) {
 
     private val fixtures = arrayOfNulls<Fixture?>(512)
     private val frameTimeMs = 10L // 100fps
+    private var previousFrame = ShortArray(0)
 
     fun addFixture(fixture: Fixture, busIndex: Int) {
         val existedFixture = try {
@@ -39,7 +41,7 @@ class UniverseController(private val session: DmxSession, private val log: Log) 
 
     private fun update(nanosPassed: Long): Int {
         var lastFixtureIndex = 0
-        for (i in 0 until fixtures.size) {
+        for (i in fixtures.indices) {
             val fixture = fixtures[i]
             if (fixture != null) {
                 fixture.update(nanosPassed)
@@ -51,9 +53,12 @@ class UniverseController(private val session: DmxSession, private val log: Log) 
 
     private fun sendDmx(lastFixtureIndex: Int) {
         val values = ShortArray(lastFixtureIndex + 1) { i ->
-            Math.round((fixtures[i]?.value ?: 0f) * 255).toShort()
+            ((fixtures[i]?.value ?: 0f) * 255).roundToInt().toShort()
         }
-        session.sendDmx(values)
+        if (!previousFrame.contentEquals(values)) {
+            session.sendDmx(values)
+            previousFrame = values
+        }
     }
 
     interface Fixture {
