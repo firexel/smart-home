@@ -8,7 +8,6 @@ import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.io.hardware.*
 import com.seraph.smarthome.io.hardware.dmx.UniverseController
 import com.seraph.smarthome.io.hardware.dmx.fixture.BezierInterpolator
-import com.seraph.smarthome.io.hardware.dmx.fixture.LinearInterpolator
 import com.seraph.smarthome.io.hardware.dmx.fixture.StandaloneLightFixture
 import com.seraph.smarthome.io.hardware.dmx.ola.OlaClient
 import com.seraph.smarthome.transport.impl.StatefulMqttBroker
@@ -70,6 +69,7 @@ class Main {
 
 enum class Rs485Drivers(val settingsClass: KClass<*>) {
     WELLPRO_8028(Wellpro8028Driver.Settings::class),
+    WELLPRO_8026(Wellpro8026Driver.Settings::class),
     WELLPRO_3066(Wellpro3066Driver.Settings::class),
     WIRENBOARD_WBMSW3(WirenboardWbmsw3Driver.Settings::class)
 }
@@ -82,6 +82,10 @@ private fun Rs485DeviceNode.instantiateDriver(scheduler: Scheduler, log: Log): D
     return when (Rs485Drivers.valueOf(driver)) {
         Rs485Drivers.WELLPRO_8028 -> {
             Wellpro8028Driver(scheduler, settings as Wellpro8028Driver.Settings, log)
+        }
+
+        Rs485Drivers.WELLPRO_8026 -> {
+            Wellpro8026Driver(scheduler, settings as Wellpro8026Driver.Settings, log)
         }
 
         Rs485Drivers.WELLPRO_3066 -> {
