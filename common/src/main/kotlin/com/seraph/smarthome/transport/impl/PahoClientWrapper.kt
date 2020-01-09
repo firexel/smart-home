@@ -44,6 +44,7 @@ internal class PahoClientWrapper(
                     isAutomaticReconnect = options.autoReconnect
                     keepAliveInterval = options.keepAliveInterval
                     isCleanSession = true
+                    maxInflight = 200
                 },
                 null,
                 object : IMqttActionListener {
