@@ -96,8 +96,8 @@ class RegionMapper(private val from: Float = 0f, private val to: Float = 1f) : S
 
     override fun toOverallBrightness(brightness: Float): Float {
         return when {
-            brightness <= 0 -> from
-            brightness >= 1 -> to
+            brightness <= 0 -> 0f
+            brightness >= 1 -> 1f
             else -> from + brightness * abs(to - from)
         }
     }

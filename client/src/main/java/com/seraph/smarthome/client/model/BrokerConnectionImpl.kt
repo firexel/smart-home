@@ -8,7 +8,7 @@ import com.seraph.smarthome.domain.Metainfo
 import com.seraph.smarthome.domain.Network
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.transport.Broker
-import com.seraph.smarthome.transport.impl.StatefulMqttBroker
+import com.seraph.smarthome.transport.impl.Brokers
 import com.seraph.smarthome.util.Log
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
@@ -28,7 +28,7 @@ class BrokerConnectionImpl(credentials: BrokerCredentials, log: Log) : BrokerCon
     override val state: Observable<BrokerConnection.State> = stateSubject
 
     init {
-        val broker = StatefulMqttBroker(
+        val broker = Brokers.unencrypted(
                 "tcp://${credentials.host}:${credentials.port}",
                 "Mobile client " + Build.DEVICE,
                 log.copy("Broker")

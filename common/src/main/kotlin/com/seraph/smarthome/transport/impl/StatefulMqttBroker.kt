@@ -9,9 +9,8 @@ import java.util.*
 /**
  * Created by aleksandr.naumov on 02.01.18.
  */
-class StatefulMqttBroker(
-        address: String,
-        name: String,
+internal class StatefulMqttBroker(
+        client: Client,
         private val log: Log
 ) : Broker {
 
@@ -21,12 +20,8 @@ class StatefulMqttBroker(
     }
 
     init {
-        val options = PahoClientWrapper.Options(
-                hostUrl = address,
-                name = name
-        )
         exchanger.begin(SharedData(
-                client = PahoClientWrapper(options, log.copy("Transport")),
+                client = client,
                 actions = LinkedList(),
                 state = ConnectingState(exchanger),
                 timesRetried = 0

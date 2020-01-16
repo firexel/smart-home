@@ -18,6 +18,14 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+  bridge:
+    image: "seraph/bridge:latest"
+    restart: "unless-stopped"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
   io:
     network_mode: host
     image: "seraph/io:latest"

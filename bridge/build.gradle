@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'kotlin'
 apply plugin: 'application'
 
-mainClassName = 'com.seraph.smarthome.logic.Main'
+mainClassName = 'com.seraph.smarthome.bridge.Main'
 
 repositories {
     mavenCentral()
@@ -23,7 +23,7 @@ run {
 }
 
 project.ext.additionalDependencies = [
-        "logic.json": "/etc/logic.json"
+        "letsencrypt.jks": "/etc/letsencrypt.jks"
 ]
 
 project.ext.addLaunchParameters = { brokerName ->

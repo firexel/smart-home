@@ -5,6 +5,8 @@ import com.seraph.smarthome.util.Log
 import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import java.io.IOException
+import java.util.*
+import javax.net.SocketFactory
 
 /**
  * Created by aleksandr.naumov on 03.01.18.
@@ -27,7 +29,7 @@ internal class PahoClientWrapper(
             else client.setCallback(object : MqttCallback {
                 override fun connectionLost(cause: Throwable?) {
                     log.w("Disconnecting due to $cause")
-                    if(cause is MqttException && cause.cause != null) {
+                    if (cause is MqttException && cause.cause != null) {
                         cause.cause!!.printStackTrace()
                     }
                     value(PahoClientException(cause))
@@ -40,12 +42,7 @@ internal class PahoClientWrapper(
 
     override fun connect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit): Unit = safe("connect") {
         client.connect(
-                MqttConnectOptions().apply {
-                    isAutomaticReconnect = options.autoReconnect
-                    keepAliveInterval = options.keepAliveInterval
-                    isCleanSession = true
-                    maxInflight = 200
-                },
+                prepareConnectionOptions(),
                 null,
                 object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
@@ -59,6 +56,28 @@ internal class PahoClientWrapper(
                     }
                 }
         )
+    }
+
+    private fun prepareConnectionOptions(): MqttConnectOptions {
+        val connOpts = MqttConnectOptions().apply {
+            isAutomaticReconnect = options.autoReconnect
+            keepAliveInterval = options.keepAliveInterval
+            isCleanSession = true
+            maxInflight = 200
+        }
+        if (options.userName != null) {
+            connOpts.userName = options.userName
+        }
+        if (options.password != null) {
+            connOpts.password = options.password.toCharArray()
+        }
+        if (options.socketFactory != null) {
+            connOpts.socketFactory = options.socketFactory
+        }
+        if (options.sslOptions != null) {
+            connOpts.sslProperties = options.sslOptions
+        }
+        return connOpts
     }
 
     override fun disconnect(onSuccess: () -> Unit, onFail: (ClientException) -> Unit): Unit = safe("disconnect") {
@@ -108,7 +127,11 @@ internal class PahoClientWrapper(
             val publishQos: Int = 1,
             val subscribeQos: Int = 1,
             val autoReconnect: Boolean = false,
-            val keepAliveInterval: Int = 10
+            val keepAliveInterval: Int = 10,
+            val userName: String? = null,
+            val password: String? = null,
+            val socketFactory: SocketFactory? = null,
+            val sslOptions: Properties? = null
     )
 
     private class MqttPublication(val token: IMqttDeliveryToken) : Client.Publication {

@@ -1,22 +1,15 @@
-package com.seraph.smarthome.logic
+package com.seraph.smarthome.bridge
 
-import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
-import com.seraph.smarthome.logic.devices.*
-import com.seraph.smarthome.logic.scenes.FactorMapper
-import com.seraph.smarthome.logic.scenes.Scene
-import com.seraph.smarthome.logic.scenes.ScenesManager
+import com.seraph.smarthome.transport.Topic
 import com.seraph.smarthome.transport.impl.Brokers
+import com.seraph.smarthome.transport.impl.LocalBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.xenomachina.argparser.ArgParser
-import com.xenomachina.argparser.SystemExitException
 import com.xenomachina.argparser.default
 import java.io.File
-import java.io.FileReader
-import java.util.*
-import kotlin.reflect.KClass
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -26,70 +19,55 @@ class Main {
     companion object {
         @JvmStatic
         fun main(argv: Array<String>) {
-            val log = ConsoleLog("Logic").apply { i("Starting...") }
+            val log = ConsoleLog("Bridge")
             val params = CommandLineParams(ArgParser(argv))
-            val broker = Brokers.unencrypted(params.brokerAddress, "Logic Gates Service", log.copy("Broker"))
-            val network = MqttNetwork(broker, log.copy("Network"))
-            val manager = DriversManager(network, Device.Id("logic"))
-            val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
-            val timer = Timer()
+            val externalBroker = Brokers.encrypted(
+                    addr = "ssl://mqtt.gbridge.io:8883",
+                    name = "Bridge",
+                    userName = "gbridge-u1876",
+                    userPswd = "7RKB7WrFwp22SJ",
+                    caFile = File("/etc/letsencrypt.jks"),
+                    caPswd = "letsencrypt",
+                    log = log
+            )
+            val internalBroker = Brokers.unencrypted(params.brokerAddress, "Bridge", log.copy("Broker"))
+            val network = MqttNetwork(LocalBroker(internalBroker), log.copy("Network"))
+            val deviceMngr = DriversManager(network, Device.Id("bridge"), log = log)
 
-
-            val scenery = ScenesManager()
-            scenery.registerScene("entrance", listOf(
-                    Scene.Channel("light_03"),
-                    Scene.Channel("light_45", FactorMapper(0.45f))
-            ))
-            scenery.registerScene("livingroom", listOf(
-                    Scene.Channel("light_45", FactorMapper(0.55f)),
-                    Scene.Channel("light_48"),
-                    Scene.Channel("light_49"),
-                    Scene.Channel("light_50"),
-                    Scene.Channel("light_51")
-            ))
-            scenery.registerScene("alex_workplace", listOf(
-                    Scene.Channel("light_46_47")
-            ))
-            scenery.bind("scenery", manager)
-
-            configNode.devices.forEach {
-                manager.addDriver(Device.Id(it.key), it.value.instantiateDevice(timer))
-            }
+            val bridges = Bridges(deviceMngr, externalBroker, Topic("gBridge", "u1876"), log)
+            bridges.addLightBridge(
+                    Topic("living_room", "alex_workplace"),
+                    Device.Id("living_room", "alex_workplace")
+            )
+            bridges.addLightBridge(
+                    Topic("bedroom", "ambient"),
+                    Device.Id("bedroom", "ambient")
+            )
+            bridges.addLightBridge(
+                    Topic("living_room", "entrance"),
+                    Device.Id("living_room", "entrance")
+            )
+            bridges.addLightBridge(
+                    Topic("living_room", "ambient"),
+                    Device.Id("living_room", "ambient")
+            )
+            bridges.addLightBridge(
+                    Topic("bedroom", "bed_alex"),
+                    Device.Id("bedroom", "bed_alex")
+            )
+            bridges.addLightBridge(
+                    Topic("bedroom", "bed_ntsh"),
+                    Device.Id("bedroom", "bed_ntsh")
+            )
+            bridges.addLightBridge(
+                    Topic("bedroom", "star"),
+                    Device.Id("bedroom", "star")
+            )
         }
     }
-}
-
-private fun DeviceNode.instantiateDevice(timer: Timer): DeviceDriver {
-    return when (Drivers.valueOf(driver)) {
-        Drivers.SWITCH -> Switch()
-        Drivers.BUTTON -> Button(timer)
-        Drivers.DIMMER -> Dimmer()
-        Drivers.SPLITTER -> Splitter()
-        Drivers.THERMOSTAT -> Thermostat(settings as Thermostat.Settings)
-    }
-}
-
-enum class Drivers(val settingsClass: KClass<*>?) {
-    SWITCH(null),
-    BUTTON(null),
-    DIMMER(null),
-    SPLITTER(null),
-    THERMOSTAT(Thermostat.Settings::class)
-}
-
-fun driverSettings(name: String): DriverInfo {
-    return DriverInfo(Drivers.valueOf(name).settingsClass)
 }
 
 class CommandLineParams(parser: ArgParser) {
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
             .default("tcp://localhost:1883")
-
-    val configFile by parser.storing("-c", "--config", help = "path to config") {
-        File(this)
-    }.default(File("/etc/logic.json")).addValidator {
-        if (!value.exists()) {
-            throw SystemExitException("Config not found at ${value.absoluteFile}", -1)
-        }
-    }
 }

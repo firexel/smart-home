@@ -10,7 +10,7 @@ import com.seraph.smarthome.io.hardware.dmx.UniverseController
 import com.seraph.smarthome.io.hardware.dmx.fixture.BezierInterpolator
 import com.seraph.smarthome.io.hardware.dmx.fixture.StandaloneLightFixture
 import com.seraph.smarthome.io.hardware.dmx.ola.OlaClient
-import com.seraph.smarthome.transport.impl.StatefulMqttBroker
+import com.seraph.smarthome.transport.impl.Brokers
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.Log
 import com.xenomachina.argparser.ArgParser
@@ -30,7 +30,7 @@ class Main {
         fun main(argv: Array<String>) {
             val params = CommandLineParams(ArgParser(argv))
             val log = ConsoleLog("IO").apply { i("Starting witch commandline ${argv.toList()}...") }
-            val broker = StatefulMqttBroker(params.brokerAddress, "I/TransformationVisitor Service", log.copy("Broker"))
+            val broker =  Brokers.unencrypted(params.brokerAddress, "I/TransformationVisitor Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
             val manager = DriversManager(network, Device.Id("io"), log = log.copy("Manager"))
