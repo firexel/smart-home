@@ -11,5 +11,6 @@
 /common/build
 /client/build
 /metadata/build
+/bridge/build
 /captures
 .externalNativeBuild
