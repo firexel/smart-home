@@ -10,6 +10,8 @@ interface Broker {
 
     fun addStateListener(listener: StateListener)
 
+    fun removeStateListener(listener: StateListener)
+
     interface StateListener {
         fun onStateChanged(brokerState: BrokerState)
     }

@@ -17,7 +17,7 @@ import com.seraph.smarthome.transport.Topic
  *       {device_id}/
  *         {endpoint_id} <- Values from and to device endpoints are posted here
  */
-internal class Topics {
+class Topics {
     companion object {
         private val rootTopic = Topic(listOf("home"))
         private val devicesTopic = rootTopic.subtopic("devices")

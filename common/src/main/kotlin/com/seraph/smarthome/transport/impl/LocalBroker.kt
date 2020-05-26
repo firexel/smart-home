@@ -33,6 +33,10 @@ class LocalBroker(private val externalBroker: Broker) : Broker {
         externalBroker.addStateListener(listener)
     }
 
+    override fun removeStateListener(listener: Broker.StateListener) {
+        externalBroker.removeStateListener(listener)
+    }
+
     private data class Subscription(val listeners: Set<(topic: Topic, data: ByteArray) -> Unit>) {
         fun propagate(topic: Topic, data: ByteArray) {
             listeners.forEach {

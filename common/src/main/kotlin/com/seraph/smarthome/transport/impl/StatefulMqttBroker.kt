@@ -52,6 +52,11 @@ internal class StatefulMqttBroker(
         listener.onStateChanged(it.state)
     }
 
+    override fun removeStateListener(listener: Broker.StateListener) = exchanger.sync {
+        listeners.remove(listener)
+        Unit
+    }
+
     private class StatefulPublication(private val publication: Client.Publication) : Broker.Publication {
         override fun waitForCompletion(millis: Long) {
             publication.waitForCompletion(millis)
