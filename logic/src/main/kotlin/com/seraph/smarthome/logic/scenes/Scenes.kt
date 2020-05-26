@@ -48,6 +48,15 @@ class Scene(
         }
     }
 
+    fun low() {
+        if (brigtness > 0.001) {
+            off()
+        } else {
+            set(0.15f)
+        }
+    }
+
+
     fun on() {
         set(1f)
     }
@@ -112,6 +121,7 @@ class SceneDriver(
         visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.ALWAYS_ALLOW)
         val toggle = visitor.declareInput("toggle", Types.VOID, Endpoint.Retention.NOT_RETAINED)
         val on = visitor.declareInput("on", Types.VOID, Endpoint.Retention.NOT_RETAINED)
+        val low = visitor.declareInput("low", Types.VOID, Endpoint.Retention.NOT_RETAINED)
         val off = visitor.declareInput("off", Types.VOID, Endpoint.Retention.NOT_RETAINED)
         val set = visitor.declareInput("set", Types.BOOLEAN, Endpoint.Retention.NOT_RETAINED)
         val brightnessIn = visitor.declareInput("brightness", Types.FLOAT, Endpoint.Retention.NOT_RETAINED)
@@ -119,6 +129,7 @@ class SceneDriver(
 
         toggle.observe { scene.toggle() }
         on.observe { scene.on() }
+        low.observe { scene.low() }
         off.observe { scene.off() }
         set.observe { scene.set(if (it) 1f else 0f) }
         brightnessIn.observe { scene.set(it) }
