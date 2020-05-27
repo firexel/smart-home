@@ -1,4 +1,4 @@
-package com.seraph.smarthome.server
+package com.seraph.smarthome.connector
 
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.DeviceState
@@ -105,13 +105,6 @@ class Connector(
                 network.publish(dst.device, dstEndpoint as Endpoint<DeviceState>, data)
             }
         }
-    }
-
-    data class GlobalEndpointId(
-            val device: Device.Id,
-            private val endpoint: Endpoint.Id
-    ) {
-        override fun toString(): String = "$device::$endpoint"
     }
 
     data class PendingConnection(

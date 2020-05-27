@@ -14,7 +14,7 @@ fun installModelAdapters(builder: GsonBuilder) {
     builder.registerTypeAdapter(NormalizedUsage::class.java, NormalizedUsage.Deserializer())
 }
 
-private class DeviceIdAdapter : JsonSerializer<Device.Id>, JsonDeserializer<Device.Id> {
+class DeviceIdAdapter : JsonSerializer<Device.Id>, JsonDeserializer<Device.Id> {
     override fun serialize(src: Device.Id, typeOfSrc: Type?, context: JsonSerializationContext?): JsonElement {
         return JsonPrimitive(src.segments.joinToString(":"))
     }
@@ -42,7 +42,7 @@ private class ControlIdAdapter : JsonSerializer<Control.Id>, JsonDeserializer<Co
     }
 }
 
-private class EndpointIdAdapter : JsonSerializer<Endpoint.Id>, JsonDeserializer<Endpoint.Id> {
+class EndpointIdAdapter : JsonSerializer<Endpoint.Id>, JsonDeserializer<Endpoint.Id> {
     override fun serialize(src: Endpoint.Id, typeOfSrc: Type?, context: JsonSerializationContext?): JsonElement {
         return JsonPrimitive(src.value)
     }

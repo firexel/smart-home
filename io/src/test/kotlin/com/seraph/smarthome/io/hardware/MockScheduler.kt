@@ -59,7 +59,7 @@ class MockScheduler : Scheduler {
                 Assert.fail("Cannot find mock for request ${requestBytes.asHexString()}")
             } else {
                 val parseResult = cmd.readResponse(ByteArrayInputStream(mock.response))
-                callback(Bus.Command.ResultOk(parseResult))
+                callback(Bus.Command.ResultOk(parseResult, 0))
             }
         }
     }

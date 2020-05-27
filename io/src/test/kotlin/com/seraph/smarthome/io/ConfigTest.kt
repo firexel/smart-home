@@ -19,14 +19,14 @@ class ConfigTest {
 
     @Test
     fun readEmptyConfig() {
-        val config = readConfig(StringReader("{'buses':{}}"), ::testCatalogue)
-        assertTrue(config.buses.isEmpty())
+        val config = readConfig(StringReader("{'rs485Buses':{}}"), ::testCatalogue)
+        assertTrue(config.rs485Buses.isEmpty())
     }
 
     @Test
     fun readBusWithNoDevicesOnIt() {
         val config = readConfig(StringReader("{" +
-                "'buses':{" +
+                "'rs485Buses':{" +
                 "  'foo_bus': {" +
                 "     'settings': {" +
                 "        'path': '/dev/bar'," +
@@ -39,9 +39,9 @@ class ConfigTest {
                 "  }" +
                 "}" +
                 "}"), ::testCatalogue)
-        assertEquals(1, config.buses.size)
-        val expectedSettings = PortSettingsNode("/dev/bar", 777, ParityNode.NO, 8, 1)
-        val actualBus = config.buses["foo_bus"]!!
+        assertEquals(1, config.rs485Buses.size)
+        val expectedSettings = Rs485PortSettingsNode("/dev/bar", 777, Rs485ParityNode.NO, 8, 1)
+        val actualBus = config.rs485Buses["foo_bus"]!!
         assertEquals(expectedSettings, actualBus.settings)
         assertTrue(actualBus.devices.isEmpty())
     }
@@ -49,7 +49,7 @@ class ConfigTest {
     @Test
     fun readBusWithWellpro8028OnIt() {
         val configString = "{" +
-                "'buses':{\n" +
+                "'rs485Buses':{\n" +
                 "  'foo_bus': {\n" +
                 "     'settings': {\n" +
                 "        'path': '/dev/bar',\n" +
@@ -71,10 +71,10 @@ class ConfigTest {
                 "}\n"
         val config = readConfig(StringReader(configString), ::testCatalogue)
 
-        assertEquals(1, config.buses.size)
+        assertEquals(1, config.rs485Buses.size)
 
-        val actualBus = config.buses["foo_bus"]!!
-        val expectedDevice = DeviceNode("test_driver", TestDeviceSettings(7))
+        val actualBus = config.rs485Buses["foo_bus"]!!
+        val expectedDevice = Rs485DeviceNode("test_driver", TestDeviceSettings(7))
         val actualDevice = actualBus.devices["test_device"]!!
         assertEquals(expectedDevice, actualDevice)
     }

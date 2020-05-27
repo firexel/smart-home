@@ -52,7 +52,7 @@ class MqttNetwork(
                 log.v("$responseTopic --> $deserialized")
                 acceptor(deserialized)
             } catch (ex: Serializer.TypeMismatchException) {
-                log.w("Type mismatch during parsing of $topic")
+                log.w("Type mismatch during parsing of $topic: ${ex.message}" )
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.seraph.smarthome.domain
 
+import java.util.*
+
 /**
  * Created by aleksandr.naumov on 20.01.18.
  */
@@ -80,7 +82,7 @@ internal class FloatConverter : BaseStringConverter<Float>() {
         }
     }
 
-    override fun toString(data: Float): String = String.format("%10.1f", data)
+    override fun toString(data: Float): String = String.format(Locale.ENGLISH, "%10.100f", data)
 }
 
 internal class IntConverter : BaseStringConverter<Int>() {

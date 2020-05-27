@@ -1,0 +1,3 @@
+[submodule "deploy/machines"]
+	path = deploy/machines
+	url = git@github.com:firexel/smart-home-deploy.git

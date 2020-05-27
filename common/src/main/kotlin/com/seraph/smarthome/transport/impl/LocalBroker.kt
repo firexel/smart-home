@@ -11,12 +11,12 @@ class LocalBroker(private val externalBroker: Broker) : Broker {
         synchronized(subscriptions) {
             val subscription = subscriptions[topic]
             if (subscription == null) {
-                externalBroker.subscribe(topic) { topic, data ->
+                subscriptions[topic] = Subscription(setOf(listener))
+                externalBroker.subscribe(topic) { t, d ->
                     synchronized(subscriptions) {
-                        subscriptions[topic]?.propagate(topic, data)
+                        subscriptions[topic]?.propagate(t, d)
                     }
                 }
-                subscriptions[topic] = Subscription(setOf(listener))
             } else {
                 subscriptions[topic] = subscription.copy(
                         listeners = subscription.listeners + setOf(listener)
@@ -31,6 +31,10 @@ class LocalBroker(private val externalBroker: Broker) : Broker {
 
     override fun addStateListener(listener: Broker.StateListener) {
         externalBroker.addStateListener(listener)
+    }
+
+    override fun removeStateListener(listener: Broker.StateListener) {
+        externalBroker.removeStateListener(listener)
     }
 
     private data class Subscription(val listeners: Set<(topic: Topic, data: ByteArray) -> Unit>) {
