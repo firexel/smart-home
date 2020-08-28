@@ -31,7 +31,7 @@ class Connector(
     public fun serve() {
         val reportTask = object : TimerTask() {
             override fun run() {
-//                synchronized(pendingConnections) {
+                synchronized(pendingConnections) {
                     if (pendingConnections.isNotEmpty()) {
                         val unresolvedSet = pendingConnections
                                 .map { it.unresolvedGlobalendpoints }
@@ -41,10 +41,10 @@ class Connector(
                     } else {
                         log.i("All connections are successfully resolved")
                     }
-//                }
+                }
             }
         }
-        timer.schedule(reportTask, 5)
+        timer.schedule(reportTask, 5000)
         network.subscribe(null) { device: Device ->
             device.endpoints.forEach { endpoint ->
                 val gid = GlobalEndpointId(device.id, endpoint.id)

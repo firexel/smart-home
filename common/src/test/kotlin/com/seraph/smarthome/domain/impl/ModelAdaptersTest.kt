@@ -18,13 +18,13 @@ internal class ModelAdaptersTest {
 
     @Test
     fun testEmptyDevice() {
-        val expected = Device(Device.Id(listOf("test")), emptyList(), emptyList())
+        val expected = Device(Device.Id(listOf("test")), emptyList())
         assertEqualsAfterWriteAndRead(expected)
     }
 
     @Test
     fun testEmptySecondLevelDevice() {
-        val expected = Device(Device.Id(listOf("test", "inner")), emptyList(), emptyList())
+        val expected = Device(Device.Id(listOf("test", "inner")), emptyList())
         assertEqualsAfterWriteAndRead(expected)
     }
 
@@ -35,63 +35,11 @@ internal class ModelAdaptersTest {
                 Types.BOOLEAN,
                 Endpoint.Direction.INPUT,
                 Endpoint.Retention.RETAINED,
+                Endpoint.DataKind.CURRENT,
+                Endpoint.Interaction.USER_EDITABLE,
                 Units.GRAMS
         )
-        val expected = Device(Device.Id(listOf("test")), listOf(endpoint), emptyList())
-        assertEqualsAfterWriteAndRead(expected)
-    }
-
-    @Test
-    fun testDeviceWithOneIndicator() {
-        val endpoint = Endpoint(
-                Endpoint.Id("test"),
-                Types.BOOLEAN,
-                Endpoint.Direction.OUTPUT,
-                Endpoint.Retention.RETAINED,
-                Units.GRAMS
-        )
-        val control = Control(
-                Control.Id("test"),
-                Control.Priority.MAIN,
-                Indicator(endpoint)
-        )
-        val expected = Device(Device.Id(listOf("test")), listOf(endpoint), listOf(control))
-        assertEqualsAfterWriteAndRead(expected)
-    }
-
-    @Test
-    fun testDeviceWithButton() {
-        val endpoint = Endpoint(
-                Endpoint.Id("button_trigger"),
-                Types.VOID,
-                Endpoint.Direction.INPUT,
-                Endpoint.Retention.RETAINED,
-                Units.GRAMS
-        )
-        val control = Control(
-                Control.Id("btn"),
-                Control.Priority.MAIN,
-                Button(endpoint, "Are you sure?")
-        )
-        val expected = Device(Device.Id(listOf("test")), listOf(endpoint), listOf(control))
-        assertEqualsAfterWriteAndRead(expected)
-    }
-
-    @Test(expected = JsonParseException::class)
-    fun testDeviceWithUndeclaredEndpointInControl() {
-        val endpoint = Endpoint(
-                Endpoint.Id("button_trigger"),
-                Types.VOID,
-                Endpoint.Direction.INPUT,
-                Endpoint.Retention.RETAINED,
-                Units.GRAMS
-        )
-        val control = Control(
-                Control.Id("btn"),
-                Control.Priority.MAIN,
-                Button(endpoint, "Are you sure?")
-        )
-        val expected = Device(Device.Id(listOf("test")), emptyList(), listOf(control))
+        val expected = Device(Device.Id(listOf("test")), listOf(endpoint))
         assertEqualsAfterWriteAndRead(expected)
     }
 

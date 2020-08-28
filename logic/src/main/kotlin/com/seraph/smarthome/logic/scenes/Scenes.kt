@@ -1,5 +1,6 @@
 package com.seraph.smarthome.logic.scenes
 
+import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
@@ -90,11 +91,28 @@ class Scene(
 }
 
 class FactorMapper(private val factor: Float = 1f) : Scene.Channel.Mapper {
+
+    init {
+        if (factor < 0f || factor > 1f) {
+            throw IllegalArgumentException("Bad power factor $factor")
+        }
+    }
+
     override fun fromOverallBrightness(brightness: Float): Float = brightness * factor
     override fun toOverallBrightness(brightness: Float): Float = brightness / factor
 }
 
 class RegionMapper(private val from: Float = 0f, private val to: Float = 1f) : Scene.Channel.Mapper {
+
+    init {
+        if (from < 0f || from > 1f) {
+            throw IllegalArgumentException("Bad left boundary $from")
+        }
+        if (to < 0f || to > 1f) {
+            throw IllegalArgumentException("Bad right boundary $to")
+        }
+    }
+
     override fun fromOverallBrightness(brightness: Float): Float {
         return when {
             brightness < from -> 0f
@@ -118,14 +136,21 @@ class SceneDriver(
     private var brightnessOut: DeviceDriver.Output<Float>? = null
 
     override fun bind(visitor: DeviceDriver.Visitor) {
-        visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.ALWAYS_ALLOW)
-        val toggle = visitor.declareInput("toggle", Types.VOID, Endpoint.Retention.NOT_RETAINED)
-        val on = visitor.declareInput("on", Types.VOID, Endpoint.Retention.NOT_RETAINED)
-        val low = visitor.declareInput("low", Types.VOID, Endpoint.Retention.NOT_RETAINED)
-        val off = visitor.declareInput("off", Types.VOID, Endpoint.Retention.NOT_RETAINED)
-        val set = visitor.declareInput("set", Types.BOOLEAN, Endpoint.Retention.NOT_RETAINED)
-        val brightnessIn = visitor.declareInput("brightness", Types.FLOAT, Endpoint.Retention.NOT_RETAINED)
-        brightnessOut = visitor.declareOutput("brightness_out", Types.FLOAT, Endpoint.Retention.RETAINED)
+        val toggle = visitor.declareInput("toggle", Types.VOID)
+                .setDataKind(Endpoint.DataKind.EVENT)
+
+        val on = visitor.declareInput("on", Types.VOID)
+                .setDataKind(Endpoint.DataKind.EVENT)
+
+        val low = visitor.declareInput("low", Types.VOID)
+                .setDataKind(Endpoint.DataKind.EVENT)
+
+        val off = visitor.declareInput("off", Types.VOID)
+                .setDataKind(Endpoint.DataKind.EVENT)
+
+        val set = visitor.declareInput("set", Types.BOOLEAN)
+        val brightnessIn = visitor.declareInput("brightness", Types.FLOAT)
+        brightnessOut = visitor.declareOutput("brightness_out", Types.FLOAT)
 
         toggle.observe { scene.toggle() }
         on.observe { scene.on() }
@@ -221,7 +246,7 @@ class ScenesManager {
 
         override fun bind(visitor: DeviceDriver.Visitor) {
             channels.forEach {
-                val output = visitor.declareOutput(it, Types.FLOAT, Endpoint.Retention.RETAINED)
+                val output = visitor.declareOutput(it, Types.FLOAT)
                 outputs[it] = output
             }
             scenes.forEach {
@@ -232,5 +257,25 @@ class ScenesManager {
         fun reportBrightness(id: String, brightness: Float) {
             outputs[id]?.set(brightness)
         }
+    }
+
+    data class Settings(
+            @SerializedName("channels")
+            val channels: List<ChannelNode>
+    ) {
+
+        data class ChannelNode(
+                @SerializedName("name")
+                val input: String,
+
+                @SerializedName("factor")
+                val factor: Float = 1f,
+
+                @SerializedName("active_from")
+                val activeFrom: Float = 0f,
+
+                @SerializedName("active_to")
+                val activeTo: Float = 1f
+        )
     }
 }

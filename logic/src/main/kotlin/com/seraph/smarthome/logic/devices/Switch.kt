@@ -1,7 +1,6 @@
 package com.seraph.smarthome.logic.devices
 
 import com.seraph.smarthome.device.DeviceDriver
-import com.seraph.smarthome.domain.Control
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 
@@ -14,26 +13,14 @@ class Switch : DeviceDriver {
     private var state: Boolean = false
 
     override fun bind(visitor: DeviceDriver.Visitor) {
-        val stateInput = visitor.declareInput(
-                "state_in",
-                Types.BOOLEAN,
-                Endpoint.Retention.RETAINED
-        )
+        val stateInput = visitor.declareInput("state_in", Types.BOOLEAN)
 
-        val impulseInput = visitor.declareInput(
-                "switch",
-                Types.VOID,
-                Endpoint.Retention.NOT_RETAINED
-        )
+        val impulseInput = visitor.declareInput("switch", Types.VOID)
+                .setDataKind(Endpoint.DataKind.EVENT)
+                .setUserInteraction(Endpoint.Interaction.MAIN)
 
-        val overridenOutput = visitor.declareOutput(
-                "state_out",
-                Types.BOOLEAN,
-                Endpoint.Retention.RETAINED
-        )
-
-        visitor.declareButton("switch", Control.Priority.MAIN, impulseInput)
-        visitor.declareIndicator("state_indicator", Control.Priority.MAIN, overridenOutput)
+        val overridenOutput = visitor.declareOutput("state_out", Types.BOOLEAN)
+                .setUserInteraction(Endpoint.Interaction.MAIN)
 
         fun switchState(newState: Boolean) {
             state = newState

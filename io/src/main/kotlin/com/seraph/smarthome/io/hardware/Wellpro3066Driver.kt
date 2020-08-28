@@ -2,7 +2,6 @@ package com.seraph.smarthome.io.hardware
 
 import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
-import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 import com.seraph.smarthome.util.Log
 import java.io.IOException
@@ -39,16 +38,14 @@ class Wellpro3066Driver(
     private fun declareOnlineOutput(visitor: DeviceDriver.Visitor): DeviceDriver.Output<Boolean> {
         return visitor.declareOutput(
                 "online",
-                Types.BOOLEAN,
-                Endpoint.Retention.RETAINED
+                Types.BOOLEAN
         )
     }
 
     private fun declareValueOutput(visitor: DeviceDriver.Visitor): DeviceDriver.Output<Float> {
         return visitor.declareOutput(
                 "value",
-                Types.FLOAT,
-                Endpoint.Retention.RETAINED
+                Types.FLOAT
         )
     }
 

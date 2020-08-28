@@ -5,7 +5,6 @@ import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.InvalidData
 import com.seraph.smarthome.device.validate
 import com.seraph.smarthome.domain.DeviceState
-import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 import com.seraph.smarthome.util.Log
 
@@ -37,19 +36,18 @@ class Wellpro8026Driver(
     }
 
     override fun bind(visitor: DeviceDriver.Visitor) {
-        visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.ALWAYS_ALLOW)
         configureDeviceState(visitor)
         val sensors = declareSensorEndpoints(visitor)
         sendReadCommand(sensors)
     }
 
     private fun configureDeviceState(visitor: DeviceDriver.Visitor) {
-        stateOutput = visitor.declareOutput("state", Types.DEVICE_STATE, Endpoint.Retention.NOT_RETAINED)
+        stateOutput = visitor.declareOutput("state", Types.DEVICE_STATE)
     }
 
     private fun declareSensorEndpoints(visitor: DeviceDriver.Visitor): Map<Int, DeviceDriver.Output<Boolean>> {
         return sensorsConnected
-                .map { it.key to visitor.declareOutput(it.value, Types.BOOLEAN, Endpoint.Retention.RETAINED) }
+                .map { it.key to visitor.declareOutput(it.value, Types.BOOLEAN) }
                 .toMap()
     }
 

@@ -178,12 +178,12 @@ class DriversManagerTest {
         private var outputs: List<DeviceDriver.Output<Boolean>> = emptyList()
 
         override fun bind(visitor: DeviceDriver.Visitor) {
-            visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.WAIT_FOR_ALL_INPUTS)
             outputs = listOf("out1", "out2").map {
-                visitor.declareOutput(it, Types.BOOLEAN, Endpoint.Retention.RETAINED)
+                visitor.declareOutput(it, Types.BOOLEAN)
             }
             inputs = listOf("in1", "in2").map {
-                visitor.declareInput(it, Types.BOOLEAN, Endpoint.Retention.RETAINED)
+                visitor.declareInput(it, Types.BOOLEAN)
+                        .waitForDataBeforeOutput()
             }
             inputs.forEach {
                 it.observe {

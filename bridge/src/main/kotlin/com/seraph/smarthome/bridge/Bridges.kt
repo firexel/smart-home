@@ -3,7 +3,6 @@ package com.seraph.smarthome.bridge
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
-import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
@@ -23,8 +22,8 @@ class Bridges(
 
     inner class DimmerDriver(private val deviceTopic: Topic) : DeviceDriver {
         override fun bind(visitor: DeviceDriver.Visitor) {
-            val brIn = visitor.declareInput("brightness", Types.FLOAT, Endpoint.Retention.NOT_RETAINED)
-            val brOut = visitor.declareOutput("brightness_out", Types.FLOAT, Endpoint.Retention.NOT_RETAINED)
+            val brIn = visitor.declareInput("brightness", Types.FLOAT)
+            val brOut = visitor.declareOutput("brightness_out", Types.FLOAT)
 
             val topicOnoff = deviceTopic.subtopic("onoff")
             val topicBrightness = deviceTopic.subtopic("brightness")

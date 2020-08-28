@@ -111,18 +111,14 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                 into createDockerfileTask.destFile.parentFile
             }
 
-            def buildImageTask = task(type: DockerBuildImage, "buildImage$machine") {
+            def buildImageTask = task(type: Exec, "buildImage$machine") {
                 File completeMarker = project.file("build/docker/${machine}_img_created")
-                if (!envs.isEmpty()) {
-                    url = envs["DOCKER_HOST"]
-                    certPath = new File(envs["DOCKER_CERT_PATH"])
-                }
                 inputs.dir(createDockerfileTask.destFile.parentFile)
                 outputs.file(completeMarker)
                 dependsOn createDockerfileTask, copyDepsTask
-                dockerFile = createDockerfileTask.destFile
-                inputDir = createDockerfileTask.destFile.parentFile
-                tag = "seraph/$project.name:latest"
+                environment envs
+                workingDir createDockerfileTask.destFile.parentFile
+                commandLine selectDockerExecutable(), 'build', '-f', createDockerfileTask.destFile, '-t', "seraph/$project.name:latest"
                 doLast {
                     completeMarker.createNewFile()
                 }
@@ -156,6 +152,14 @@ private ArrayList<File> findMachinesDirectories() {
 private static String selectComposeExecutable() {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
         return "/usr/local/bin/docker-compose"
+    } else {
+        return "docker-compose"
+    }
+}
+
+private static String selectDockerExecutable() {
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        return "/usr/local/bin/docker"
     } else {
         return "docker-compose"
     }

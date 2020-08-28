@@ -3,11 +3,10 @@ package com.seraph.smarthome.logic.devices
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
-import java.util.*
+import com.seraph.smarthome.util.Scheduler
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.concurrent.schedule
 
-class Button(private val timer: Timer) : DeviceDriver {
+class Button(private val scheduler: Scheduler) : DeviceDriver {
 
     private val longPressTimeMs = 1000L
 
@@ -16,16 +15,20 @@ class Button(private val timer: Timer) : DeviceDriver {
     }
 
     private var state = AtomicReference(State.IDLE)
-    private var delayedTask: TimerTask? = null
+    private var delayedTask: Scheduler.Task? = null
     private lateinit var pressAction: DeviceDriver.Output<Unit>
     private lateinit var longPressAction: DeviceDriver.Output<Unit>
 
     override fun bind(visitor: DeviceDriver.Visitor) {
-        visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.ALWAYS_ALLOW)
-        pressAction = visitor.declareOutput("press", Types.VOID, Endpoint.Retention.NOT_RETAINED)
-        longPressAction = visitor.declareOutput("longpress", Types.VOID, Endpoint.Retention.NOT_RETAINED)
+        pressAction = visitor.declareOutput("press", Types.VOID)
+                .setDataKind(Endpoint.DataKind.EVENT)
+                .setUserInteraction(Endpoint.Interaction.MAIN)
 
-        visitor.declareInput("key", Types.BOOLEAN, Endpoint.Retention.NOT_RETAINED).observe {
+        longPressAction = visitor.declareOutput("longpress", Types.VOID)
+                .setDataKind(Endpoint.DataKind.EVENT)
+                .setUserInteraction(Endpoint.Interaction.USER_READONLY)
+
+        visitor.declareInput("key", Types.BOOLEAN).observe {
             when (it) {
                 true -> onDown()
                 false -> onUp()
@@ -47,7 +50,7 @@ class Button(private val timer: Timer) : DeviceDriver {
         when (state.get()) {
             State.IDLE -> {
                 changeState(State.PRESSED)
-                delayedTask = timer.schedule(longPressTimeMs) { onTimeout() }
+                delayedTask = scheduler.scheduleOnce(longPressTimeMs) { onTimeout() }
             }
             else -> Unit /* do nothing */
         }
@@ -63,7 +66,7 @@ class Button(private val timer: Timer) : DeviceDriver {
         }
     }
 
-    private fun changeState(state:State) {
+    private fun changeState(state: State) {
         if (state == State.IDLE) {
             delayedTask?.cancel()
             delayedTask = null

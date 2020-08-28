@@ -10,7 +10,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name="com.seraph.smarthome.client.app.ClientApp"
         android:allowBackup="true"
         android:fullBackupContent="true"
         android:icon="@mipmap/ic_launcher"
@@ -19,21 +18,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity
-            android:name="com.seraph.smarthome.client.view.BrokersActivity"
-            android:label="@string/title_activity_brokers">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name="com.seraph.smarthome.client.view.NewBrokerActivity"
-            android:label="@string/title_activity_add_broker" />
-        <activity
-            android:name="com.seraph.smarthome.client.view.SceneActivity"
-            android:theme="@style/AppTheme.CustomToolbar" />
     </application>
 
 </manifest>
