@@ -118,7 +118,7 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                 dependsOn createDockerfileTask, copyDepsTask
                 environment envs
                 workingDir createDockerfileTask.destFile.parentFile
-                commandLine selectDockerExecutable(), 'build', '-f', createDockerfileTask.destFile, '-t', "seraph/$project.name:latest"
+                commandLine selectDockerExecutable(), 'build', '-f', createDockerfileTask.destFile, '-t', "seraph/$project.name:latest", "."
                 doLast {
                     completeMarker.createNewFile()
                 }
@@ -161,7 +161,7 @@ private static String selectDockerExecutable() {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
         return "/usr/local/bin/docker"
     } else {
-        return "docker-compose"
+        return "docker"
     }
 }
 
