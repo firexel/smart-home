@@ -59,6 +59,8 @@ private fun DeviceNode.instantiateDevice(
         Drivers.BUTTON -> Button(scheduler)
         Drivers.PID_THERMOSTAT -> PidRegulatedThermostat(scheduler, settings as PidRegulatedThermostat.Settings)
         Drivers.SLOW_PWM -> SlowPwm(scheduler, settings as SlowPwm.Settings)
+        Drivers.TEST_OUTPUT -> TestOutput()
+        Drivers.TEST_INPUT -> TestInput(ConsoleLog(deviceName))
         Drivers.SCENE -> {
             addScene(deviceName, scenery, settings as ScenesManager.Settings)
             return null
@@ -87,6 +89,8 @@ enum class Drivers(val settingsClass: KClass<*>?) {
     BUTTON(null),
     PID_THERMOSTAT(PidRegulatedThermostat.Settings::class),
     SLOW_PWM(SlowPwm.Settings::class),
+    TEST_INPUT(null),
+    TEST_OUTPUT(null),
     SCENE(ScenesManager.Settings::class)
 }
 
