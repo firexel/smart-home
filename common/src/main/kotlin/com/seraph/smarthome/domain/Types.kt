@@ -11,26 +11,31 @@ class Types {
         val FLOAT = object : Endpoint.Type<Float> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onFloat(this)
             override val serializer: Serializer<Float> = FloatConverter()
+            override fun cast(obj: Any): Float = obj as Float
         }
 
         val INTEGER = object : Endpoint.Type<Int> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onInt(this)
             override val serializer: Serializer<Int> = IntConverter()
+            override fun cast(obj: Any): Int = obj as Int
         }
 
         val BOOLEAN = object : Endpoint.Type<Boolean> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onBoolean(this)
             override val serializer: Serializer<Boolean> = BooleanConverter()
+            override fun cast(obj: Any): Boolean = obj as Boolean
         }
 
         val VOID = object : Endpoint.Type<Unit> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onVoid(this)
             override val serializer: Serializer<Unit> = VoidConverter()
+            override fun cast(obj: Any) = obj as Unit
         }
 
         val DEVICE_STATE = object : Endpoint.Type<DeviceState> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onDeviceState(this)
             override val serializer: Serializer<DeviceState> = DeviceStateConverter()
+            override fun cast(obj: Any): DeviceState = obj as DeviceState
         }
     }
 }

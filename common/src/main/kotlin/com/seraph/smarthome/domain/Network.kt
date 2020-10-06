@@ -7,18 +7,22 @@ package com.seraph.smarthome.domain
 interface Network {
 
     fun publish(metainfo: Metainfo): Publication
-    fun subscribe(func: (Metainfo) -> Unit)
+    fun subscribe(func: (Metainfo) -> Unit):Subscription
 
     fun publish(device: Device): Publication
-    fun subscribe(device: Device.Id?, func: (Device) -> Unit)
+    fun subscribe(device: Device.Id?, func: (Device) -> Unit):Subscription
 
     fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T): Publication
-    fun <T> subscribe(device: Device.Id, endpoint: Endpoint<T>, func: (Device.Id, Endpoint<T>, data: T) -> Unit)
+    fun <T> subscribe(device: Device.Id, endpoint: Endpoint<T>, func: (Device.Id, Endpoint<T>, data: T) -> Unit): Subscription
 
     var statusListener: StatusListener
 
     interface Publication {
         fun waitForCompletion(millis: Long)
+    }
+
+    interface Subscription {
+        fun unsubscribe()
     }
 
     interface StatusListener {

@@ -1,8 +1,8 @@
 package com.seraph.smarthome.transport.impl
 
-import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
+import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.util.Log
 import java.util.*
 
@@ -28,14 +28,24 @@ internal class StatefulMqttBroker(
         ))
     }
 
-    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit)
-            = exchanger.sync { data ->
-
+    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit) = exchanger.sync { data ->
         data.state.execute(topic) { client ->
             client.subscribe(topic) { topic, data ->
                 listener(topic, data)
             }
-            log.i("$topic subscribed")
+            log.i("Subscribed to $topic")
+        }
+        object : Broker.Subscription {
+            override fun unsubscribe() {
+                unsubscribe(topic)
+            }
+        }
+    }
+
+    fun unsubscribe(topic: Topic) = exchanger.sync { data ->
+        data.state.execute(topic) { client ->
+            client.unsubscribe(topic)
+            log.i("Unsubscribed from $topic")
         }
     }
 

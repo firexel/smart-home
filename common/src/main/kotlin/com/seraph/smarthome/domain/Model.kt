@@ -55,6 +55,7 @@ data class Endpoint<N>(
     interface Type<N> {
 
         fun <T> accept(visitor: Visitor<T>): T
+        fun cast(obj: Any): N
 
         val serializer: Serializer<N>
 
