@@ -12,6 +12,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
     implementation project(':common')
+    implementation 'com.google.code.gson:gson:2.8.5'
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
