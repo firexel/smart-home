@@ -33,7 +33,7 @@ class Main {
             val broker = Brokers.unencrypted(params.brokerAddress, "Logic Gates Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val manager = DriversManager(network, Device.Id("logic"))
-            val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
+            val configNode = readConfig(FileReader("config.json"), ::driverSettings)
             val scheduler = ThreadScheduler("LogicDevicesScheduler")
             val scenery = ScenesManager()
 
@@ -101,12 +101,4 @@ fun driverSettings(name: String): DriverInfo {
 class CommandLineParams(parser: ArgParser) {
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
             .default("tcp://localhost:1883")
-
-    val configFile by parser.storing("-c", "--config", help = "path to config") {
-        File(this)
-    }.default(File("/etc/logic.json")).addValidator {
-        if (!value.exists()) {
-            throw SystemExitException("Config not found at ${value.absoluteFile}", -1)
-        }
-    }
 }
