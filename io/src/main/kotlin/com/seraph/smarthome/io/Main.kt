@@ -32,7 +32,7 @@ class Main {
             val log = ConsoleLog("IO").apply { i("Starting witch commandline ${argv.toList()}...") }
             val broker =  Brokers.unencrypted(params.brokerAddress, "I/TransformationVisitor Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
+            val configNode = readConfig(FileReader("config.json"), ::driverSettings)
             val manager = DriversManager(network, Device.Id("io"), log = log.copy("Manager"))
 
             configNode.rs485Buses.forEach { (busId, busNode) ->
@@ -113,12 +113,4 @@ private fun Rs485ParityNode.mapToConnectionParityIndex() = when (this) {
 class CommandLineParams(parser: ArgParser) {
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
             .default("tcp://localhost:1883")
-
-    val configFile by parser.storing("-c", "--config", help = "path to config") {
-        File(this)
-    }.default(File("/etc/io.json")).addValidator {
-        if (!value.exists()) {
-            throw SystemExitException("Config not found at ${value.absoluteFile}", -1)
-        }
-    }
 }

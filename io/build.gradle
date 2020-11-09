@@ -63,10 +63,6 @@ run {
     }
 }
 
-project.ext.additionalDependencies = [
-        "io.json": "/etc/io.json"
-]
-
 project.ext.addLaunchParameters = { brokerName ->
     return ['--broker', "tcp://localhost:1883"]
 }

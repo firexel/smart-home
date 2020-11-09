@@ -1,15 +1,16 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.3.72'
+    ext.kotlin_version = '1.4.10'
     ext.kotlin_argparser_version = '2.0.3'
     repositories {
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.1'
+        classpath 'com.android.tools.build:gradle:4.0.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
         classpath 'com.bmuschko:gradle-docker-plugin:3.2.4'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -49,7 +50,7 @@ private void configureJarAssemblyIn(def project) {
         jar {
             doFirst {
                 from {
-                    configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+                    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
                 }
             }
             exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
@@ -128,15 +129,13 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                 def upTask = tasks.find { it.name == "upOn$machine" }
                 if (upTask == null) {
                     upTask = task(type: Exec, "upOn$machine") {
-                        def composePath = root.file('deploy/compose/docker-compose.yml').absolutePath
                         def localComposePath = new File(machineDir, 'docker-compose.yml').absolutePath
-                        inputs.file(composePath)
                         inputs.file(localComposePath)
                         logger.debug("Setup up task $name for machine $machine")
                         environment envs
                         ignoreExitValue false
                         workingDir machineDir
-                        commandLine selectComposeExecutable(), '-f', composePath, '-f', localComposePath, 'up'
+                        commandLine selectComposeExecutable(), '-f', localComposePath, 'up', '--build'
                     }
                 }
                 upTask.dependsOn buildImageTask
