@@ -41,10 +41,10 @@ class Types {
 }
 
 enum class DeviceState {
-    ONLINE,
-    DEGRADED,
+    OFFLINE,
     MALFUNCTION,
-    OFFLINE
+    DEGRADED,
+    ONLINE
 }
 
 abstract class Serializer<T> {

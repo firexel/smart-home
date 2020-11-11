@@ -7,14 +7,24 @@ import com.seraph.smarthome.domain.Network
 class NetworkStreamer(
         private val network: Network,
         private val log: Log = NoLog(),
+        private val recordEvents: Boolean,
         private val listener: (NetworkStreamer) -> Unit
 ) {
-    private val state = NetworkState(mutableMapOf())
+    private val state = NetworkState(mutableMapOf(), mutableListOf())
 
     val snapshot: NetworkSnapshot
         get() {
             synchronized(this) {
                 return state.snapshot
+            }
+        }
+
+    val events: List<NetworkEvent>
+        get() {
+            synchronized(this) {
+                val events = state.events
+                state.events = mutableListOf()
+                return events
             }
         }
 
@@ -24,7 +34,13 @@ class NetworkStreamer(
         }
     }
 
-    private inline fun <T> modifySnapshot(updater: (NetworkState) -> T): T {
+    private inline fun NetworkState.recordEvent(eventAdder: () -> NetworkEvent) {
+        if (recordEvents) {
+            events.add(eventAdder())
+        }
+    }
+
+    private inline fun <T> modifyState(updater: (NetworkState) -> T): T {
         try {
             synchronized(this) {
                 return updater(state)
@@ -34,10 +50,17 @@ class NetworkStreamer(
         }
     }
 
-    private fun handleDevice(device: Device) = modifySnapshot { snapshot ->
-        val oldDevice = snapshot.devices[device.id] ?: DeviceState(device, mutableMapOf())
+    private fun handleDevice(device: Device) = modifyState { state ->
+        val newDeviceEvent = state.devices[device.id] == null
+        val oldDevice = state.devices[device.id] ?: DeviceState(device, mutableMapOf())
         val newDevice = makeNewDeviceState(device, oldDevice)
-        snapshot.devices[device.id] = newDevice
+        state.devices[device.id] = newDevice
+
+        if (newDeviceEvent) {
+            state.recordEvent { NetworkEvent.DeviceAdded(newDevice.snapshot) }
+        } else {
+            state.recordEvent { NetworkEvent.DeviceUpdated(newDevice.snapshot) }
+        }
 
         (oldDevice.endpoints.keys + newDevice.endpoints.keys).forEach { id ->
             val old = oldDevice.endpoints[id]
@@ -45,11 +68,14 @@ class NetworkStreamer(
 
             if (old == null && new != null) {
                 new.subscription = subscribeEndpoint(device, new)
+                state.recordEvent { NetworkEvent.EndpointAdded(new.snapshot) }
             } else if (old != null && new == null) {
                 old.subscription?.unsubscribe()
+                state.recordEvent { NetworkEvent.EndpointRemoved(old.snapshot) }
             } else if (old != null && new != null && old.endpoint.type != new.endpoint.type) {
                 old.subscription?.unsubscribe()
                 new.subscription = subscribeEndpoint(device, new)
+                state.recordEvent { NetworkEvent.EndpointUpdated(new.snapshot) }
             }
         }
     }
@@ -58,9 +84,10 @@ class NetworkStreamer(
             device: Device,
             endpointState: EndpointState<T>): Network.Subscription {
         return network.subscribe(device.id, endpointState.endpoint) { _, _, v ->
-            modifySnapshot {
+            modifyState { state ->
                 endpointState.isSet = true
                 endpointState.value = v
+                state.recordEvent { NetworkEvent.EndpointUpdated(endpointState.snapshot) }
             }
         }
     }
@@ -90,7 +117,7 @@ class NetworkStreamer(
 }
 
 data class NetworkSnapshot(
-        val devices: Map<Device.Id, DeviceSnapshot>
+        val devices: Map<Device.Id, DeviceSnapshot>,
 )
 
 data class DeviceSnapshot(
@@ -106,7 +133,8 @@ data class EndpointSnapshot<T>(
 )
 
 private data class NetworkState(
-        val devices: MutableMap<Device.Id, DeviceState>
+        val devices: MutableMap<Device.Id, DeviceState>,
+        var events: MutableList<NetworkEvent>
 ) {
     val snapshot: NetworkSnapshot
         get() = NetworkSnapshot(devices.mapValues { it.value.snapshot })
@@ -129,4 +157,12 @@ private data class EndpointState<T>(
 ) {
     val snapshot: EndpointSnapshot<T>
         get() = EndpointSnapshot(device, endpoint, value, isSet)
+}
+
+sealed class NetworkEvent {
+    data class EndpointUpdated<T>(val endpoint: EndpointSnapshot<T>) : NetworkEvent()
+    data class EndpointAdded<T>(val endpoint: EndpointSnapshot<T>) : NetworkEvent()
+    data class EndpointRemoved<T>(val endpoint: EndpointSnapshot<T>) : NetworkEvent()
+    data class DeviceAdded(val device: DeviceSnapshot) : NetworkEvent()
+    data class DeviceUpdated(val device: DeviceSnapshot) : NetworkEvent()
 }
