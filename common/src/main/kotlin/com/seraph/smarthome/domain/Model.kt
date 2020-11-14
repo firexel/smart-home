@@ -6,8 +6,13 @@ package com.seraph.smarthome.domain
  */
 
 data class Metainfo(
-        val brokerName: String
-)
+        val brokerName: String,
+        val roles: Role
+) {
+    enum class Role {
+        USER, ADMIN
+    }
+}
 
 data class Device(
         val id: Id,
@@ -78,6 +83,10 @@ data class Endpoint<N>(
 
     fun <T> accept(visitor: Visitor<T>): T {
         return type.accept(BypassVisitor(visitor))
+    }
+
+    fun cast(obj: Any): N {
+        return type.cast(obj)
     }
 
     @Suppress("UNCHECKED_CAST")

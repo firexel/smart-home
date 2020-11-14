@@ -19,7 +19,7 @@ class Main {
             val params = CommandLineParams(ArgParser(argv))
             val broker = Brokers.unencrypted(params.brokerAddress, "MetadataService", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
-            network.publish(Metainfo(params.brokerName))
+            network.publish(Metainfo(params.brokerName, Metainfo.Role.ADMIN))
         }
     }
 }

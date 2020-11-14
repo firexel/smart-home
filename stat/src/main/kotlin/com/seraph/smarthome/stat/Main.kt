@@ -8,7 +8,7 @@ import com.seraph.smarthome.transport.impl.LocalBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.EndpointSnapshot
 import com.seraph.smarthome.util.NetworkEvent
-import com.seraph.smarthome.util.NetworkStreamer
+import com.seraph.smarthome.util.NetworkMonitor
 import java.io.File
 
 /**
@@ -36,7 +36,7 @@ class Main {
                 }
             }
 
-            NetworkStreamer(network, log.copy("NetworkMonitor"), recordEvents = true) {
+            NetworkMonitor(network, log.copy("NetworkMonitor"), recordEvents = true) {
                 val events = it.events
                 events.forEach { event ->
                     when (event) {

@@ -2,22 +2,23 @@ package com.seraph.smarthome.util
 
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Endpoint
+import com.seraph.smarthome.domain.Metainfo
 import com.seraph.smarthome.domain.Network
 
-class NetworkStreamer(
+class NetworkMonitor(
         private val network: Network,
         private val log: Log = NoLog(),
         private val recordEvents: Boolean,
-        private val listener: (NetworkStreamer) -> Unit
+        private val delayStart: Boolean = false,
+        private val listener: (NetworkMonitor) -> Unit
 ) {
-    private val state = NetworkState(mutableMapOf(), mutableListOf())
+    private var started: Boolean = false
 
-    val snapshot: NetworkSnapshot
-        get() {
-            synchronized(this) {
-                return state.snapshot
-            }
-        }
+    private val state = NetworkState(
+            Metainfo("Unknown", Metainfo.Role.USER),
+            mutableMapOf(),
+            mutableListOf()
+    )
 
     val events: List<NetworkEvent>
         get() {
@@ -29,8 +30,20 @@ class NetworkStreamer(
         }
 
     init {
-        network.subscribe(null) {
-            handleDevice(it)
+        if (!delayStart) {
+            start()
+        }
+    }
+
+    fun start() {
+        if (!started) {
+            started = true
+            network.subscribe(null) {
+                handleDevice(it)
+            }
+            network.subscribe {
+                handleMetainfo(it)
+            }
         }
     }
 
@@ -48,6 +61,17 @@ class NetworkStreamer(
         } finally {
             listener(this)
         }
+    }
+
+    private inline fun <T> readState(updater: (NetworkState) -> T): T {
+        synchronized(this) {
+            return updater(state)
+        }
+    }
+
+    private fun handleMetainfo(info: Metainfo) = modifyState { state ->
+        state.metainfo = info
+        state.recordEvent { NetworkEvent.MetainfoUpdated(info) }
     }
 
     private fun handleDevice(device: Device) = modifyState { state ->
@@ -114,9 +138,28 @@ class NetworkStreamer(
 
         return DeviceState(device, endpoints)
     }
+
+    fun snapshot(deviceId: Device.Id, endpointId: Endpoint.Id): EndpointSnapshot<*>? {
+        return readState { state ->
+            state.devices[deviceId]?.endpoints?.get(endpointId)?.snapshot
+        }
+    }
+
+    fun snapshot(deviceId: Device.Id): DeviceSnapshot? {
+        return readState { state ->
+            state.devices[deviceId]?.snapshot
+        }
+    }
+
+    fun snapshot(): NetworkSnapshot {
+        return readState {
+            state.snapshot
+        }
+    }
 }
 
 data class NetworkSnapshot(
+        val metainfo: Metainfo,
         val devices: Map<Device.Id, DeviceSnapshot>,
 )
 
@@ -133,11 +176,12 @@ data class EndpointSnapshot<T>(
 )
 
 private data class NetworkState(
+        var metainfo: Metainfo,
         val devices: MutableMap<Device.Id, DeviceState>,
         var events: MutableList<NetworkEvent>
 ) {
     val snapshot: NetworkSnapshot
-        get() = NetworkSnapshot(devices.mapValues { it.value.snapshot })
+        get() = NetworkSnapshot(metainfo, devices.mapValues { it.value.snapshot })
 }
 
 private data class DeviceState(
@@ -165,4 +209,5 @@ sealed class NetworkEvent {
     data class EndpointRemoved<T>(val endpoint: EndpointSnapshot<T>) : NetworkEvent()
     data class DeviceAdded(val device: DeviceSnapshot) : NetworkEvent()
     data class DeviceUpdated(val device: DeviceSnapshot) : NetworkEvent()
+    data class MetainfoUpdated(val metainfo: Metainfo) : NetworkEvent()
 }
