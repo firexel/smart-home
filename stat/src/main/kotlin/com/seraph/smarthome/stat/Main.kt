@@ -93,10 +93,9 @@ class MetricCastVisitor(private val value: Any) : Endpoint.Visitor<Double> {
     }
 
     override fun onBoolean(endpoint: Endpoint<Boolean>): Double {
-        return if (value as Boolean) {
-            1.0
-        } else {
-            0.0
+        return when (value as Boolean) {
+            true -> 1.0
+            false -> 0.0
         }
     }
 

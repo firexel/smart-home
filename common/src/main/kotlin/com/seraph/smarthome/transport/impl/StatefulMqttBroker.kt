@@ -4,7 +4,11 @@ import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
 import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.util.Log
+import java.lang.Long.max
 import java.util.*
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Created by aleksandr.naumov on 02.01.18.
@@ -50,11 +54,11 @@ internal class StatefulMqttBroker(
     }
 
     override fun publish(topic: Topic, data: ByteArray): Broker.Publication = exchanger.sync {
-        var publication: StatefulPublication? = null
+        val publication = StatefulPublication()
         it.state.execute { client ->
-            publication = StatefulPublication(client.publish(topic, data))
+            publication.setClientPublication(client.publish(topic, data))
         }
-        publication!!
+        publication
     }
 
     override fun addStateListener(listener: Broker.StateListener) = exchanger.sync {
@@ -67,10 +71,40 @@ internal class StatefulMqttBroker(
         Unit
     }
 
-    private class StatefulPublication(private val publication: Client.Publication) : Broker.Publication {
-        override fun waitForCompletion(millis: Long) {
-            publication.waitForCompletion(millis)
+    private class StatefulPublication : Broker.Publication {
+        private var latch: CountDownLatch? = null
+        private var innerPublication: Client.Publication? = null
+
+        fun setClientPublication(publication: Client.Publication) {
+            synchronized(this) {
+                innerPublication = publication
+                latch?.countDown()
+            }
         }
+
+        override fun waitForCompletion(millis: Long) {
+            var waitBudget = millis
+            val latch: CountDownLatch? = synchronized(this) {
+                if (innerPublication == null) {
+                    CountDownLatch(1).apply { latch = this }
+                } else {
+                    null
+                }
+            }
+            if (latch != null) {
+                val beforeLatchWait = now()
+                latch.await(millis, TimeUnit.MILLISECONDS)
+                waitBudget = max(1, waitBudget - (now() - beforeLatchWait))
+            }
+            val publication = innerPublication
+            if (publication == null) {
+                throw TimeoutException("No publication was done in ${millis}ms")
+            } else {
+                publication.waitForCompletion(waitBudget)
+            }
+        }
+
+        private fun now() = System.currentTimeMillis()
     }
 }
 
