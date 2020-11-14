@@ -88,7 +88,7 @@ class MetricCastVisitor(private val value: Any) : Endpoint.Visitor<Double> {
         return (value as Int).toDouble()
     }
 
-    override fun onVoid(endpoint: Endpoint<Unit>): Double {
+    override fun onAction(endpoint: Endpoint<Int>): Double {
         return Double.NaN
     }
 

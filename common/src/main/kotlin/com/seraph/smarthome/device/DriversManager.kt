@@ -325,7 +325,7 @@ private class EndpointBuilder<T>(
 private class InferOutputRetentionVisitor
     : Endpoint.Type.DefaultVisitor<Endpoint.Retention>(Endpoint.Retention.RETAINED) {
 
-    override fun onVoid(type: Endpoint.Type<Unit>): Endpoint.Retention {
+    override fun onAction(type: Endpoint.Type<Int>): Endpoint.Retention {
         return Endpoint.Retention.NOT_RETAINED
     }
 }

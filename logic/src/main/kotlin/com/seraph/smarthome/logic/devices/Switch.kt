@@ -15,7 +15,7 @@ class Switch : DeviceDriver {
     override fun bind(visitor: DeviceDriver.Visitor) {
         val stateInput = visitor.declareInput("state_in", Types.BOOLEAN)
 
-        val impulseInput = visitor.declareInput("switch", Types.VOID)
+        val impulseInput = visitor.declareInput("switch", Types.ACTION)
                 .setDataKind(Endpoint.DataKind.EVENT)
                 .setUserInteraction(Endpoint.Interaction.MAIN)
 

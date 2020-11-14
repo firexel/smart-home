@@ -26,16 +26,21 @@ class Types {
             override fun cast(obj: Any): Boolean = obj as Boolean
         }
 
-        val VOID = object : Endpoint.Type<Unit> {
-            override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onVoid(this)
-            override val serializer: Serializer<Unit> = VoidConverter()
-            override fun cast(obj: Any) = obj as Unit
+        val ACTION = object : Endpoint.Type<Int> {
+            override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onAction(this)
+            override val serializer: Serializer<Int> = ActionConverter()
+            override fun cast(obj: Any) = obj as Int
         }
 
         val DEVICE_STATE = object : Endpoint.Type<DeviceState> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onDeviceState(this)
             override val serializer: Serializer<DeviceState> = DeviceStateConverter()
             override fun cast(obj: Any): DeviceState = obj as DeviceState
+        }
+
+        fun newActionId(): Int {
+            val time = System.currentTimeMillis()
+            return (time and (time shr 4 * 8)).toInt()
         }
     }
 }
@@ -114,11 +119,14 @@ internal class DeviceStateConverter : BaseStringConverter<DeviceState>() {
     override fun toString(data: DeviceState): String = data.name
 }
 
-internal class VoidConverter : BaseStringConverter<Unit>() {
-    override fun fromString(string: String) = when (string) {
-        "*" -> Unit
-        else -> throw Serializer.TypeMismatchException("Unknown unit $string")
+internal class ActionConverter : BaseStringConverter<Int>() {
+    override fun fromString(string: String): Int {
+        try {
+            return string.toInt(10)
+        } catch (ex: NumberFormatException) {
+            throw TypeMismatchException("Unknown action id $string", ex)
+        }
     }
 
-    override fun toString(data: Unit): String = "*"
+    override fun toString(data: Int): String = String.format("%d", data)
 }

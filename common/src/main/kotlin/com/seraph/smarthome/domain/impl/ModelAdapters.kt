@@ -90,7 +90,7 @@ private data class NormalizedEndpoint(
 
     class TypeEnumVisitor : Endpoint.Type.Visitor<NormalizedType> {
         override fun onInt(type: Endpoint.Type<Int>): NormalizedType = NormalizedType.INTEGER
-        override fun onVoid(type: Endpoint.Type<Unit>): NormalizedType = NormalizedType.VOID
+        override fun onAction(type: Endpoint.Type<Int>): NormalizedType = NormalizedType.ACTION
         override fun onBoolean(type: Endpoint.Type<Boolean>): NormalizedType = NormalizedType.BOOLEAN
         override fun onFloat(type: Endpoint.Type<Float>): NormalizedType = NormalizedType.FLOAT
         override fun onDeviceState(type: Endpoint.Type<DeviceState>): NormalizedType = NormalizedType.DEVICE_STATE
@@ -105,7 +105,7 @@ private data class NormalizedEndpoint(
             interaction = interaction,
             type = when (type) {
                 NormalizedType.BOOLEAN -> Types.BOOLEAN
-                NormalizedType.VOID -> Types.VOID
+                NormalizedType.ACTION -> Types.ACTION
                 NormalizedType.FLOAT -> Types.FLOAT
                 NormalizedType.DEVICE_STATE -> Types.DEVICE_STATE
                 NormalizedType.INTEGER -> Types.INTEGER
@@ -113,6 +113,6 @@ private data class NormalizedEndpoint(
     )
 
     private enum class NormalizedType {
-        BOOLEAN, VOID, FLOAT, INTEGER, DEVICE_STATE
+        BOOLEAN, ACTION, FLOAT, INTEGER, DEVICE_STATE
     }
 }

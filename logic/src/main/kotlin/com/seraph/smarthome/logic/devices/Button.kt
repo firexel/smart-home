@@ -16,15 +16,15 @@ class Button(private val scheduler: Scheduler) : DeviceDriver {
 
     private var state = AtomicReference(State.IDLE)
     private var delayedTask: Scheduler.Task? = null
-    private lateinit var pressAction: DeviceDriver.Output<Unit>
-    private lateinit var longPressAction: DeviceDriver.Output<Unit>
+    private lateinit var pressAction: DeviceDriver.Output<Int>
+    private lateinit var longPressAction: DeviceDriver.Output<Int>
 
     override fun bind(visitor: DeviceDriver.Visitor) {
-        pressAction = visitor.declareOutput("press", Types.VOID)
+        pressAction = visitor.declareOutput("press", Types.ACTION)
                 .setDataKind(Endpoint.DataKind.EVENT)
                 .setUserInteraction(Endpoint.Interaction.MAIN)
 
-        longPressAction = visitor.declareOutput("longpress", Types.VOID)
+        longPressAction = visitor.declareOutput("longpress", Types.ACTION)
                 .setDataKind(Endpoint.DataKind.EVENT)
                 .setUserInteraction(Endpoint.Interaction.USER_READONLY)
 
@@ -39,7 +39,7 @@ class Button(private val scheduler: Scheduler) : DeviceDriver {
     private fun onUp() {
         when (state.get()) {
             State.PRESSED -> {
-                pressAction.set(Unit)
+                pressAction.set(Types.newActionId())
                 changeState(State.IDLE)
             }
             State.IDLE, null -> Unit /* do nothing */
@@ -59,7 +59,7 @@ class Button(private val scheduler: Scheduler) : DeviceDriver {
     private fun onTimeout() {
         when (state.get()) {
             State.PRESSED -> {
-                longPressAction.set(Unit)
+                longPressAction.set(Types.newActionId())
                 changeState(State.IDLE)
             }
             else -> Unit /* do nothing */

@@ -136,16 +136,16 @@ class SceneDriver(
     private var brightnessOut: DeviceDriver.Output<Float>? = null
 
     override fun bind(visitor: DeviceDriver.Visitor) {
-        val toggle = visitor.declareInput("toggle", Types.VOID)
+        val toggle = visitor.declareInput("toggle", Types.ACTION)
                 .setDataKind(Endpoint.DataKind.EVENT)
 
-        val on = visitor.declareInput("on", Types.VOID)
+        val on = visitor.declareInput("on", Types.ACTION)
                 .setDataKind(Endpoint.DataKind.EVENT)
 
-        val low = visitor.declareInput("low", Types.VOID)
+        val low = visitor.declareInput("low", Types.ACTION)
                 .setDataKind(Endpoint.DataKind.EVENT)
 
-        val off = visitor.declareInput("off", Types.VOID)
+        val off = visitor.declareInput("off", Types.ACTION)
                 .setDataKind(Endpoint.DataKind.EVENT)
 
         val set = visitor.declareInput("set", Types.BOOLEAN)

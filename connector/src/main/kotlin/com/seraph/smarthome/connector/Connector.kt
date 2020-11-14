@@ -34,7 +34,7 @@ class Connector(
                 synchronized(pendingConnections) {
                     if (pendingConnections.isNotEmpty()) {
                         val unresolvedSet = pendingConnections
-                                .map { it.unresolvedGlobalendpoints }
+                                .map { it.unresolvedGlobalEndpoints }
                                 .toSet()
 
                         log.w("Still waiting for $unresolvedSet")
@@ -82,9 +82,9 @@ class Connector(
             }
         }
 
-        override fun onVoid(endpoint: Endpoint<Unit>) {
+        override fun onAction(endpoint: Endpoint<Int>) {
             network.subscribe(src.device, endpoint) { _, _, data ->
-                network.publish(dst.device, dstEndpoint as Endpoint<Unit>, data)
+                network.publish(dst.device, dstEndpoint as Endpoint<Int>, data)
             }
         }
 
@@ -126,7 +126,7 @@ class Connector(
             }
         }
 
-        val unresolvedGlobalendpoints: List<GlobalEndpointId>
+        val unresolvedGlobalEndpoints: List<GlobalEndpointId>
             get() {
                 return listOf<GlobalEndpointId>() +
                         if (srcEndpoint == null) listOf(src) else emptyList<GlobalEndpointId>() +
