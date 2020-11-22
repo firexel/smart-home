@@ -40,7 +40,7 @@ class Types {
 
         fun newActionId(): Int {
             val time = System.currentTimeMillis()
-            return (time and (time shr 4 * 8)).toInt()
+            return (time and (time shr (4 * 8))).toInt()
         }
     }
 }
