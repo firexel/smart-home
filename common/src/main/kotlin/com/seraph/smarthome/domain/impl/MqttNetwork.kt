@@ -9,7 +9,7 @@ import com.seraph.smarthome.util.Log
 
 class MqttNetwork(
         private val transport: Broker,
-        private val log: Log
+        private val log: Log,
 ) : Network {
 
     private val gson: Gson = with(GsonBuilder()) {
@@ -18,10 +18,10 @@ class MqttNetwork(
     }
 
     override fun publish(metainfo: Metainfo): Network.Publication =
-            publish(Topics.metadata(), JsonSerializer(gson, Metainfo::class), metainfo)
+            publish(Topics.metadata(), KotlinMetainfoSerializer(), metainfo)
 
     override fun subscribe(func: (Metainfo) -> Unit): Network.Subscription {
-        return subscribe(Topics.metadata(), JsonSerializer(gson, Metainfo::class), func)
+        return subscribe(Topics.metadata(), KotlinMetainfoSerializer(), func)
     }
 
     override fun publish(device: Device): Network.Publication =
@@ -38,7 +38,8 @@ class MqttNetwork(
     override fun <T> subscribe(
             device: Device.Id,
             endpoint: Endpoint<T>,
-            func: (Device.Id, Endpoint<T>, data: T) -> Unit): Network.Subscription {
+            func: (Device.Id, Endpoint<T>, data: T) -> Unit,
+    ): Network.Subscription {
 
         return subscribe(Topics.endpoint(device, endpoint), endpoint.type.serializer) { data ->
             func(device, endpoint, data)

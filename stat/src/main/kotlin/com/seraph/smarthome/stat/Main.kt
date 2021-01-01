@@ -36,7 +36,7 @@ class Main {
                 }
             }
 
-            NetworkMonitor(network, log.copy("NetworkMonitor"), recordEvents = true) {
+            NetworkMonitor(network, log.copy("NetworkMonitor"), recordEvents = true).subscribe {
                 val events = it.events
                 events.forEach { event ->
                     when (event) {

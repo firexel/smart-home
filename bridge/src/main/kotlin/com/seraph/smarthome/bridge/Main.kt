@@ -30,11 +30,13 @@ class Main {
         }
 
         private fun startMonitoring(bundles: Map<String, NetworkBundle>, log: ConsoleLog) {
-            bundles.forEach {
-                if (networksMap.containsKey(it.key)) {
-                    it.value.monitor.start()
+            bundles.forEach { entry ->
+                if (networksMap.containsKey(entry.key)) {
+                    entry.value.monitor.subscribe { monitor ->
+                        handleNetworkUpdate(entry.key, monitor)
+                    }
                 } else {
-                    log.w("Network ${it.key} not connected to any other network and will not be monitored")
+                    log.w("Network ${entry.key} not connected to any other network and will not be monitored")
                 }
             }
         }
@@ -67,11 +69,8 @@ class Main {
                 val network = MqttNetwork(LocalBroker(broker), log.copy("${name}Network"))
                 val monitor = NetworkMonitor(
                         network, log.copy("${name}Monitor"),
-                        recordEvents = true,
-                        delayStart = true
-                ) { monitor ->
-                    handleNetworkUpdate(it.key, monitor)
-                }
+                        recordEvents = true
+                )
                 NetworkBundle(it.key, network, monitor)
             }
         }

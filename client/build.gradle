@@ -5,6 +5,7 @@ apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion 29
+    buildToolsVersion '30.0.2'
     defaultConfig {
         applicationId "com.seraph.smarthome.client"
         minSdkVersion 25
@@ -55,6 +56,8 @@ dependencies {
     implementation "androidx.compose.material:material-icons-extended:$composeVersion"
     // Integration with observables
     implementation "androidx.compose.runtime:runtime-livedata:$composeVersion"
+
+    implementation "ru.mail.march:core-android:$march_version"
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"

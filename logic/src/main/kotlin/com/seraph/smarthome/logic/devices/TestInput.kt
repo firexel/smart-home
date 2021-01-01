@@ -6,9 +6,19 @@ import com.seraph.smarthome.util.Log
 
 class TestInput(val log: Log) : DeviceDriver {
     override fun bind(visitor: DeviceDriver.Visitor) {
-        visitor.declareInput("input", Types.INTEGER)
+        visitor.declareInput("int_input", Types.INTEGER)
                 .observe {
-                    log.i("Got input $it")
+                    log.i("Got int input $it")
+                }
+
+        visitor.declareInput("bool_input", Types.BOOLEAN)
+                .observe {
+                    log.i("Got bool input $it")
+                }
+
+        visitor.declareInput("float_input", Types.FLOAT)
+                .observe {
+                    log.i("Got float input $it")
                 }
     }
 }

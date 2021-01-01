@@ -1,13 +1,17 @@
 package com.seraph.smarthome.domain
 
+import kotlinx.serialization.Serializable
+
 
 /**
  * Created by aleksandr.naumov on 29.12.17.
  */
 
+@Serializable
 data class Metainfo(
         val brokerName: String,
-        val roles: Role
+        val role: Role,
+        val widgetGroups: List<WidgetGroup>
 ) {
     enum class Role {
         USER, ADMIN

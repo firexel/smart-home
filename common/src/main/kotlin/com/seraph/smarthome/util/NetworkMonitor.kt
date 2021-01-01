@@ -4,18 +4,18 @@ import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Metainfo
 import com.seraph.smarthome.domain.Network
+import java.util.concurrent.CopyOnWriteArrayList
 
 class NetworkMonitor(
         private val network: Network,
         private val log: Log = NoLog(),
-        private val recordEvents: Boolean,
-        private val delayStart: Boolean = false,
-        private val listener: (NetworkMonitor) -> Unit
+        private val recordEvents: Boolean
 ) {
+    private val subscriptions = CopyOnWriteArrayList<SubscriptionImpl>()
     private var started: Boolean = false
 
     private val state = NetworkState(
-            Metainfo("Unknown", Metainfo.Role.USER),
+            Metainfo("Unknown", Metainfo.Role.USER, listOf()),
             mutableMapOf(),
             mutableListOf()
     )
@@ -29,10 +29,11 @@ class NetworkMonitor(
             }
         }
 
-    init {
-        if (!delayStart) {
-            start()
-        }
+    fun subscribe(listener: (NetworkMonitor) -> Unit): Subscription {
+        val sub = SubscriptionImpl(listener)
+        subscriptions.add(sub)
+        start()
+        return sub
     }
 
     fun start() {
@@ -59,7 +60,7 @@ class NetworkMonitor(
                 return updater(state)
             }
         } finally {
-            listener(this)
+            subscriptions.forEach { it.listener(this) }
         }
     }
 
@@ -154,6 +155,16 @@ class NetworkMonitor(
     fun snapshot(): NetworkSnapshot {
         return readState {
             state.snapshot
+        }
+    }
+
+    interface Subscription {
+        fun unsubscribe()
+    }
+
+    private inner class SubscriptionImpl(val listener: (NetworkMonitor) -> Unit) : Subscription {
+        override fun unsubscribe() {
+            subscriptions.remove(this)
         }
     }
 }

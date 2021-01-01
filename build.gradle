@@ -3,6 +3,7 @@
 buildscript {
     ext.kotlin_version = '1.4.10'
     ext.kotlin_argparser_version = '2.0.3'
+    ext.march_version = '0.0.2-snapshot'
     repositories {
         google()
         jcenter()
