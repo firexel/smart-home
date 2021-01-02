@@ -75,9 +75,8 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun Widget(widget: WidgetModel) {
         when (widget) {
-            is WidgetModel.BinaryLight -> BinaryLight(widget)
             is WidgetModel.BrokenWidget -> BrokenWidget(widget)
-            is WidgetModel.Gauge -> Gauge(widget)
+            is WidgetModel.CompositeWidget -> CompositeWidget(widget)
         }
     }
 
@@ -97,20 +96,64 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun BinaryLight(widget: WidgetModel.BinaryLight) {
+    fun CompositeWidget(widget: WidgetModel.CompositeWidget) {
+        val bg = when (widget.category) {
+            WidgetModel.CompositeWidget.Category.LIGHT ->
+                Color(0xffeed690) to Color(0xffdca324)
 
-        val state = when (widget.isOn) {
-            null -> "––"
-            false -> "OFF"
-            true -> "ON"
+            else -> Color(0xffa4a4a4) to Color(0xff949494)
         }
 
         NamedCard(
                 name = widget.name,
-                bg = Color(0xffeed690) to Color(0xffdca324),
+                bg = bg,
                 onClick = widget.toggle) {
 
-            Text(state, style = MaterialTheme.typography.h3)
+            val typo = MaterialTheme.typography
+
+            when (val state = widget.state) {
+                is WidgetModel.CompositeWidget.State.Binary -> {
+                    val txt = when (state.units) {
+                        WidgetModel.CompositeWidget.Units.ON_OFF ->
+                            if (state.state) "ON" else "OFF"
+
+                        else ->
+                            if (state.state) "True" else "False"
+                    }
+                    Text(txt, style = typo.h3)
+                }
+                is WidgetModel.CompositeWidget.State.Numeric -> {
+                    val unitsInline = when (state.units) {
+                        WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
+                        else -> ""
+                    }
+
+                    val unitsOutline = when (state.units) {
+                        WidgetModel.CompositeWidget.Units.PPM -> "ppm"
+                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
+                        else -> ""
+                    }
+
+                    val valueMultiplier = when (state.units) {
+                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> 100
+                        else -> 1
+                    }
+
+                    val value = "%.${state.precision}f"
+                            .format(Locale.ENGLISH, valueMultiplier * state.state)
+
+                    Row {
+                        Text(value + unitsInline, style = typo.h3, modifier = Modifier.alignByBaseline())
+                        if (unitsOutline.isNotEmpty()) {
+                            Text(unitsOutline, style = typo.body1, modifier = Modifier.alignByBaseline())
+                        }
+                    }
+
+                }
+                is WidgetModel.CompositeWidget.State.Unknown -> {
+                    Text("––", style = typo.h3)
+                }
+            }
         }
     }
 
@@ -125,16 +168,16 @@ class MainActivity : AppCompatActivity() {
         val typo = MaterialTheme.typography
 
         androidx.compose.material.Card(
-                modifier = Modifier.aspectRatio(1.718f).let {
-                    if (onClick != null) {
-                        it.clickable(onClick = onClick)
-                    } else {
-                        it
-                    }
-                },
+                modifier = Modifier.aspectRatio(1.718f),
                 elevation = p2) {
 
-            Column(Modifier.gradientBackground(bg.first, bg.second)) {
+            Column(Modifier.gradientBackground(bg.first, bg.second).let {
+                if (onClick != null) {
+                    it.clickable(onClick = onClick)
+                } else {
+                    it
+                }
+            }) {
 
                 androidx.compose.material.Card(
                         modifier = Modifier.weight(1f).fillMaxWidth(1f),
@@ -167,82 +210,92 @@ class MainActivity : AppCompatActivity() {
         Content(getTestData())
     }
 
-    @Composable
-    fun Gauge(gauge: WidgetModel.Gauge) {
-
-        val unitsInline = when (gauge.units) {
-            WidgetModel.Units.TEMP_CELSIUS -> "°"
-            else -> ""
-        }
-
-        val unitsOutline = when (gauge.units) {
-            WidgetModel.Units.CO2_PPM -> "ppm"
-            WidgetModel.Units.PM25_PPM -> "ppm"
-            WidgetModel.Units.HUMIDITY_PERCENT -> "%"
-            else -> ""
-        }
-
-        val accuracy = when (gauge.units) {
-            WidgetModel.Units.CO2_PPM -> 0
-            WidgetModel.Units.TEMP_CELSIUS -> 1
-            WidgetModel.Units.HUMIDITY_PERCENT -> 0
-            WidgetModel.Units.PM25_PPM -> 0
-        }
-
-        val value = if (gauge.value == null) "?" else "%.${accuracy}f".format(Locale.ENGLISH, gauge.value)
-
-        val nameReplacement = when (gauge.units) {
-            WidgetModel.Units.CO2_PPM -> "CO2"
-            WidgetModel.Units.TEMP_CELSIUS -> "Температура"
-            WidgetModel.Units.HUMIDITY_PERCENT -> "Влажность"
-            WidgetModel.Units.PM25_PPM -> "PM 2.5"
-        }
-
-        val bg = when (gauge.units) {
-            WidgetModel.Units.CO2_PPM -> Color(0xffa4a4a4) to Color(0xff949494)
-            WidgetModel.Units.TEMP_CELSIUS -> Color(0xffa4a4a4) to Color(0xff949494)
-            WidgetModel.Units.HUMIDITY_PERCENT -> Color(0xffa4a4a4) to Color(0xff949494)
-            WidgetModel.Units.PM25_PPM -> Color(0xffa4a4a4) to Color(0xff949494)
-        }
-
-        val name = if (gauge.name.isEmpty()) nameReplacement else gauge.name
-        val typo = MaterialTheme.typography
-
-        NamedCard(name = name, bg = bg) {
-            Row {
-                Text(value + unitsInline, style = typo.h3, modifier = Modifier.alignByBaseline())
-                if (unitsOutline.isNotEmpty()) {
-                    Text(unitsOutline, style = typo.body1, modifier = Modifier.alignByBaseline())
-                }
-            }
-        }
-    }
-
     private fun getTestData(): List<WidgetGroupModel> {
         val nope: () -> Unit = {}
         val groups = listOf(
                 WidgetGroupModel(
                         "Гостиная", listOf(
-                        WidgetModel.Gauge("", 5000f, WidgetModel.Units.CO2_PPM),
-                        WidgetModel.Gauge("", 23.6f, WidgetModel.Units.TEMP_CELSIUS),
-                        WidgetModel.Gauge("", 37f, WidgetModel.Units.HUMIDITY_PERCENT),
-                        WidgetModel.Gauge("", 853f, WidgetModel.Units.PM25_PPM),
-                        WidgetModel.BinaryLight("Основной", false, nope),
-                        WidgetModel.BinaryLight("Рабочее место", true, nope),
-                        WidgetModel.BinaryLight("Коридор", null, nope),
-                        WidgetModel.BrokenWidget("Сломан", "TypeMismatchException at input state"),
+                        WidgetModel.CompositeWidget(
+                                "CO2",
+                                WidgetModel.CompositeWidget.Category.GAUGE,
+                                WidgetModel.CompositeWidget.State.Numeric(
+                                        WidgetModel.CompositeWidget.Units.PPM,
+                                        5000f
+                                )
+                        ),
+                        WidgetModel.CompositeWidget(
+                                "Температура",
+                                WidgetModel.CompositeWidget.Category.GAUGE,
+                                WidgetModel.CompositeWidget.State.Numeric(
+                                        WidgetModel.CompositeWidget.Units.CELSIUS,
+                                        23.6f,
+                                        precision = 1
+                                )
+                        ),
+                        WidgetModel.CompositeWidget(
+                                "Влажность",
+                                WidgetModel.CompositeWidget.Category.GAUGE,
+                                WidgetModel.CompositeWidget.State.Numeric(
+                                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1,
+                                        0.37f
+                                )
+                        ),
+                        WidgetModel.CompositeWidget(
+                                "PM2.5",
+                                WidgetModel.CompositeWidget.Category.GAUGE,
+                                WidgetModel.CompositeWidget.State.Numeric(
+                                        WidgetModel.CompositeWidget.Units.PPM,
+                                        853f
+                                )
+                        ),
+                        WidgetModel.CompositeWidget(
+                                "Основной",
+                                WidgetModel.CompositeWidget.Category.LIGHT,
+                                WidgetModel.CompositeWidget.State.Binary(
+                                        WidgetModel.CompositeWidget.Units.ON_OFF,
+                                        false
+                                ),
+                                toggle = nope
+                        ),
+                        WidgetModel.CompositeWidget(
+                                "Рабочее место",
+                                WidgetModel.CompositeWidget.Category.LIGHT,
+                                WidgetModel.CompositeWidget.State.Binary(
+                                        WidgetModel.CompositeWidget.Units.ON_OFF,
+                                        true
+                                ),
+                                toggle = nope
+                        ),
+                        WidgetModel.CompositeWidget(
+                                "Коридор",
+                                WidgetModel.CompositeWidget.Category.LIGHT,
+                                WidgetModel.CompositeWidget.State.Unknown(),
+                                toggle = nope
+                        ),
+                        WidgetModel.BrokenWidget(
+                                "Сломан",
+                                "TypeMismatchException at input state"
+                        ),
                 )),
                 WidgetGroupModel("Кухня", listOf(
-                        WidgetModel.BinaryLight("Основной", true, nope),
-                        WidgetModel.BinaryLight("Над столом", false, nope),
-                        WidgetModel.BinaryLight("Основной", true, nope),
-                        WidgetModel.BinaryLight("Над столом", false, nope),
-                        WidgetModel.BinaryLight("Основной", true, nope),
-                        WidgetModel.BinaryLight("Над столом", false, nope),
-                        WidgetModel.BinaryLight("Основной", true, nope),
-                        WidgetModel.BinaryLight("Над столом", false, nope),
-                        WidgetModel.BinaryLight("Основной", true, nope),
-                        WidgetModel.BinaryLight("Над столом", false, nope)
+                        WidgetModel.CompositeWidget(
+                                "Печка",
+                                WidgetModel.CompositeWidget.Category.SWITCH,
+                                WidgetModel.CompositeWidget.State.Binary(
+                                        WidgetModel.CompositeWidget.Units.ON_OFF,
+                                        false
+                                ),
+                                toggle = nope
+                        ),
+                        WidgetModel.CompositeWidget(
+                                "Сигнализация CO",
+                                WidgetModel.CompositeWidget.Category.GAUGE,
+                                WidgetModel.CompositeWidget.State.Binary(
+                                        WidgetModel.CompositeWidget.Units.NONE,
+                                        true
+                                ),
+                                toggle = nope
+                        ),
                 )))
         return groups
     }

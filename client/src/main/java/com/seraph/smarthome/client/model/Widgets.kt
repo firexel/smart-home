@@ -8,24 +8,58 @@ data class WidgetGroupModel(
 sealed class WidgetModel {
     abstract val name: String
 
-    data class BinaryLight(
+    class CompositeWidget(
             override val name: String,
-            val isOn: Boolean?,
-            val toggle: () -> Unit,
-    ) : WidgetModel()
+            val category: Category,
+            val state: State? = null,
+            val target: Target? = null,
+            val toggle: (() -> Unit)? = null,
+    ) : WidgetModel() {
+
+        enum class Category {
+            GAUGE, THERMOSTAT, LIGHT, SWITCH
+        }
+
+        enum class Units {
+            NONE, ON_OFF, PERCENTS_0_1, CELSIUS, PPM
+        }
+
+        sealed class State {
+            abstract val units: Units
+
+            data class Binary(
+                    override val units: Units,
+                    val state: Boolean,
+            ) : State()
+
+            data class Numeric(
+                    override val units: Units,
+                    val state: Float,
+                    val precision: Int = 0,
+            ) : State()
+
+            data class Unknown(override val units: Units = Units.NONE) : State()
+        }
+
+        sealed class Target {
+            abstract val units: Units
+
+            data class Binary(
+                    override val units: Units,
+                    val setter: (Boolean) -> Unit,
+            ) : Target()
+
+            data class Numeric(
+                    override val units: Units,
+                    val setter: (Float) -> Unit,
+                    val min: Float,
+                    val max: Float,
+            ) : Target()
+        }
+    }
 
     data class BrokenWidget(
             override val name: String,
             val message: String,
     ) : WidgetModel()
-
-    data class Gauge(
-            override val name:String,
-            val value:Float?,
-            val units:Units
-    ) : WidgetModel()
-
-    enum class Units {
-        CO2_PPM, TEMP_CELSIUS, HUMIDITY_PERCENT, PM25_PPM
-    }
 }

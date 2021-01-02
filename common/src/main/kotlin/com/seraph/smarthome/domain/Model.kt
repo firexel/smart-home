@@ -114,15 +114,7 @@ data class Endpoint<N>(
 enum class Units {
     NO,
     CELSIUS,
-    OHMS,
-    AMPS,
-    VOLTS,
-    SECONDS,
-    MINUTES,
-    DAYS,
-    LITERS,
-    KILOGRAMS,
-    GRAMS,
     PPM,
-    PERCENTS
+    PERCENTS_0_1,
+    ON_OFF
 }

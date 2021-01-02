@@ -6,55 +6,68 @@ import kotlinx.serialization.Serializable
 @Serializable(with = EndpointAddrSerializer::class)
 data class EndpointAddr(
         val device: Device.Id,
-        val endpoint: Endpoint.Id
+        val endpoint: Endpoint.Id,
 )
 
 @Serializable
 data class WidgetGroup(
         val name: String,
-        val widgets: List<Widget>
+        val widgets: List<Widget>,
 )
 
 @Serializable
-sealed class Widget {
-
-    abstract val name: String
-
-    @Serializable
-    data class BinaryLight(
-            override val name: String,
-            val state: EndpointAddr,
-            val onOff: EndpointAddr
-    ) : Widget()
+class Widget(
+        val name: String,
+        val category: Category,
+        val state: StateTrait? = null,
+        val target: TargetTrait? = null,
+        val toggle: ToggleTrait? = null,
+        // val actions: ActionsTrait? = null // not implemented yet
+) {
 
     @Serializable
-    data class DimmableLight(
-            override val name: String,
-            val state: EndpointAddr,
-            val onOff: EndpointAddr
-    ) : Widget()
+    enum class Category {
+        GAUGE, THERMOSTAT, LIGHT, SWITCH
+    }
 
     @Serializable
-    data class OnOffSwitch(
-            override val name: String,
-            val state: EndpointAddr,
-            val onOff: EndpointAddr
-    ) : Widget()
+    sealed class StateTrait {
+        @Serializable
+        data class Binary(val endpoint: EndpointAddr) : StateTrait()
+
+        @Serializable
+        data class Numeric(val endpoint: EndpointAddr, val precision: Int = 0) : StateTrait()
+    }
 
     @Serializable
-    data class Thermostat(
-            override val name: String,
-            val state: EndpointAddr,
-            val setPoint: EndpointAddr,
-            val minTemp: Float,
-            val maxTemp: Float
-    ) : Widget()
+    sealed class TargetTrait {
+        @Serializable
+        data class Binary(val endpoint: EndpointAddr) : TargetTrait()
+
+        @Serializable
+        data class Numeric(
+                val endpoint: EndpointAddr,
+                val min: Float,
+                val max: Float,
+        ) : TargetTrait()
+    }
 
     @Serializable
-    data class Gauge(
-            override val name: String,
-            val state: EndpointAddr,
-            val dangerBelow: Float,
-            val dangerAbove: Float
-    ) : Widget()
+    sealed class ToggleTrait {
+        @Serializable
+        data class Action(val endpoint: EndpointAddr) : ToggleTrait()
+
+        @Serializable
+        data class Invert(
+                val endpointRead: EndpointAddr,
+                val endpointWrite: EndpointAddr,
+        ) : ToggleTrait()
+
+        @Serializable
+        data class OnOffActions(
+                val endpointRead: EndpointAddr,
+                val endpointOn: EndpointAddr,
+                val endpointOff: EndpointAddr,
+        ) : ToggleTrait()
+    }
 }
