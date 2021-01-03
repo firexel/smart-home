@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,21 +81,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun Modifier.gradientBackground(firstColor: Color, lastColor: Color) = drawWithCache {
-        onDrawBehind {
-            val radius = sqrt(size.height * size.height + size.width * size.width)
-            val gradient = RadialGradient(
-                    0f to firstColor,
-                    0.5f to firstColor,
-                    1f to lastColor,
-                    centerX = 0f,
-                    centerY = 0f,
-                    radius = radius
-            )
-            drawRect(brush = gradient)
-        }
-    }
-
     @Composable
     fun CompositeWidget(widget: WidgetModel.CompositeWidget) {
         val bg = when (widget.category) {
@@ -112,48 +98,62 @@ class MainActivity : AppCompatActivity() {
             val typo = MaterialTheme.typography
 
             when (val state = widget.state) {
-                is WidgetModel.CompositeWidget.State.Binary -> {
-                    val txt = when (state.units) {
-                        WidgetModel.CompositeWidget.Units.ON_OFF ->
-                            if (state.state) "ON" else "OFF"
-
-                        else ->
-                            if (state.state) "True" else "False"
-                    }
-                    Text(txt, style = typo.h3)
-                }
-                is WidgetModel.CompositeWidget.State.Numeric -> {
-                    val unitsInline = when (state.units) {
-                        WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
-                        else -> ""
-                    }
-
-                    val unitsOutline = when (state.units) {
-                        WidgetModel.CompositeWidget.Units.PPM -> "ppm"
-                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
-                        else -> ""
-                    }
-
-                    val valueMultiplier = when (state.units) {
-                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> 100
-                        else -> 1
-                    }
-
-                    val value = "%.${state.precision}f"
-                            .format(Locale.ENGLISH, valueMultiplier * state.state)
-
-                    Row {
-                        Text(value + unitsInline, style = typo.h3, modifier = Modifier.alignByBaseline())
-                        if (unitsOutline.isNotEmpty()) {
-                            Text(unitsOutline, style = typo.body1, modifier = Modifier.alignByBaseline())
-                        }
-                    }
-
-                }
-                is WidgetModel.CompositeWidget.State.Unknown -> {
-                    Text("––", style = typo.h3)
-                }
+                is WidgetModel.CompositeWidget.State.Binary -> BinaryState(state, typo)
+                is WidgetModel.CompositeWidget.State.Numeric -> NumericState(state, typo)
+                is WidgetModel.CompositeWidget.State.Unknown -> UnknownState(typo)
             }
+        }
+    }
+
+    @Composable
+    private fun UnknownState(typo: Typography) {
+        Text("––", style = typo.h3)
+    }
+
+    @Composable
+    private fun NumericState(state: WidgetModel.CompositeWidget.State.Numeric, typo: Typography) {
+        val unitsInline = when (state.units) {
+            WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
+            else -> ""
+        }
+
+        val unitsOutline = when (state.units) {
+            WidgetModel.CompositeWidget.Units.PPM -> "ppm"
+            WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
+            else -> ""
+        }
+
+        val valueMultiplier = when (state.units) {
+            WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> 100
+            else -> 1
+        }
+
+        val value = "%.${state.precision}f"
+                .format(Locale.ENGLISH, valueMultiplier * state.state)
+
+        Row {
+            Text(value + unitsInline, style = typo.h3, modifier = Modifier.alignByBaseline())
+            if (unitsOutline.isNotEmpty()) {
+                Text(unitsOutline, style = typo.body1, modifier = Modifier.alignByBaseline())
+            }
+        }
+    }
+
+    @Composable
+    private fun BinaryState(state: WidgetModel.CompositeWidget.State.Binary, typo: Typography) {
+        val txt = when (state.units) {
+            WidgetModel.CompositeWidget.Units.ON_OFF ->
+                if (state.state) "ON" else "OFF"
+            else ->
+                if (state.state) "True" else "False"
+        }
+        Text(txt, style = typo.h3)
+    }
+
+    @Composable
+    fun BrokenWidget(widget: WidgetModel.BrokenWidget) {
+        NamedCard(name = widget.name, bg = Color(0xffbd0106) to Color(0xff870501)) {
+            Text(widget.message, style = MaterialTheme.typography.subtitle2)
         }
     }
 
@@ -197,10 +197,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Composable
-    fun BrokenWidget(widget: WidgetModel.BrokenWidget) {
-        NamedCard(name = widget.name, bg = Color(0xffbd0106) to Color(0xff870501)) {
-            Text(widget.message, style = MaterialTheme.typography.subtitle2)
+    fun Modifier.gradientBackground(firstColor: Color, lastColor: Color) = drawWithCache {
+        onDrawBehind {
+            val radius = sqrt(size.height * size.height + size.width * size.width)
+            val gradient = RadialGradient(
+                    0f to firstColor,
+                    0.5f to firstColor,
+                    1f to lastColor,
+                    centerX = 0f,
+                    centerY = 0f,
+                    radius = radius
+            )
+            drawRect(brush = gradient)
         }
     }
 
