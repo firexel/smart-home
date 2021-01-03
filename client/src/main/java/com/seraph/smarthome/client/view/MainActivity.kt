@@ -10,16 +10,22 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RadialGradient
 import androidx.compose.ui.platform.setContent
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.ui.tooling.preview.Preview
+import com.seraph.smarthome.client.app.services
 import com.seraph.smarthome.client.model.WidgetGroupModel
 import com.seraph.smarthome.client.model.WidgetModel
+import com.seraph.smarthome.client.presentation.WidgetListPresenterImpl
+import ru.mail.march.interactor.InteractorObtainers
 import java.util.*
 import kotlin.math.sqrt
 
@@ -29,8 +35,17 @@ val p2 = 16.dp
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val widgets = mutableStateOf(listOf<WidgetGroupModel>())
+        val presenter = WidgetListPresenterImpl(
+                InteractorObtainers.Companion.from(this), services
+        )
+        presenter.widgets.observe {
+            widgets.value = it
+        }
         setContent {
-            Content(getTestData())
+            val widgetList: List<WidgetGroupModel> by widgets
+            Content(widgetList)
         }
     }
 
@@ -184,14 +199,18 @@ class MainActivity : AppCompatActivity() {
                         elevation = p1) {
 
                     Box(modifier = Modifier.padding(start = p1, end = p1),
-                            alignment = Alignment.CenterStart,
-                            children = child
+                            contentAlignment = Alignment.CenterStart,
+                            content = child
                     )
                 }
 
-                Text(name, style = typo.body2, modifier = Modifier
-                        .fillMaxWidth(1f)
-                        .padding(start = p1, top = 6.dp, bottom = p1)
+                Text(name, style = typo.body2,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                                .fillMaxWidth(1f)
+                                .padding(start = p1, top = 6.dp, bottom = p1, end = p1)
                 )
             }
         }
@@ -296,7 +315,7 @@ class MainActivity : AppCompatActivity() {
                                 toggle = nope
                         ),
                         WidgetModel.CompositeWidget(
-                                "Сигнализация CO",
+                                "Сигнализация CO длинное имя",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
                                 WidgetModel.CompositeWidget.State.Binary(
                                         WidgetModel.CompositeWidget.Units.NONE,

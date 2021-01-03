@@ -37,6 +37,11 @@ class WidgetListInteractor(
         }
     }
 
+    override fun destroy() {
+        subscription.unsubscribe()
+        super.destroy()
+    }
+
     private fun mapCompositeWidget(snapshot: NetworkSnapshot, widget: Widget): WidgetModel {
         return try {
             WidgetModel.CompositeWidget(
@@ -49,11 +54,6 @@ class WidgetListInteractor(
         } catch (ex: NetworkTypeMismatchException) {
             WidgetModel.BrokenWidget(widget.name, ex.message ?: "")
         }
-    }
-
-    override fun destroy() {
-        subscription.unsubscribe()
-        super.destroy()
     }
 
     private fun Widget.TargetTrait.mapTarget(snapshot: NetworkSnapshot)

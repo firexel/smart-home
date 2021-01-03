@@ -16,7 +16,7 @@ data class WidgetGroup(
 )
 
 @Serializable
-class Widget(
+data class Widget(
         val name: String,
         val category: Category,
         val state: StateTrait? = null,
