@@ -63,6 +63,8 @@ run {
     }
 }
 
+project.ext.customFrom = "adoptopenjdk/openjdk11:jdk-11.0.9.1_1-alpine-slim"
+
 project.ext.addLaunchParameters = { brokerName ->
     return ['--broker', "tcp://localhost:1883"]
 }

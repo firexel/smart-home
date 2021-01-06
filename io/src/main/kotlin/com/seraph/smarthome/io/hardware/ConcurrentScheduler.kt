@@ -25,7 +25,6 @@ class ConcurrentScheduler(private val bus: Bus) : Scheduler {
             try {
                 callback(Bus.Command.ResultOk(bus.send(cmd), (System.nanoTime() - reqStart) / 1000000))
             } catch (ex: Exception) {
-                ex.printStackTrace()
                 callback(Bus.Command.ResultError(Bus.CommunicationException(ex), (System.nanoTime() - reqStart) / 1000000))
             }
         }

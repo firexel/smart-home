@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
 class SerialBus(
         private val portName: String,
         private val settings: Settings,
-        private val log: Log
+        private val log: Log,
 ) : Bus {
 
     private var port: SerialPort
@@ -36,6 +36,7 @@ class SerialBus(
         port.parity = settings.parity
         port.numDataBits = settings.dataBits
         port.numStopBits = settings.stopBits
+        port.setRs485ModeParameters(true, true, 200, 200)
         if (!port.openPort()) {
             throw IllegalStateException("Cannot open port ${port.systemPortName}")
         }
@@ -60,6 +61,7 @@ class SerialBus(
                     cleanPort()
                 } else {
                     portCleans = 0
+                    err.printStackTrace()
                     reopenPort()
                 }
             }
@@ -95,13 +97,19 @@ class SerialBus(
             writeResult < 0 -> throw PortIoException("Error writing to port: $writeResult")
             writeResult < bytesToWrite.size -> throw PortIoException("Cannot write to port ${bytesToWrite.size} bytes")
         }
+        waitUnderTimeout(1000) {
+            port.bytesAwaitingWrite() <= 0
+        }
+        if (port.bytesAwaitingWrite() > 0) {
+            throw PortIoException("Error writing to port")
+        }
     }
 
     data class Settings(
             val baudRate: Int = 9600,
             val parity: Int = SerialPort.NO_PARITY,
             val dataBits: Int = 8,
-            val stopBits: Int = 2
+            val stopBits: Int = 1,
     )
 
     inner class SerialPortInputStream(private val port: SerialPort) : InputStream() {

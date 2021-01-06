@@ -10,13 +10,10 @@ import com.seraph.smarthome.io.hardware.dmx.UniverseController
 import com.seraph.smarthome.io.hardware.dmx.fixture.BezierInterpolator
 import com.seraph.smarthome.io.hardware.dmx.fixture.StandaloneLightFixture
 import com.seraph.smarthome.io.hardware.dmx.ola.OlaClient
+import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.impl.Brokers
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.Log
-import com.xenomachina.argparser.ArgParser
-import com.xenomachina.argparser.SystemExitException
-import com.xenomachina.argparser.default
-import java.io.File
 import java.io.FileReader
 import kotlin.reflect.KClass
 
@@ -28,11 +25,10 @@ class Main {
     companion object {
         @JvmStatic
         fun main(argv: Array<String>) {
-            val params = CommandLineParams(ArgParser(argv))
             val log = ConsoleLog("IO").apply { i("Starting witch commandline ${argv.toList()}...") }
-            val broker =  Brokers.unencrypted(params.brokerAddress, "I/TransformationVisitor Service", log.copy("Broker"))
-            val network = MqttNetwork(broker, log.copy("Network"))
             val configNode = readConfig(FileReader("config.json"), ::driverSettings)
+            val broker = configNode.broker.createBroker("IO", log.copy("Broker"))
+            val network = MqttNetwork(broker, log.copy("Network"))
             val manager = DriversManager(network, Device.Id("io"), log = log.copy("Manager"))
 
             configNode.rs485Buses.forEach { (busId, busNode) ->
@@ -64,6 +60,15 @@ class Main {
                 }
             }
         }
+    }
+}
+
+private fun BrokerNode.createBroker(serviceName: String, log: ConsoleLog): Broker {
+    val addr = "tcp://$address:$port"
+    return if (credentials != null) {
+        Brokers.unencrypted(addr, serviceName, credentials.login, credentials.password, log)
+    } else {
+        Brokers.unencrypted(addr, serviceName, log)
     }
 }
 
@@ -108,9 +113,4 @@ private fun Rs485ParityNode.mapToConnectionParityIndex() = when (this) {
     Rs485ParityNode.EVEN -> SerialPort.EVEN_PARITY
     Rs485ParityNode.MARK -> SerialPort.MARK_PARITY
     Rs485ParityNode.SPACE -> SerialPort.SPACE_PARITY
-}
-
-class CommandLineParams(parser: ArgParser) {
-    val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
-            .default("tcp://localhost:1883")
 }

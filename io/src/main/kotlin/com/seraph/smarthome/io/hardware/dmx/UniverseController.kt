@@ -36,7 +36,12 @@ class UniverseController(private val session: DmxSession, private val log: Log) 
     }
 
     private fun loop(nanosPassed: Long) {
-        sendDmx(update(nanosPassed))
+        try {
+            sendDmx(update(nanosPassed))
+        } catch (ex: Throwable) {
+            ex.printStackTrace()
+            Thread.sleep(1000)
+        }
     }
 
     private fun update(nanosPassed: Long): Int {

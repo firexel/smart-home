@@ -91,7 +91,11 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                 inputs.property("dependencies", projectDependencies)
                 inputs.property("launch_params", launchParams)
                 destFile = project.file("build/docker/$machine/Dockerfile".toString())
-                from 'anapsix/alpine-java:8u162b12_server-jre'
+                if (project.hasProperty("customFrom")) {
+                    from project.customFrom
+                } else {
+                    from 'anapsix/alpine-java:8u162b12_server-jre'
+                }
                 workingDir '/'
                 addFile "${project.name}.jar", "${project.name}.jar"
                 projectDependencies.keySet().each { addFile it, projectDependencies[it] }
