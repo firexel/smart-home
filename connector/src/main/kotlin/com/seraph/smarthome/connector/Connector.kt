@@ -31,20 +31,20 @@ class Connector(
     public fun serve() {
         val reportTask = object : TimerTask() {
             override fun run() {
-//                synchronized(pendingConnections) {
+                synchronized(pendingConnections) {
                     if (pendingConnections.isNotEmpty()) {
                         val unresolvedSet = pendingConnections
-                                .map { it.unresolvedGlobalendpoints }
+                                .map { it.unresolvedGlobalEndpoints }
                                 .toSet()
 
                         log.w("Still waiting for $unresolvedSet")
                     } else {
                         log.i("All connections are successfully resolved")
                     }
-//                }
+                }
             }
         }
-        timer.schedule(reportTask, 5)
+        timer.schedule(reportTask, 5000)
         network.subscribe(null) { device: Device ->
             device.endpoints.forEach { endpoint ->
                 val gid = GlobalEndpointId(device.id, endpoint.id)
@@ -82,9 +82,9 @@ class Connector(
             }
         }
 
-        override fun onVoid(endpoint: Endpoint<Unit>) {
+        override fun onAction(endpoint: Endpoint<Int>) {
             network.subscribe(src.device, endpoint) { _, _, data ->
-                network.publish(dst.device, dstEndpoint as Endpoint<Unit>, data)
+                network.publish(dst.device, dstEndpoint as Endpoint<Int>, data)
             }
         }
 
@@ -126,7 +126,7 @@ class Connector(
             }
         }
 
-        val unresolvedGlobalendpoints: List<GlobalEndpointId>
+        val unresolvedGlobalEndpoints: List<GlobalEndpointId>
             get() {
                 return listOf<GlobalEndpointId>() +
                         if (srcEndpoint == null) listOf(src) else emptyList<GlobalEndpointId>() +

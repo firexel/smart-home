@@ -5,6 +5,7 @@
       <w>dimmable</w>
       <w>gson</w>
       <w>ikea</w>
+      <w>interactor</w>
       <w>intershield</w>
       <w>klass</w>
       <w>ledare</w>
@@ -15,6 +16,8 @@
       <w>olad</w>
       <w>overriden</w>
       <w>paho</w>
+      <w>setpoint</w>
+      <w>toggler</w>
       <w>wellpro</w>
     </words>
   </dictionary>

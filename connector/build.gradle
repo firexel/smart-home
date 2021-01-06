@@ -9,10 +9,12 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    compile "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
-    compile project(':common')
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
+    implementation project(':common')
+    implementation 'com.google.code.gson:gson:2.8.5'
+
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
 run {
@@ -21,10 +23,6 @@ run {
     }
 }
 
-project.ext.additionalDependencies = [
-        "connections.json": "/etc/connections.json"
-]
-
 project.ext.addLaunchParameters = { brokerName ->
-    return ['--list', '/etc/connections.json', '--broker', "tcp://$brokerName:1883"]
+    return ['--broker', "tcp://$brokerName:1883"]
 }

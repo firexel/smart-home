@@ -1,10 +1,14 @@
 package com.seraph.smarthome.transport.impl
 
-import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
+import com.seraph.smarthome.util.Exchanger
 import com.seraph.smarthome.util.Log
+import java.lang.Long.max
 import java.util.*
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Created by aleksandr.naumov on 02.01.18.
@@ -28,23 +32,33 @@ internal class StatefulMqttBroker(
         ))
     }
 
-    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit)
-            = exchanger.sync { data ->
-
+    override fun subscribe(topic: Topic, listener: (topic: Topic, data: ByteArray) -> Unit) = exchanger.sync { data ->
         data.state.execute(topic) { client ->
             client.subscribe(topic) { topic, data ->
                 listener(topic, data)
             }
-            log.i("$topic subscribed")
+            log.i("Subscribed to $topic")
+        }
+        object : Broker.Subscription {
+            override fun unsubscribe() {
+                unsubscribe(topic)
+            }
+        }
+    }
+
+    fun unsubscribe(topic: Topic) = exchanger.sync { data ->
+        data.state.execute(topic) { client ->
+            client.unsubscribe(topic)
+            log.i("Unsubscribed from $topic")
         }
     }
 
     override fun publish(topic: Topic, data: ByteArray): Broker.Publication = exchanger.sync {
-        var publication: StatefulPublication? = null
+        val publication = StatefulPublication()
         it.state.execute { client ->
-            publication = StatefulPublication(client.publish(topic, data))
+            publication.setClientPublication(client.publish(topic, data))
         }
-        publication!!
+        publication
     }
 
     override fun addStateListener(listener: Broker.StateListener) = exchanger.sync {
@@ -57,10 +71,40 @@ internal class StatefulMqttBroker(
         Unit
     }
 
-    private class StatefulPublication(private val publication: Client.Publication) : Broker.Publication {
-        override fun waitForCompletion(millis: Long) {
-            publication.waitForCompletion(millis)
+    private class StatefulPublication : Broker.Publication {
+        private var latch: CountDownLatch? = null
+        private var innerPublication: Client.Publication? = null
+
+        fun setClientPublication(publication: Client.Publication) {
+            synchronized(this) {
+                innerPublication = publication
+                latch?.countDown()
+            }
         }
+
+        override fun waitForCompletion(millis: Long) {
+            var waitBudget = millis
+            val latch: CountDownLatch? = synchronized(this) {
+                if (innerPublication == null) {
+                    CountDownLatch(1).apply { latch = this }
+                } else {
+                    null
+                }
+            }
+            if (latch != null) {
+                val beforeLatchWait = now()
+                latch.await(millis, TimeUnit.MILLISECONDS)
+                waitBudget = max(1, waitBudget - (now() - beforeLatchWait))
+            }
+            val publication = innerPublication
+            if (publication == null) {
+                throw TimeoutException("No publication was done in ${millis}ms")
+            } else {
+                publication.waitForCompletion(waitBudget)
+            }
+        }
+
+        private fun now() = System.currentTimeMillis()
     }
 }
 

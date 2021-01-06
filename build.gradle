@@ -1,15 +1,17 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.2.41'
+    ext.kotlin_version = '1.4.21'
     ext.kotlin_argparser_version = '2.0.3'
+    ext.march_version = '0.0.2-snapshot'
     repositories {
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.2'
+        classpath 'com.android.tools.build:gradle:7.0.0-alpha03'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
         classpath 'com.bmuschko:gradle-docker-plugin:3.2.4'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -49,7 +51,7 @@ private void configureJarAssemblyIn(def project) {
         jar {
             doFirst {
                 from {
-                    configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+                    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
                 }
             }
             exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
@@ -89,7 +91,11 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                 inputs.property("dependencies", projectDependencies)
                 inputs.property("launch_params", launchParams)
                 destFile = project.file("build/docker/$machine/Dockerfile".toString())
-                from 'anapsix/alpine-java:8u162b12_server-jre'
+                if (project.hasProperty("customFrom")) {
+                    from project.customFrom
+                } else {
+                    from 'anapsix/alpine-java:8u162b12_server-jre'
+                }
                 workingDir '/'
                 addFile "${project.name}.jar", "${project.name}.jar"
                 projectDependencies.keySet().each { addFile it, projectDependencies[it] }
@@ -111,18 +117,14 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                 into createDockerfileTask.destFile.parentFile
             }
 
-            def buildImageTask = task(type: DockerBuildImage, "buildImage$machine") {
+            def buildImageTask = task(type: Exec, "buildImage$machine") {
                 File completeMarker = project.file("build/docker/${machine}_img_created")
-                if (!envs.isEmpty()) {
-                    url = envs["DOCKER_HOST"]
-                    certPath = new File(envs["DOCKER_CERT_PATH"])
-                }
                 inputs.dir(createDockerfileTask.destFile.parentFile)
                 outputs.file(completeMarker)
                 dependsOn createDockerfileTask, copyDepsTask
-                dockerFile = createDockerfileTask.destFile
-                inputDir = createDockerfileTask.destFile.parentFile
-                tag = "seraph/$project.name:latest"
+                environment envs
+                workingDir createDockerfileTask.destFile.parentFile
+                commandLine selectDockerExecutable(), 'build', '-f', createDockerfileTask.destFile, '-t', "seraph/$project.name:latest", "."
                 doLast {
                     completeMarker.createNewFile()
                 }
@@ -132,15 +134,13 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                 def upTask = tasks.find { it.name == "upOn$machine" }
                 if (upTask == null) {
                     upTask = task(type: Exec, "upOn$machine") {
-                        def composePath = root.file('deploy/compose/docker-compose.yml').absolutePath
                         def localComposePath = new File(machineDir, 'docker-compose.yml').absolutePath
-                        inputs.file(composePath)
                         inputs.file(localComposePath)
                         logger.debug("Setup up task $name for machine $machine")
                         environment envs
                         ignoreExitValue false
                         workingDir machineDir
-                        commandLine selectComposeExecutable(), '-f', composePath, '-f', localComposePath, 'up'
+                        commandLine selectComposeExecutable(), '-f', localComposePath, 'up', '--build'
                     }
                 }
                 upTask.dependsOn buildImageTask
@@ -158,6 +158,14 @@ private static String selectComposeExecutable() {
         return "/usr/local/bin/docker-compose"
     } else {
         return "docker-compose"
+    }
+}
+
+private static String selectDockerExecutable() {
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        return "/usr/local/bin/docker"
+    } else {
+        return "docker"
     }
 }
 

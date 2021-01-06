@@ -2,7 +2,6 @@ package com.seraph.smarthome.io.hardware
 
 import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
-import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 import com.seraph.smarthome.util.Log
 
@@ -16,19 +15,19 @@ class WirenboardWbmsw3Driver(
     override fun bind(visitor: DeviceDriver.Visitor) {
         val busAddr = settings.addressAtBus
 
-        visitor.declareOutput("temperature", Types.FLOAT, Endpoint.Retention.RETAINED)
+        visitor.declareOutput("temperature", Types.FLOAT)
                 .beginReadings(ReadFloat16Cmd(busAddr, 0))
 
-        visitor.declareOutput("humidity", Types.FLOAT, Endpoint.Retention.RETAINED)
+        visitor.declareOutput("humidity", Types.FLOAT)
                 .beginReadings(ReadFloat16Cmd(busAddr, 1))
 
-        visitor.declareOutput("illumination", Types.FLOAT, Endpoint.Retention.RETAINED)
+        visitor.declareOutput("illumination", Types.FLOAT)
                 .beginReadings(ReadFloat32Cmd(busAddr, 9))
 
-        visitor.declareOutput("co2", Types.INTEGER, Endpoint.Retention.RETAINED)
+        visitor.declareOutput("co2", Types.INTEGER)
                 .beginReadings(ReadInt16Cmd(busAddr, 8))
 
-        visitor.declareOutput("aoc", Types.INTEGER, Endpoint.Retention.RETAINED)
+        visitor.declareOutput("aoc", Types.INTEGER)
                 .beginReadings(ReadInt16Cmd(busAddr, 11))
 
     }

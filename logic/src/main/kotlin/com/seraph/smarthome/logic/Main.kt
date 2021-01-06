@@ -11,12 +11,11 @@ import com.seraph.smarthome.logic.scenes.Scene
 import com.seraph.smarthome.logic.scenes.ScenesManager
 import com.seraph.smarthome.transport.impl.Brokers
 import com.seraph.smarthome.util.ConsoleLog
+import com.seraph.smarthome.util.Scheduler
+import com.seraph.smarthome.util.ThreadScheduler
 import com.xenomachina.argparser.ArgParser
-import com.xenomachina.argparser.SystemExitException
 import com.xenomachina.argparser.default
-import java.io.File
 import java.io.FileReader
-import java.util.*
 import kotlin.reflect.KClass
 
 /**
@@ -32,62 +31,64 @@ class Main {
             val broker = Brokers.unencrypted(params.brokerAddress, "Logic Gates Service", log.copy("Broker"))
             val network = MqttNetwork(broker, log.copy("Network"))
             val manager = DriversManager(network, Device.Id("logic"))
-            val configNode = readConfig(FileReader(params.configFile), ::driverSettings)
-            val timer = Timer()
-
-
+            val configNode = readConfig(FileReader("config.json"), ::driverSettings)
+            val scheduler = ThreadScheduler("LogicDevicesScheduler")
             val scenery = ScenesManager()
-            scenery.registerScene("entrance", listOf(
-                    Scene.Channel("light_03"),
-                    Scene.Channel("light_45", FactorMapper(0.45f))
-            ))
-            scenery.registerScene("livingroom", listOf(
-                    Scene.Channel("light_45", FactorMapper(0.55f)),
-                    Scene.Channel("light_48", RegionMapper(0.2f)),
-                    Scene.Channel("light_49"),
-                    Scene.Channel("light_50", RegionMapper(0.2f)),
-                    Scene.Channel("light_51")
-            ))
-            scenery.registerScene("alex_workplace", listOf(
-                    Scene.Channel("light_46_47")
-            ))
-            scenery.registerScene("bedroom", listOf(
-                    Scene.Channel("light_70_71")
-            ))
-            scenery.registerScene("bedroom_star", listOf(
-                    Scene.Channel("light_68")
-            ))
-            scenery.registerScene("bed_alex", listOf(
-                    Scene.Channel("light_73")
-            ))
-            scenery.registerScene("bed_ntsh", listOf(
-                    Scene.Channel("light_75")
-            ))
-            scenery.bind("scenery", manager)
 
             configNode.devices.forEach {
-                manager.addDriver(Device.Id(it.key), it.value.instantiateDevice(timer))
+                val driver = it.value.instantiateDevice(it.key, scheduler, scenery)
+                if (driver != null) {
+                    manager.addDriver(Device.Id(it.key), driver)
+                }
             }
+
+            scenery.bind("scenery", manager)
         }
     }
 }
 
-private fun DeviceNode.instantiateDevice(timer: Timer): DeviceDriver {
+private fun DeviceNode.instantiateDevice(
+        deviceName: String,
+        scheduler: Scheduler,
+        scenery: ScenesManager,
+): DeviceDriver? {
+
     return when (Drivers.valueOf(driver)) {
         Drivers.SWITCH -> Switch()
-        Drivers.BUTTON -> Button(timer)
-        Drivers.DIMMER -> Dimmer()
-        Drivers.SPLITTER -> Splitter()
-        Drivers.THERMOSTAT -> Thermostat(settings as Thermostat.Settings)
+        Drivers.BUTTON -> Button(scheduler)
+        Drivers.PID_THERMOSTAT -> PidRegulatedThermostat(scheduler, settings as PidRegulatedThermostat.Settings)
+        Drivers.SLOW_PWM -> SlowPwm(scheduler, settings as SlowPwm.Settings)
+        Drivers.TEST_OUTPUT -> TestOutput()
+        Drivers.TEST_LIGHT -> TestLight()
+        Drivers.TEST_INPUT -> TestInput(ConsoleLog(deviceName))
+        Drivers.SCENE -> {
+            addScene(deviceName, scenery, settings as ScenesManager.Settings)
+            return null
+        }
     }
+}
+
+fun addScene(name: String, scenery: ScenesManager, settings: ScenesManager.Settings) {
+    val channels = settings.channels.map {
+        if (it.factor != 1f) {
+            Scene.Channel(it.input, FactorMapper(it.factor))
+        } else {
+            Scene.Channel(it.input, RegionMapper(it.activeFrom, it.activeTo))
+        }
+    }
+
+    scenery.registerScene(name, channels)
 }
 
 enum class Drivers(val settingsClass: KClass<*>?) {
     SWITCH(null),
     BUTTON(null),
-    DIMMER(null),
-    SPLITTER(null),
-    THERMOSTAT(Thermostat.Settings::class)
+    PID_THERMOSTAT(PidRegulatedThermostat.Settings::class),
+    SLOW_PWM(SlowPwm.Settings::class),
+    TEST_INPUT(null),
+    TEST_LIGHT(null),
+    TEST_OUTPUT(null),
+    SCENE(ScenesManager.Settings::class)
 }
 
 fun driverSettings(name: String): DriverInfo {
@@ -97,12 +98,4 @@ fun driverSettings(name: String): DriverInfo {
 class CommandLineParams(parser: ArgParser) {
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
             .default("tcp://localhost:1883")
-
-    val configFile by parser.storing("-c", "--config", help = "path to config") {
-        File(this)
-    }.default(File("/etc/logic.json")).addValidator {
-        if (!value.exists()) {
-            throw SystemExitException("Config not found at ${value.absoluteFile}", -1)
-        }
-    }
 }

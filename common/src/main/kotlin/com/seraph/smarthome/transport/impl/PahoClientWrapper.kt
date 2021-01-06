@@ -100,6 +100,10 @@ internal class PahoClientWrapper(
         }
     }
 
+    override fun unsubscribe(topic: Topic): Unit = safe("unsubscribe") {
+        client.unsubscribe(topic.toString())
+    }
+
     override fun publish(topic: Topic, data: ByteArray): Client.Publication = safe("publish") {
         return MqttPublication(client.publish(topic.toString(), data, options.publishQos, topic.persisted))
     }

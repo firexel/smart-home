@@ -8,14 +8,14 @@ class AdbLog(private val component: String = "ClientApp") : Log {
             AdbLog("${this.component}/$component")
 
     override fun i(message: String) {
-        android.util.Log.i("ClientApp", message)
+        android.util.Log.i(component, message)
     }
 
     override fun w(message: String) {
-        android.util.Log.w("ClientApp", message)
+        android.util.Log.w(component, message)
     }
 
     override fun v(message: String) {
-        android.util.Log.v("ClientApp", message)
+        android.util.Log.v(component, message)
     }
 }

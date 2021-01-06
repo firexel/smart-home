@@ -11,13 +11,25 @@ import kotlin.reflect.KClass
  * Created by aleksandr.naumov on 10.03.18.
  */
 data class ConfigNode(
+        val broker: BrokerNode,
         val rs485Buses: Map<String, Rs485BusNode>,
-        val dmx512: DmxNode?
+        val dmx512: DmxNode?,
 )
+
+data class BrokerNode(
+        val address: String,
+        val port: Int,
+        val credentials: Credentials?,
+) {
+    data class Credentials(
+            val login: String,
+            val password: String,
+    )
+}
 
 data class DmxNode(
         val settings: DmxGlobalSettingsNode,
-        val universes: Map<String, DmxUniverseNode>
+        val universes: Map<String, DmxUniverseNode>,
 )
 
 data class DmxGlobalSettingsNode(
@@ -25,7 +37,7 @@ data class DmxGlobalSettingsNode(
         val oladHost: String,
 
         @SerializedName("olad_port")
-        val oladPort: Int
+        val oladPort: Int,
 )
 
 data class DmxUniverseNode(
@@ -35,19 +47,19 @@ data class DmxUniverseNode(
         @SerializedName("device_port")
         val devicePort: Int,
 
-        val fixtures: Map<String, DmxFixtureNode>
+        val fixtures: Map<String, DmxFixtureNode>,
 )
 
 data class DmxFixtureNode(
         @SerializedName("address_at_bus")
         val addressAtBus: Int,
 
-        val driver: String
+        val driver: String,
 )
 
 data class Rs485BusNode(
         val settings: Rs485PortSettingsNode,
-        val devices: Map<String, Rs485DeviceNode>
+        val devices: Map<String, Rs485DeviceNode>,
 )
 
 data class Rs485PortSettingsNode(
@@ -62,7 +74,7 @@ data class Rs485PortSettingsNode(
         val dataBits: Int,
 
         @SerializedName("stop_bits")
-        val stopBits: Int
+        val stopBits: Int,
 )
 
 enum class Rs485ParityNode {
@@ -71,7 +83,7 @@ enum class Rs485ParityNode {
 
 data class Rs485DeviceNode(
         val driver: String,
-        val settings: Any
+        val settings: Any,
 )
 
 private class ConfigDeserializer : JsonDeserializer<ConfigNode> {
@@ -86,7 +98,8 @@ private class ConfigDeserializer : JsonDeserializer<ConfigNode> {
             } else {
                 null
             }
-            return ConfigNode(rs485Buses, dmxNode)
+            val brokerNode = context.deserialize<BrokerNode>(json.get("broker"), BrokerNode::class.java)
+            return ConfigNode(brokerNode, rs485Buses, dmxNode)
         } else {
             throw JsonParseException("Unknown type of node $json")
         }
@@ -163,5 +176,5 @@ fun readConfig(reader: Reader, driverCatalogue: (String) -> DriverInfo): ConfigN
 }
 
 data class DriverInfo(
-        val settingsClass: KClass<*>
+        val settingsClass: KClass<*>,
 )

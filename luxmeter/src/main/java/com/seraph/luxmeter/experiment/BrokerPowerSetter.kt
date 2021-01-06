@@ -28,8 +28,9 @@ class BrokerPowerSetter(
                         Types.FLOAT,
                         Endpoint.Direction.INPUT,
                         Endpoint.Retention.NOT_RETAINED,
+                        Endpoint.DataKind.CURRENT,
+                        Endpoint.Interaction.USER_READONLY,
                         Units.NO
-
                 )
         )
     }

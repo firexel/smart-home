@@ -9,7 +9,7 @@ import com.seraph.smarthome.util.Log
 
 class MqttNetwork(
         private val transport: Broker,
-        private val log: Log
+        private val log: Log,
 ) : Network {
 
     private val gson: Gson = with(GsonBuilder()) {
@@ -18,17 +18,17 @@ class MqttNetwork(
     }
 
     override fun publish(metainfo: Metainfo): Network.Publication =
-            publish(Topics.metadata(), JsonSerializer(gson, Metainfo::class), metainfo)
+            publish(Topics.metadata(), KotlinMetainfoSerializer(), metainfo)
 
-    override fun subscribe(func: (Metainfo) -> Unit) {
-        subscribe(Topics.metadata(), JsonSerializer(gson, Metainfo::class), func)
+    override fun subscribe(func: (Metainfo) -> Unit): Network.Subscription {
+        return subscribe(Topics.metadata(), KotlinMetainfoSerializer(), func)
     }
 
     override fun publish(device: Device): Network.Publication =
             publish(Topics.structure(device.id), JsonSerializer(gson, Device::class), device)
 
-    override fun subscribe(device: Device.Id?, func: (Device) -> Unit) {
-        subscribe(Topics.structure(device), JsonSerializer(gson, Device::class), func)
+    override fun subscribe(device: Device.Id?, func: (Device) -> Unit): Network.Subscription {
+        return subscribe(Topics.structure(device), JsonSerializer(gson, Device::class), func)
     }
 
     override fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T): Network.Publication =
@@ -38,21 +38,27 @@ class MqttNetwork(
     override fun <T> subscribe(
             device: Device.Id,
             endpoint: Endpoint<T>,
-            func: (Device.Id, Endpoint<T>, data: T) -> Unit) {
+            func: (Device.Id, Endpoint<T>, data: T) -> Unit,
+    ): Network.Subscription {
 
-        subscribe(Topics.endpoint(device, endpoint), endpoint.type.serializer) { data ->
+        return subscribe(Topics.endpoint(device, endpoint), endpoint.type.serializer) { data ->
             func(device, endpoint, data)
         }
     }
 
-    private fun <T> subscribe(topic: Topic, serializer: Serializer<T>, acceptor: (T) -> Unit) {
-        transport.subscribe(topic) { responseTopic, data ->
+    private fun <T> subscribe(topic: Topic, serializer: Serializer<T>, acceptor: (T) -> Unit): Network.Subscription {
+        val sub = transport.subscribe(topic) { responseTopic, data ->
             try {
                 val deserialized = serializer.fromBytes(data)
                 log.v("$responseTopic --> $deserialized")
                 acceptor(deserialized)
             } catch (ex: Serializer.TypeMismatchException) {
-                log.w("Type mismatch during parsing of $topic: ${ex.message}" )
+                log.w("Type mismatch during parsing of $topic: ${ex.message}")
+            }
+        }
+        return object : Network.Subscription {
+            override fun unsubscribe() {
+                sub.unsubscribe()
             }
         }
     }

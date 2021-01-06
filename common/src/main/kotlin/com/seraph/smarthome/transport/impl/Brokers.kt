@@ -40,6 +40,25 @@ object Brokers {
         return createBroker(options, log)
     }
 
+    fun unencrypted(
+            addr: String,
+            name: String,
+            userName: String,
+            userPswd: String,
+            log: Log): Broker {
+
+        val options = PahoClientWrapper.Options(
+                hostUrl = addr,
+                name = name,
+                userName = userName,
+                password = userPswd,
+                sslOptions = null,
+                publishQos = 2,
+                subscribeQos = 2
+        )
+        return createBroker(options, log)
+    }
+
     private fun createSslOptions(caFile: File, pswd: String): Properties {
         return Properties().apply {
             this[SSLSocketFactoryFactory.TRUSTSTORE] = caFile.absolutePath

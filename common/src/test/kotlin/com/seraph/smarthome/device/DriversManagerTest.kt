@@ -136,16 +136,29 @@ class DriversManagerTest {
         override fun publish(device: Device): Network.Publication = ImmediatePublication()
         override fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T): Network.Publication = ImmediatePublication()
 
-        override fun subscribe(device: Device.Id?, func: (Device) -> Unit) {
+        override fun subscribe(device: Device.Id?, func: (Device) -> Unit): Network.Subscription {
             TODO("not implemented")
         }
 
-        override fun subscribe(func: (Metainfo) -> Unit) {
+        override fun subscribe(func: (Metainfo) -> Unit): Network.Subscription {
             TODO("not implemented")
         }
 
-        override fun <T> subscribe(device: Device.Id, endpoint: Endpoint<T>, func: (Device.Id, Endpoint<T>, T) -> Unit) {
+        override fun <T> subscribe(
+                device: Device.Id,
+                endpoint: Endpoint<T>,
+                func: (Device.Id, Endpoint<T>, T) -> Unit): Network.Subscription {
+
             endpointSubscriptions.add(EndpointClosure(device, endpoint, func))
+            return makeSubscription()
+        }
+
+        private fun makeSubscription(): Network.Subscription {
+            return object : Network.Subscription {
+                override fun unsubscribe() {
+                    TODO("not implemented")
+                }
+            }
         }
 
         override var statusListener: Network.StatusListener
@@ -178,12 +191,12 @@ class DriversManagerTest {
         private var outputs: List<DeviceDriver.Output<Boolean>> = emptyList()
 
         override fun bind(visitor: DeviceDriver.Visitor) {
-            visitor.declareOutputPolicy(DeviceDriver.OutputPolicy.WAIT_FOR_ALL_INPUTS)
             outputs = listOf("out1", "out2").map {
-                visitor.declareOutput(it, Types.BOOLEAN, Endpoint.Retention.RETAINED)
+                visitor.declareOutput(it, Types.BOOLEAN)
             }
             inputs = listOf("in1", "in2").map {
-                visitor.declareInput(it, Types.BOOLEAN, Endpoint.Retention.RETAINED)
+                visitor.declareInput(it, Types.BOOLEAN)
+                        .waitForDataBeforeOutput()
             }
             inputs.forEach {
                 it.observe {

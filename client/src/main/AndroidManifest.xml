@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.seraph.smarthome.broker">
-
+    package="com.seraph.smarthome.client">
     <!-- To auto-complete the email text field in the login form with the user's emails -->
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.READ_PROFILE" />
@@ -10,30 +9,21 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name="com.seraph.smarthome.client.app.ClientApp"
         android:allowBackup="true"
         android:fullBackupContent="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:name="com.seraph.smarthome.client.app.ClientApp"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity
-            android:name="com.seraph.smarthome.client.view.BrokersActivity"
-            android:label="@string/title_activity_brokers">
+        <activity android:name="com.seraph.smarthome.client.view.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="com.seraph.smarthome.client.view.NewBrokerActivity"
-            android:label="@string/title_activity_add_broker" />
-        <activity
-            android:name="com.seraph.smarthome.client.view.SceneActivity"
-            android:theme="@style/AppTheme.CustomToolbar" />
     </application>
 
 </manifest>

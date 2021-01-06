@@ -4,14 +4,18 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 29
+    buildToolsVersion '30.0.2'
     defaultConfig {
         applicationId "com.seraph.smarthome.client"
         minSdkVersion 25
-        targetSdkVersion 26
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
+    }
+    buildFeatures {
+        compose true
     }
     buildTypes {
         release {
@@ -20,26 +24,51 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    composeOptions {
+        kotlinCompilerVersion "$kotlin_version"
+        kotlinCompilerExtensionVersion '1.0.0-alpha09'
+    }
+    sourceSets {
+        main {
+            resources {
+                srcDir 'src/main/res'
+            }
+        }
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = "1.8"
+        freeCompilerArgs += ["-Xallow-jvm-ir-dependencies", "-Xskip-prerelease-check"]
     }
 }
 
 dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    def composeVersion = '1.0.0-alpha09'
+
+    implementation "androidx.compose.ui:ui:$composeVersion"
+    implementation "androidx.compose.ui:ui-tooling:$composeVersion"
+    // Foundation (Border, Background, Box, Image, Scroll, shapes, animations, etc.)
+    implementation "androidx.compose.foundation:foundation:$composeVersion"
+    // Material Design
+    implementation "androidx.compose.material:material:$composeVersion"
+    // Material design icons
+    implementation "androidx.compose.material:material-icons-core:$composeVersion"
+    implementation "androidx.compose.material:material-icons-extended:$composeVersion"
+    // Integration with observables
+    implementation "androidx.compose.runtime:runtime-livedata:$composeVersion"
+
+    implementation "ru.mail.march:core-android:$march_version"
+
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    implementation 'io.reactivex.rxjava2:rxjava:2.1.7'
-    implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
-    implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation project(':common')
-    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    implementation 'com.android.support:design:26.1.0'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
-    implementation 'com.android.support:recyclerview-v7:26.1.0'
-    implementation 'com.android.support:cardview-v7:26.1.0'
-    implementation 'android.arch.persistence.room:runtime:1.0.0'
-    kapt 'android.arch.persistence.room:compiler:1.0.0'
 }

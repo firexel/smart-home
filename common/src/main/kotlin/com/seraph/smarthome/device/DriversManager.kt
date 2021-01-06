@@ -1,6 +1,9 @@
 package com.seraph.smarthome.device
 
-import com.seraph.smarthome.domain.*
+import com.seraph.smarthome.domain.Device
+import com.seraph.smarthome.domain.Endpoint
+import com.seraph.smarthome.domain.Network
+import com.seraph.smarthome.domain.Units
 import com.seraph.smarthome.util.Log
 import com.seraph.smarthome.util.NoLog
 import java.util.concurrent.Executor
@@ -21,9 +24,9 @@ class DriversManager(
             driver: DeviceDriver,
             executor: Executor = Executors.newFixedThreadPool(1)) {
 
-        val context = DeviceContext(id = mergeRootAndDeviceIds(id), executor = executor)
+        val context = DeviceThreadContext(id = mergeRootAndDeviceIds(id), executor = executor)
         context.run {
-            DiscoverVisitor(context).bind(driver)
+            DiscoverVisitor(context, log).bind(driver)
         }
     }
 
@@ -32,177 +35,218 @@ class DriversManager(
     }
 
     private inner class DiscoverVisitor(
-            private var context: DeviceContext
+            private var context: DeviceThreadContext,
+            private var log: Log
     ) : DeviceDriver.Visitor {
 
-        override fun declareOutputPolicy(policy: DeviceDriver.OutputPolicy) {
-            context = context.changePolicy(when (policy) {
-                DeviceDriver.OutputPolicy.WAIT_FOR_ALL_INPUTS -> WaitForAllInputsPolicy()
-                DeviceDriver.OutputPolicy.ALWAYS_ALLOW -> AlwaysAllowPolicy()
-            })
-        }
-
-        private val endpoints = mutableListOf<Endpoint<*>>()
-        private val controls = mutableListOf<Control>()
-        private val retainedOutputs = mutableListOf<RetainedOutput<*>>()
+        private val inputs = mutableListOf<InputImpl<*>>()
+        private val outputs = mutableListOf<OutputImpl<*>>()
         private val innerDevices = mutableListOf<DiscoverVisitor>()
+        private var operationalCallback: () -> Unit = {}
 
         override fun declareInnerDevice(id: String): DeviceDriver.Visitor {
-            val innerVisitor = DiscoverVisitor(context.inner(id))
+            val innerVisitor = DiscoverVisitor(context.inner(id), log.copy(id))
             innerDevices.add(innerVisitor)
             return innerVisitor
         }
 
-        override fun <T> declareInput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention):
+        override fun <T> declareInput(id: String, type: Endpoint.Type<T>):
                 DeviceDriver.Input<T> {
 
-            val endpoint = Endpoint(
-                    Endpoint.Id(id),
-                    type,
-                    Endpoint.Direction.INPUT,
-                    retention
-            )
-
-            context.notifyInputExits(endpoint.id)
-            endpoints.add(endpoint)
-            return InputImpl(context, endpoint)
+            return InputImpl(context, Endpoint.Id(id), type, log.copy(id)).apply { inputs.add(this) }
         }
 
-        override fun <T> declareOutput(id: String, type: Endpoint.Type<T>, retention: Endpoint.Retention):
+        override fun <T> declareOutput(id: String, type: Endpoint.Type<T>):
                 DeviceDriver.Output<T> {
 
-            val endpoint = Endpoint(
-                    Endpoint.Id(id),
-                    type,
-                    Endpoint.Direction.OUTPUT,
-                    retention
-            )
-
-            endpoints.add(endpoint)
-            return createOutput(endpoint, retention)
+            return OutputImpl(context, Endpoint.Id(id), type, log.copy(id)).apply { outputs.add(this) }
         }
 
-        private fun <T> createOutput(endpoint: Endpoint<T>, retention: Endpoint.Retention): DeviceDriver.Output<T> {
-            return when (retention) {
-                Endpoint.Retention.RETAINED -> {
-                    RetainedOutput(context, endpoint).apply { retainedOutputs.add(this) }
-                }
-                Endpoint.Retention.NOT_RETAINED -> {
-                    NonRetainedOutput(context, endpoint)
+        override fun onOperational(operation: () -> Unit) {
+            operationalCallback = operation
+        }
+
+        fun finishBuilding(): List<Device> {
+            val endpoints =
+                    outputs.map { it.onFinishBuilding() } + inputs.map { it.onFinishBuilding() }
+
+            return listOf(Device(context.id, endpoints)) +
+                    innerDevices.flatMap { it.finishBuilding() }
+        }
+
+        private fun publishDeviceDescriptors(descriptors: List<Device>) {
+            brokerQueue.execute {
+                descriptors.forEach {
+                    log.v("Publishing descriptor for ${it.id}")
+                    network.publish(it).waitForCompletion(1000)
                 }
             }
+            log.v("All descriptors enqueued for publish")
         }
 
-        override fun declareIndicator(id: String, priority: Control.Priority, source: DeviceDriver.Output<Boolean>) {
-            controls.add(Control(
-                    Control.Id(id),
-                    priority,
-                    Indicator((source as EndpointContainer<Boolean>).endpoint)
-            ))
-        }
-
-        override fun declareButton(id: String, priority: Control.Priority, input: DeviceDriver.Input<Unit>, alert: String) {
-            controls.add(Control(
-                    Control.Id(id),
-                    priority,
-                    Button((input as EndpointContainer<Unit>).endpoint, alert)
-            ))
-        }
-
-        fun formDescriptors(): List<Device> {
-            return listOf(Device(context.id, endpoints, controls)) +
-                    innerDevices.flatMap { it.formDescriptors() }
-
+        fun startInteraction() {
+            inputs.forEach { it.onStartInteraction() }
+            context.setOperationalCallback {
+                outputs.forEach { it.onStartInteraction() }
+                log.i("Now operational")
+                operationalCallback()
+                operationalCallback = {}
+            }
+            innerDevices.forEach { it.startInteraction() }
         }
 
         fun bind(driver: DeviceDriver) {
             driver.bind(this)
-            val descriptors = formDescriptors()
-            brokerQueue.execute {
-                descriptors.forEach {
-                    network.publish(it)
-                            .waitForCompletion(1000)
-                }
-            }
-            invalidateAll()
-        }
-
-        fun invalidateAll() {
-            retainedOutputs.forEach { it.publishSetValue() }
-            innerDevices.forEach { it.invalidateAll() }
+            val descriptors = finishBuilding()
+            publishDeviceDescriptors(descriptors)
+            startInteraction()
         }
     }
 
-    private inner class NonRetainedOutput<T>(
-            private val context: DeviceContext,
-            override val endpoint: Endpoint<T>
-    ) : DeviceDriver.Output<T>, EndpointContainer<T> {
+    private inner class OutputImpl<T>(
+            private val context: DeviceThreadContext,
+            id: Endpoint.Id,
+            type: Endpoint.Type<T>,
+            private val log: Log
+    ) : DeviceDriver.Output<T> {
 
-        override fun set(update: T) {
-            context.run {
-                if (!context.outputLocked) {
-                    brokerQueue.execute {
-                        network.publish(context.id, endpoint, update)
-                                .waitForCompletion(1000)
-                    }
-                }
-            }
-        }
-    }
+        private var builder: EndpointBuilder<T>? = EndpointBuilder(id, type, Endpoint.Direction.OUTPUT)
+        private var runtime: OutputRuntime<T>? = null
 
-    private inner class RetainedOutput<T>(
-            private val context: DeviceContext,
-            override val endpoint: Endpoint<T>
-    ) : DeviceDriver.Output<T>, EndpointContainer<T> {
-
-        private var valueIsSet = false
-
-        private val isLocked
-            get() = context.outputLocked
-
-        private var retainedValue: T? = null
-
-        override fun set(update: T) {
-            context.run {
-                if (!isLocked && !postingSameAsRetained(update)) {
-                    retainValue(update)
-                    fireUpdate(update)
-                }
-            }
+        private fun getBuilder(): EndpointBuilder<T> {
+            return builder ?: throw IllegalStateException("Already finalized")
         }
 
-        private fun fireUpdate(update: T) {
+        private fun getRuntime(): OutputRuntime<T> {
+            return runtime ?: throw IllegalStateException("Not yet finalized")
+        }
+
+        override fun setDataKind(dataKind: Endpoint.DataKind): DeviceDriver.Output<T> {
+            getBuilder().setDataKind(dataKind)
+            return this
+        }
+
+        override fun setUserInteraction(interaction: Endpoint.Interaction): DeviceDriver.Output<T> {
+            getBuilder().setUserInteraction(interaction)
+            return this
+        }
+
+        override fun setUnits(units: Units): DeviceDriver.Output<T> {
+            getBuilder().setUnits(units)
+            return this
+        }
+
+        override fun set(update: T) {
+            val runtime = getRuntime()
+            context.run {
+                runtime.set(update)
+            }
+        }
+
+        fun onFinishBuilding(): Endpoint<T> {
+            val endpoint = getBuilder().build()
+            val runtime = when (endpoint.retention) {
+                Endpoint.Retention.RETAINED -> StatefulRuntime(endpoint)
+                Endpoint.Retention.NOT_RETAINED -> StatelessRuntime(endpoint)
+            }
+            log.v("Using ${runtime::class.simpleName} runtime")
+            this.runtime = runtime
+            builder = null
+            return endpoint
+        }
+
+        fun onStartInteraction() {
+            getRuntime().unlock()
+        }
+
+        private fun <D> Endpoint<D>.fireUpdate(update: D) {
             brokerQueue.execute {
-                network.publish(context.id, endpoint, update)
+                network.publish(context.id, this, update)
                         .waitForCompletion(1000)
             }
         }
 
-        private fun retainValue(update: T) {
-            valueIsSet = true
-            retainedValue = update
+        inner class StatelessRuntime<T>(private val endpoint: Endpoint<T>) : OutputRuntime<T> {
+            override fun set(update: T) {
+                endpoint.fireUpdate(update)
+            }
+
+            override fun unlock() {
+                // do nothing
+            }
         }
 
-        private fun postingSameAsRetained(update: T) = valueIsSet && update == retainedValue
+        inner class StatefulRuntime<T>(private val endpoint: Endpoint<T>) : OutputRuntime<T> {
+            private var valueIsSet = false
+            private var locked = true
+            private var retainedValue: T? = null
 
-        fun publishSetValue() {
-            val value = retainedValue
-            if (valueIsSet && !isLocked && value != null) {
-                fireUpdate(value)
+            private fun retainValue(update: T) {
+                valueIsSet = true
+                retainedValue = update
+            }
+
+            private fun postingSameAsRetained(update: T) = valueIsSet && update == retainedValue
+
+            override fun set(update: T) {
+                if (locked) {
+                    log.w("Update not fired - output is locked. Update was $update")
+                } else if (!postingSameAsRetained(update)) {
+                    retainValue(update)
+                    endpoint.fireUpdate(update)
+                }
+            }
+
+            override fun unlock() {
+                if (locked) {
+                    locked = false
+                    log.v("Unlocked")
+                }
             }
         }
     }
 
-    private interface EndpointContainer<T> {
-        val endpoint: Endpoint<T>
+    private interface OutputRuntime<T> {
+        fun set(update: T)
+        fun unlock()
     }
 
     inner class InputImpl<T>(
-            private val context: DeviceContext,
-            override val endpoint: Endpoint<T>
-    ) : DeviceDriver.Input<T>, EndpointContainer<T> {
+            private val context: DeviceThreadContext,
+            private val id: Endpoint.Id,
+            type: Endpoint.Type<T>,
+            private val log: Log
+    ) : DeviceDriver.Input<T> {
+
+        private var builder: EndpointBuilder<T>? = EndpointBuilder(id, type, Endpoint.Direction.INPUT)
+        private var observer: (T) -> Unit = {}
+        private var endpoint: Endpoint<T>? = null
+
+        private fun getBuilder(): EndpointBuilder<T> {
+            return builder ?: throw IllegalStateException("Already finalized")
+        }
 
         override fun observe(observer: (T) -> Unit) {
+            this.observer = observer
+        }
+
+        fun onFinishBuilding(): Endpoint<T> {
+            val endpoint = getBuilder().build()
+            builder = null
+            this.endpoint = endpoint
+            return endpoint
+        }
+
+        fun onStartInteraction() {
+            val endpoint = this.endpoint
+            if (endpoint != null) {
+                performSubscribe(endpoint)
+            } else {
+                throw IllegalStateException("Not yet finalized")
+            }
+        }
+
+        private fun performSubscribe(endpoint: Endpoint<T>) {
             brokerQueue.execute {
                 network.subscribe(context.id, endpoint) { _, _, data ->
                     context.run {
@@ -210,64 +254,78 @@ class DriversManager(
                         observer(data)
                     }
                 }
+                log.v("Subscribed to ${context.id}/${endpoint.id}")
             }
         }
-    }
 
-    data class DeviceContext(
-            val executor: Executor,
-            private val outputPolicy: OutputPolicy = AlwaysAllowPolicy(),
-            val id: Device.Id
-    ) {
-        inline fun <R> run(block: () -> R): R {
-            return executor.run { block() }
+        override fun setDataKind(dataKind: Endpoint.DataKind): DeviceDriver.Input<T> {
+            getBuilder().setDataKind(dataKind)
+            return this
         }
 
-        fun inner(newId: String): DeviceContext = copy(id = id.innerId(newId))
-
-        fun changePolicy(policy: OutputPolicy) = copy(outputPolicy = policy)
-
-        val outputLocked: Boolean
-            get() = outputPolicy.locked
-
-        fun notifyInputExits(endpoint: Endpoint.Id) {
-            outputPolicy.lock(endpoint)
+        override fun setUserInteraction(interaction: Endpoint.Interaction): DeviceDriver.Input<T> {
+            getBuilder().setUserInteraction(interaction)
+            return this
         }
 
-        fun notifyInputGained(endpoint: Endpoint.Id) {
-            outputPolicy.unlock(endpoint)
+        override fun setUnits(units: Units): DeviceDriver.Input<T> {
+            getBuilder().setUnits(units)
+            return this
+        }
+
+        override fun waitForDataBeforeOutput(): DeviceDriver.Input<T> {
+            context.waitFotInput(id)
+            return this
         }
     }
+}
 
-    interface OutputPolicy {
-        val locked: Boolean
-        fun lock(endpoint: Endpoint.Id)
-        fun unlock(endpoint: Endpoint.Id)
+private class EndpointBuilder<T>(
+        private val id: Endpoint.Id,
+        private val type: Endpoint.Type<T>,
+        private val direction: Endpoint.Direction
+) {
+
+    private var units: Units = Units.NO
+    private var dataKind: Endpoint.DataKind = Endpoint.DataKind.CURRENT
+    private var interaction: Endpoint.Interaction = Endpoint.Interaction.INVISIBLE
+
+    fun setDataKind(dataKind: Endpoint.DataKind) {
+        this.dataKind = dataKind
     }
 
-    class AlwaysAllowPolicy : OutputPolicy {
-        override val locked: Boolean = false
-
-        override fun lock(endpoint: Endpoint.Id) {
-        }
-
-        override fun unlock(endpoint: Endpoint.Id) {
-        }
+    fun setUserInteraction(interaction: Endpoint.Interaction) {
+        this.interaction = interaction
     }
 
-    class WaitForAllInputsPolicy : OutputPolicy {
+    fun setUnits(units: Units) {
+        this.units = units
+    }
 
-        private val locks = mutableSetOf<Endpoint.Id>()
-
-        override val locked: Boolean
-            get() = locks.isNotEmpty()
-
-        override fun lock(endpoint: Endpoint.Id) {
-            locks.add(endpoint)
+    fun build(): Endpoint<T> {
+        val retention = if (direction == Endpoint.Direction.INPUT
+                || dataKind == Endpoint.DataKind.EVENT) {
+            Endpoint.Retention.NOT_RETAINED
+        } else {
+            type.accept(InferOutputRetentionVisitor())
         }
 
-        override fun unlock(endpoint: Endpoint.Id) {
-            locks.remove(endpoint)
-        }
+        return Endpoint(
+                id,
+                type,
+                direction,
+                retention,
+                dataKind,
+                interaction,
+                units
+        )
+    }
+}
+
+private class InferOutputRetentionVisitor
+    : Endpoint.Type.DefaultVisitor<Endpoint.Retention>(Endpoint.Retention.RETAINED) {
+
+    override fun onAction(type: Endpoint.Type<Int>): Endpoint.Retention {
+        return Endpoint.Retention.NOT_RETAINED
     }
 }

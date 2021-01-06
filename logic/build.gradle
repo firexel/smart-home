@@ -9,11 +9,12 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    compile "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
-    compile project(':common')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
+    implementation project(':common')
+    implementation 'com.google.code.gson:gson:2.8.5'
 
-    testCompile 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.12'
 }
 
 run {
@@ -21,10 +22,6 @@ run {
         args Eval.me(appArgs)
     }
 }
-
-project.ext.additionalDependencies = [
-        "logic.json": "/etc/logic.json"
-]
 
 project.ext.addLaunchParameters = { brokerName ->
     return ['--broker', "tcp://$brokerName:1883"]

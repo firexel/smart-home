@@ -1,53 +1,29 @@
 package com.seraph.smarthome.client.app
 
-import android.app.Activity
 import android.app.Application
 import android.content.Context
-import com.seraph.smarthome.client.cases.BrokerRepo
-import com.seraph.smarthome.client.cases.DisposableUseCaseFactory
-import com.seraph.smarthome.client.cases.ProductionUseCaseFactory
-import com.seraph.smarthome.client.model.BrokersInfoRepo
-import com.seraph.smarthome.client.model.DatabaseBrokersRepo
-import com.seraph.smarthome.client.model.MqttBrokerRepo
-import com.seraph.smarthome.client.presentation.UseCaseFactory
-import com.seraph.smarthome.client.view.ActivityNavigator
-import com.seraph.smarthome.client.view.PresenterFactory
+import com.seraph.smarthome.client.repositories.MqttNetworkRepository
+import com.seraph.smarthome.client.repositories.NetworkRepository
+import com.seraph.smarthome.util.Log
 
-/**
- * Created by aleksandr.naumov on 16.12.17.
- */
-class ClientApp : Application() {
+class ClientApp : Application(), Services {
 
-    companion object {
-        val Context.app: ClientApp
-            get() = applicationContext as ClientApp
-
-
-        val Activity.presenters: PresenterFactory
-            get() = app.obtainPresentersFactory(this)
-    }
-
-    private val log = AdbLog()
-    private val lifecycle = ActivityDestroyListener()
-
-    private lateinit var useCaseFactory: UseCaseFactory
-    private lateinit var brokerRepo: BrokerRepo
-    private lateinit var infoRepo: BrokersInfoRepo
+    override lateinit var networkRepository: NetworkRepository
+    override val log: Log = AdbLog()
 
     override fun onCreate() {
         super.onCreate()
-        brokerRepo = MqttBrokerRepo(log.copy("BrokerRepo"))
-        infoRepo = DatabaseBrokersRepo(this)
-        useCaseFactory = ProductionUseCaseFactory(infoRepo, brokerRepo)
-        registerActivityLifecycleCallbacks(lifecycle)
+        val options = MqttNetworkRepository.ConnectionOptions( // set to copernicus
+                "192.168.1.248", 1883,
+                MqttNetworkRepository.ConnectionOptions.Credentials(
+                        "client", "2BpS3tMm5Q3ZXdv90Hxr"
+                )
+        )
+        networkRepository = MqttNetworkRepository(options, log.copy("MqttNetworkRepository"))
     }
-
-    private fun newUseCaseFactory(activity: Activity): UseCaseFactory {
-        val factory = DisposableUseCaseFactory(useCaseFactory)
-        lifecycle.doWhenDestroyed(activity) { factory.dispose() }
-        return factory
-    }
-
-    private fun obtainPresentersFactory(activity: Activity): PresenterFactory
-            = PresenterFactoryImpl(newUseCaseFactory(activity), ActivityNavigator(activity))
 }
+
+val Context.services: Services
+    get() {
+        return applicationContext as Services
+    }
