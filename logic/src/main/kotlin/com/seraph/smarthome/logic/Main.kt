@@ -14,9 +14,7 @@ import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.Scheduler
 import com.seraph.smarthome.util.ThreadScheduler
 import com.xenomachina.argparser.ArgParser
-import com.xenomachina.argparser.SystemExitException
 import com.xenomachina.argparser.default
-import java.io.File
 import java.io.FileReader
 import kotlin.reflect.KClass
 
@@ -52,7 +50,8 @@ class Main {
 private fun DeviceNode.instantiateDevice(
         deviceName: String,
         scheduler: Scheduler,
-        scenery: ScenesManager): DeviceDriver? {
+        scenery: ScenesManager,
+): DeviceDriver? {
 
     return when (Drivers.valueOf(driver)) {
         Drivers.SWITCH -> Switch()
@@ -71,14 +70,10 @@ private fun DeviceNode.instantiateDevice(
 
 fun addScene(name: String, scenery: ScenesManager, settings: ScenesManager.Settings) {
     val channels = settings.channels.map {
-        if (it.activeFrom != 0f || it.activeTo != 1f) {
-            if (it.factor == 1f) {
-                Scene.Channel(it.input, RegionMapper(it.activeFrom, it.activeTo))
-            } else {
-                throw IllegalArgumentException("Mixed mappers are not supported")
-            }
-        } else {
+        if (it.factor != 1f) {
             Scene.Channel(it.input, FactorMapper(it.factor))
+        } else {
+            Scene.Channel(it.input, RegionMapper(it.activeFrom, it.activeTo))
         }
     }
 

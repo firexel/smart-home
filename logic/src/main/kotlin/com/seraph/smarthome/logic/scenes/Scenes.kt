@@ -6,6 +6,7 @@ import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
+import com.seraph.smarthome.domain.Units
 import com.seraph.smarthome.util.ConsoleLog
 import kotlin.math.abs
 import kotlin.math.max
@@ -149,8 +150,13 @@ class SceneDriver(
                 .setDataKind(Endpoint.DataKind.EVENT)
 
         val set = visitor.declareInput("set", Types.BOOLEAN)
+                .setUnits(Units.ON_OFF)
+
         val brightnessIn = visitor.declareInput("brightness", Types.FLOAT)
+                .setUnits(Units.PERCENTS_0_1)
+
         brightnessOut = visitor.declareOutput("brightness_out", Types.FLOAT)
+                .setUnits(Units.PERCENTS_0_1)
 
         toggle.observe { scene.toggle() }
         on.observe { scene.on() }
