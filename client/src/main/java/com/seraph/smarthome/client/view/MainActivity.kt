@@ -18,6 +18,8 @@ import androidx.compose.ui.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RadialGradient
 import androidx.compose.ui.platform.setContent
+import androidx.compose.ui.res.integerResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -35,7 +37,6 @@ val p2 = 16.dp
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val widgets = mutableStateOf(listOf<WidgetGroupModel>())
         val presenter = WidgetListPresenterImpl(
                 InteractorObtainers.Companion.from(this), services
@@ -52,7 +53,9 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun Content(groups: List<WidgetGroupModel>) {
         MaterialTheme {
-            ScrollableColumn(modifier = Modifier.background(Color.White)) {
+            ScrollableColumn(modifier = Modifier
+                    .background(Color.White)
+                    .fillMaxHeight()) {
                 groups.forEach { group ->
                     Group(group)
                 }
@@ -63,8 +66,11 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun Group(group: WidgetGroupModel) {
         val typo = MaterialTheme.typography
-        Text(group.name, style = typo.h4, modifier = Modifier.padding(start = 16.dp))
-        GridView(2, group.widgets) {
+        Text(group.name,
+                style = typo.h4.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp)
+        )
+        GridView(integerResource(id = gridColumns), group.widgets) {
             Widget(it)
         }
     }
@@ -195,7 +201,9 @@ class MainActivity : AppCompatActivity() {
             }) {
 
                 androidx.compose.material.Card(
-                        modifier = Modifier.weight(1f).fillMaxWidth(1f),
+                        modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(1f),
                         elevation = p1) {
 
                     Box(modifier = Modifier.padding(start = p1, end = p1),
