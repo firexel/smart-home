@@ -1,6 +1,6 @@
 include ':common'
 include ':connector'
-include ':client', ':luxmeter'
+include ':client'
 include ':io'
 include ':logic'
 include ':metadata'
