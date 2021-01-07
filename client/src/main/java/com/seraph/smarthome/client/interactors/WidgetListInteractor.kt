@@ -45,6 +45,7 @@ class WidgetListInteractor(
     private fun mapCompositeWidget(snapshot: NetworkSnapshot, widget: Widget): WidgetModel {
         return try {
             WidgetModel.CompositeWidget(
+                    widget.id,
                     widget.name,
                     widget.category.mapCategory(),
                     widget.state?.mapState(snapshot),
@@ -52,7 +53,7 @@ class WidgetListInteractor(
                     widget.toggle?.mapToggler()
             )
         } catch (ex: NetworkTypeMismatchException) {
-            WidgetModel.BrokenWidget(widget.name, ex.message ?: "")
+            WidgetModel.BrokenWidget(widget.id, widget.name, ex.message ?: "")
         }
     }
 
@@ -71,14 +72,33 @@ class WidgetListInteractor(
                 return WidgetModel.CompositeWidget.Target.Binary(units, setter)
             }
             is Widget.TargetTrait.Numeric -> {
-                val units = snapshot.get(this.endpoint, checkInit = false).endpoint.units.mapToUnits()
+                val inputSnapshot = snapshot.getFloat(this.endpointRead, checkIsSet = false)
+                val unitsRead = inputSnapshot.endpoint.units.mapToUnits()
+                val outputSnapshot = snapshot.getFloat(this.endpointWrite, checkIsSet = false)
+                val unitsWrite = outputSnapshot.endpoint.units.mapToUnits()
+                if (unitsRead != unitsWrite) {
+                    throw NetworkTypeMismatchException("Units of ${this.endpointRead} and ${this.endpointWrite} should be the same")
+                }
                 val setter = { value: Float ->
                     safeCall {
-                        val newSnapshot = networkRepo.monitor.snapshot().getFloat(this.endpoint, checkIsSet = false)
+                        val newSnapshot = networkRepo.monitor.snapshot().getFloat(this.endpointWrite, checkIsSet = false)
                         networkRepo.network.publish(newSnapshot.device.id, newSnapshot.endpoint, value)
                     }()
                 }
-                return WidgetModel.CompositeWidget.Target.Numeric(units, setter, this.min, this.max)
+                val state = if (outputSnapshot.isSet && outputSnapshot.value != null) {
+                    outputSnapshot.value!!
+                } else if (inputSnapshot.isSet && inputSnapshot.value != null) {
+                    inputSnapshot.value!!
+                } else {
+                    0f
+                }
+                return WidgetModel.CompositeWidget.Target.Numeric(
+                        units = unitsRead,
+                        state = state,
+                        setter = setter,
+                        min = this.min,
+                        max = this.max
+                )
             }
         }
     }

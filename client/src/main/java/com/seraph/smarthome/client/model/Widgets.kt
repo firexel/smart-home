@@ -6,9 +6,11 @@ data class WidgetGroupModel(
 )
 
 sealed class WidgetModel {
+    abstract val id: String
     abstract val name: String
 
     class CompositeWidget(
+            override val id: String,
             override val name: String,
             val category: Category,
             val state: State? = null,
@@ -51,6 +53,7 @@ sealed class WidgetModel {
 
             data class Numeric(
                     override val units: Units,
+                    val state: Float,
                     val setter: (Float) -> Unit,
                     val min: Float,
                     val max: Float,
@@ -59,6 +62,7 @@ sealed class WidgetModel {
     }
 
     data class BrokenWidget(
+            override val id: String,
             override val name: String,
             val message: String,
     ) : WidgetModel()

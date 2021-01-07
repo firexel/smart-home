@@ -2,18 +2,16 @@ package com.seraph.smarthome.client.view
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.ScrollableColumn
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Slider
 import androidx.compose.material.Text
-import androidx.compose.material.Typography
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RadialGradient
@@ -23,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.seraph.smarthome.client.app.services
 import com.seraph.smarthome.client.model.WidgetGroupModel
 import com.seraph.smarthome.client.model.WidgetModel
@@ -32,7 +31,6 @@ import java.util.*
 import kotlin.math.sqrt
 
 val p1 = 8.dp
-val p2 = 16.dp
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +69,7 @@ class MainActivity : AppCompatActivity() {
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp)
         )
         GridView(integerResource(id = gridColumns), group.widgets) {
-            Widget(it)
+            Widget(group, it)
         }
     }
 
@@ -95,15 +93,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun Widget(widget: WidgetModel) {
+    fun Widget(group: WidgetGroupModel, widget: WidgetModel) {
         when (widget) {
             is WidgetModel.BrokenWidget -> BrokenWidget(widget)
-            is WidgetModel.CompositeWidget -> CompositeWidget(widget)
+            is WidgetModel.CompositeWidget -> CompositeWidget(group.name, widget)
         }
     }
 
     @Composable
-    fun CompositeWidget(widget: WidgetModel.CompositeWidget) {
+    fun CompositeWidget(groupName: String, widget: WidgetModel.CompositeWidget) {
         val bg = when (widget.category) {
             WidgetModel.CompositeWidget.Category.LIGHT ->
                 Color(0xffeed690) to Color(0xffdca324)
@@ -111,28 +109,47 @@ class MainActivity : AppCompatActivity() {
             else -> Color(0xffa4a4a4) to Color(0xff949494)
         }
 
+        var dialogShown by remember { mutableStateOf(false) }
+
+        val onLongClick = {
+            if (widget.target != null) {
+                dialogShown = true
+            }
+        }
+
         NamedCard(
                 name = widget.name,
                 bg = bg,
-                onClick = widget.toggle) {
+                onClick = widget.toggle,
+                onLongClick = onLongClick
+        ) {
 
-            val typo = MaterialTheme.typography
+            CompositeWidgetState(widget)
+        }
 
-            when (val state = widget.state) {
-                is WidgetModel.CompositeWidget.State.Binary -> BinaryState(state, typo)
-                is WidgetModel.CompositeWidget.State.Numeric -> NumericState(state, typo)
-                is WidgetModel.CompositeWidget.State.Unknown -> UnknownState(typo)
+        if (dialogShown) {
+            Dialog(onDismissRequest = { dialogShown = false }) {
+                ChangeTargetDialog(groupName, widget, bg)
             }
         }
     }
 
     @Composable
-    private fun UnknownState(typo: Typography) {
-        Text("––", style = typo.h3)
+    private fun CompositeWidgetState(widget: WidgetModel.CompositeWidget) {
+        when (val state = widget.state) {
+            is WidgetModel.CompositeWidget.State.Binary -> BinaryState(state)
+            is WidgetModel.CompositeWidget.State.Numeric -> NumericState(state)
+            is WidgetModel.CompositeWidget.State.Unknown -> UnknownState()
+        }
     }
 
     @Composable
-    private fun NumericState(state: WidgetModel.CompositeWidget.State.Numeric, typo: Typography) {
+    private fun UnknownState() {
+        Text("––", style = MaterialTheme.typography.h3)
+    }
+
+    @Composable
+    private fun NumericState(state: WidgetModel.CompositeWidget.State.Numeric) {
         val unitsInline = when (state.units) {
             WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
             else -> ""
@@ -149,26 +166,27 @@ class MainActivity : AppCompatActivity() {
             else -> 1
         }
 
-        val value = "%.${state.precision}f"
-                .format(Locale.ENGLISH, valueMultiplier * state.state)
+        val value = (valueMultiplier * state.state).format(state.precision)
 
         Row {
-            Text(value + unitsInline, style = typo.h3, modifier = Modifier.alignByBaseline())
+            Text(value + unitsInline, style = MaterialTheme.typography.h3, modifier = Modifier.alignByBaseline())
             if (unitsOutline.isNotEmpty()) {
-                Text(unitsOutline, style = typo.body1, modifier = Modifier.alignByBaseline())
+                Text(unitsOutline, style = MaterialTheme.typography.body1, modifier = Modifier.alignByBaseline())
             }
         }
     }
 
+    fun Float.format(precision:Int):String =  "%.${precision}f".format(Locale.ENGLISH, this)
+
     @Composable
-    private fun BinaryState(state: WidgetModel.CompositeWidget.State.Binary, typo: Typography) {
+    private fun BinaryState(state: WidgetModel.CompositeWidget.State.Binary) {
         val txt = when (state.units) {
             WidgetModel.CompositeWidget.Units.ON_OFF ->
                 if (state.state) "ON" else "OFF"
             else ->
                 if (state.state) "True" else "False"
         }
-        Text(txt, style = typo.h3)
+        Text(txt, style = MaterialTheme.typography.h3)
     }
 
     @Composable
@@ -183,28 +201,28 @@ class MainActivity : AppCompatActivity() {
             name: String,
             bg: Pair<Color, Color>,
             onClick: (() -> Unit)? = null,
+            onLongClick: (() -> Unit)? = null,
             child: @Composable BoxScope.() -> Unit,
     ) {
 
         val typo = MaterialTheme.typography
 
-        androidx.compose.material.Card(
+        Card(
                 modifier = Modifier.aspectRatio(1.718f),
-                elevation = p2) {
+                elevation = 0.dp,
+                border = BorderStroke(1.dp, bg.second)
+        ) {
 
-            Column(Modifier.gradientBackground(bg.first, bg.second).let {
-                if (onClick != null) {
-                    it.clickable(onClick = onClick)
-                } else {
-                    it
-                }
-            }) {
+            Column(Modifier
+                    .gradientBackground(bg.first, bg.second)
+                    .appendIf(onClick != null) { clickable(onClick = onClick!!, onLongClick = onLongClick) }
+            ) {
 
-                androidx.compose.material.Card(
+                Card(
                         modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth(1f),
-                        elevation = p1) {
+                        elevation = 0.dp) {
 
                     Box(modifier = Modifier.padding(start = p1, end = p1),
                             contentAlignment = Alignment.CenterStart,
@@ -224,6 +242,91 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @Composable
+    private fun ChangeTargetDialog(groupName: String, widget: WidgetModel.CompositeWidget, bg: Pair<Color, Color>) {
+        val typo = MaterialTheme.typography
+        Card(elevation = 16.dp) {
+            Box(
+                    modifier = Modifier
+                            .padding(start = p1 * 2, end = p1 * 2, top = p1, bottom = p1 * 2)
+                            .fillMaxWidth(),
+                    contentAlignment = Alignment.CenterStart,
+            ) {
+                Column {
+                    Text(text = widget.name, style = typo.h4)
+                    Text(
+                            text = groupName,
+                            style = typo.body1,
+                            modifier = Modifier.padding(bottom = p1),
+                            color = Color(0xb3000000))
+
+                    CompositeWidgetState(widget)
+
+                    when (widget.target) {
+                        is WidgetModel.CompositeWidget.Target.Numeric -> NumericTarget(widget.target, bg)
+                        is WidgetModel.CompositeWidget.Target.Binary -> BinaryTarget(widget.target)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun BinaryTarget(target: WidgetModel.CompositeWidget.Target.Binary) {
+
+    }
+
+    @Composable
+    fun NumericTarget(target: WidgetModel.CompositeWidget.Target.Numeric, bg: Pair<Color, Color>) {
+        val valueMultiplier = when (target.units) {
+            WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> 100
+            else -> 1
+        }
+
+        var sliderState by remember { mutableStateOf(target.state) }
+
+        Slider(
+                value = sliderState,
+                valueRange = target.min..target.max,
+                onValueChange = {
+                    sliderState = it
+                },
+                onValueChangeEnd = {
+                    target.setter(sliderState)
+                },
+                thumbColor = bg.second,
+                activeTrackColor = bg.second,
+                activeTickColor = bg.second,
+                inactiveTickColor = bg.first,
+                inactiveTrackColor = bg.first
+        )
+
+        val unitsSymbol = when (target.units) {
+            WidgetModel.CompositeWidget.Units.NONE -> ""
+            WidgetModel.CompositeWidget.Units.ON_OFF -> ""
+            WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
+            WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
+            WidgetModel.CompositeWidget.Units.PPM -> "ppm"
+        }
+
+        Row {
+            val left = (target.min * valueMultiplier).format(0)
+            val right = (target.max * valueMultiplier).format(0)
+            Text(text = "$left$unitsSymbol", modifier = Modifier
+                    .weight(1f)
+                    .padding(start = p1))
+            Text(text = "$right$unitsSymbol", modifier = Modifier.padding(end = p1))
+        }
+    }
+
+    fun Modifier.appendIf(predicate: Boolean, modifier: @Composable Modifier.() -> Modifier): Modifier = composed {
+        if (predicate) {
+            modifier()
+        } else {
+            this
+        }
+    }
+
     fun Modifier.gradientBackground(firstColor: Color, lastColor: Color) = drawWithCache {
         onDrawBehind {
             val radius = sqrt(size.height * size.height + size.width * size.width)
@@ -239,7 +342,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Preview
+    @Preview(name = "Change target dialog")
+    @Composable
+    fun DialogPreview() {
+        val widget = WidgetModel.CompositeWidget(
+                "livingroom_light_main",
+                "Основной",
+                WidgetModel.CompositeWidget.Category.LIGHT,
+                WidgetModel.CompositeWidget.State.Binary(
+                        WidgetModel.CompositeWidget.Units.ON_OFF,
+                        false
+                ),
+                target = WidgetModel.CompositeWidget.Target.Numeric(
+                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1,
+                        0.42f,
+                        {},
+                        0.08f,
+                        1f
+                ),
+                toggle = {}
+        )
+        ChangeTargetDialog("Гостиная", widget,  Color(0xffeed690) to Color(0xffdca324))
+    }
+
+    @Preview(name = "Widget list")
     @Composable
     fun ContentPreview() {
         Content(getTestData())
@@ -251,6 +377,7 @@ class MainActivity : AppCompatActivity() {
                 WidgetGroupModel(
                         "Гостиная", listOf(
                         WidgetModel.CompositeWidget(
+                                "livingroom_co2",
                                 "CO2",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
                                 WidgetModel.CompositeWidget.State.Numeric(
@@ -259,6 +386,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                         ),
                         WidgetModel.CompositeWidget(
+                                "livingroom_temp",
                                 "Температура",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
                                 WidgetModel.CompositeWidget.State.Numeric(
@@ -268,6 +396,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                         ),
                         WidgetModel.CompositeWidget(
+                                "livingroom_hum",
                                 "Влажность",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
                                 WidgetModel.CompositeWidget.State.Numeric(
@@ -276,6 +405,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                         ),
                         WidgetModel.CompositeWidget(
+                                "livingroom_pm2.5",
                                 "PM2.5",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
                                 WidgetModel.CompositeWidget.State.Numeric(
@@ -284,6 +414,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                         ),
                         WidgetModel.CompositeWidget(
+                                "livingroom_light_main",
                                 "Основной",
                                 WidgetModel.CompositeWidget.Category.LIGHT,
                                 WidgetModel.CompositeWidget.State.Binary(
@@ -293,6 +424,7 @@ class MainActivity : AppCompatActivity() {
                                 toggle = nope
                         ),
                         WidgetModel.CompositeWidget(
+                                "livingroom_light_workplace",
                                 "Рабочее место",
                                 WidgetModel.CompositeWidget.Category.LIGHT,
                                 WidgetModel.CompositeWidget.State.Binary(
@@ -302,18 +434,21 @@ class MainActivity : AppCompatActivity() {
                                 toggle = nope
                         ),
                         WidgetModel.CompositeWidget(
+                                "livingroom_light_entrance",
                                 "Коридор",
                                 WidgetModel.CompositeWidget.Category.LIGHT,
                                 WidgetModel.CompositeWidget.State.Unknown(),
                                 toggle = nope
                         ),
                         WidgetModel.BrokenWidget(
+                                "livingroom_broken",
                                 "Сломан",
                                 "TypeMismatchException at input state"
                         ),
                 )),
                 WidgetGroupModel("Кухня", listOf(
                         WidgetModel.CompositeWidget(
+                                "kitchen_onoff_stove",
                                 "Печка",
                                 WidgetModel.CompositeWidget.Category.SWITCH,
                                 WidgetModel.CompositeWidget.State.Binary(
@@ -323,6 +458,7 @@ class MainActivity : AppCompatActivity() {
                                 toggle = nope
                         ),
                         WidgetModel.CompositeWidget(
+                                "kitchen_co",
                                 "Сигнализация CO длинное имя",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
                                 WidgetModel.CompositeWidget.State.Binary(

@@ -17,6 +17,7 @@ data class WidgetGroup(
 
 @Serializable
 data class Widget(
+        val id: String,
         val name: String,
         val category: Category,
         val state: StateTrait? = null,
@@ -46,7 +47,8 @@ data class Widget(
 
         @Serializable
         data class Numeric(
-                val endpoint: EndpointAddr,
+                val endpointRead: EndpointAddr,
+                val endpointWrite: EndpointAddr,
                 val min: Float,
                 val max: Float,
         ) : TargetTrait()
