@@ -73,14 +73,6 @@ class Scene(
         reporter.reportOverallBrightnessChanged(value)
     }
 
-    fun reverseMix(updChannels: List<Channel>) {
-        updChannels.forEach {
-            channels[it.token]?.state = it.state
-        }
-        brigtness = channels.values.map { it.mapper.toOverallBrightness(it.state) }.average().toFloat()
-        reporter.reportOverallBrightnessChanged(brigtness)
-    }
-
     private fun remixChannels() {
         val br = brigtness
         channels.values.forEach {
@@ -212,7 +204,6 @@ class ScenesManager {
 
     private fun handleChannelsUpdate(channels: List<Scene.Channel>, ownerName: String, owner: Scene) {
         mixOutputChannels(channels, ownerName)
-        reverseMixOtherScenes(channels, owner)
     }
 
     private fun mixOutputChannels(channels: List<Scene.Channel>, ownerName: String) {
@@ -224,10 +215,6 @@ class ScenesManager {
             log.i("Mixer state for ${it.token} after upd is  $channelMixer")
             rootDriver.reportBrightness(it.token, newValue)
         }
-    }
-
-    private fun reverseMixOtherScenes(channels: List<Scene.Channel>, owner: Scene) {
-        binders.filter { it.scene !== owner }.forEach { it.scene.reverseMix(channels) }
     }
 
     private inner class SceneBinder(val name: String) : Scene.ReportInterface {
