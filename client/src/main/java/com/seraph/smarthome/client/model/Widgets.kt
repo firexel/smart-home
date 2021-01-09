@@ -23,7 +23,7 @@ sealed class WidgetModel {
         }
 
         enum class Units {
-            NONE, ON_OFF, PERCENTS_0_1, CELSIUS, PPM
+            NONE, ON_OFF, PERCENTS_0_1, CELSIUS, PPM, PPB, LX
         }
 
         sealed class State {
@@ -34,10 +34,15 @@ sealed class WidgetModel {
                     val state: Boolean,
             ) : State()
 
-            data class Numeric(
+            data class NumericFloat(
                     override val units: Units,
                     val state: Float,
                     val precision: Int = 0,
+            ) : State()
+
+            data class NumericInt(
+                    override val units: Units,
+                    val state: Int
             ) : State()
 
             data class Unknown(override val units: Units = Units.NONE) : State()

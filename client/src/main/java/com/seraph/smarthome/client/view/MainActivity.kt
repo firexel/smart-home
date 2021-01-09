@@ -2,7 +2,10 @@ package com.seraph.smarthome.client.view
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollableColumn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
@@ -138,7 +141,8 @@ class MainActivity : AppCompatActivity() {
     private fun CompositeWidgetState(widget: WidgetModel.CompositeWidget) {
         when (val state = widget.state) {
             is WidgetModel.CompositeWidget.State.Binary -> BinaryState(state)
-            is WidgetModel.CompositeWidget.State.Numeric -> NumericState(state)
+            is WidgetModel.CompositeWidget.State.NumericFloat -> NumericFloatState(state)
+            is WidgetModel.CompositeWidget.State.NumericInt -> NumericIntState(state)
             is WidgetModel.CompositeWidget.State.Unknown -> UnknownState()
         }
     }
@@ -149,34 +153,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    private fun NumericState(state: WidgetModel.CompositeWidget.State.Numeric) {
-        val unitsInline = when (state.units) {
-            WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
-            else -> ""
-        }
-
-        val unitsOutline = when (state.units) {
-            WidgetModel.CompositeWidget.Units.PPM -> "ppm"
-            WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
-            else -> ""
-        }
-
-        val valueMultiplier = when (state.units) {
-            WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> 100
-            else -> 1
-        }
-
+    private fun NumericFloatState(state: WidgetModel.CompositeWidget.State.NumericFloat) {
+        val unitsInline = state.units.toUnitsInlineText()
+        val unitsOutline = state.units.toUnitsOutlineText()
+        val valueMultiplier =state.units.toUnitsMultiplier()
         val value = (valueMultiplier * state.state).format(state.precision)
+        ValueWithUnits(value + unitsInline, unitsOutline)
+    }
 
+    @Composable
+    private fun NumericIntState(state: WidgetModel.CompositeWidget.State.NumericInt) {
+        ValueWithUnits(
+                "${state.state}${state.units.toUnitsInlineText()}",
+                state.units.toUnitsOutlineText()
+        )
+    }
+
+    @Composable
+    private fun ValueWithUnits(valueText: String, unitsOutline: String) {
         Row {
-            Text(value + unitsInline, style = MaterialTheme.typography.h3, modifier = Modifier.alignByBaseline())
+            Text(valueText, style = MaterialTheme.typography.h3, modifier = Modifier.alignByBaseline())
             if (unitsOutline.isNotEmpty()) {
                 Text(unitsOutline, style = MaterialTheme.typography.body1, modifier = Modifier.alignByBaseline())
             }
         }
     }
 
-    fun Float.format(precision:Int):String =  "%.${precision}f".format(Locale.ENGLISH, this)
+    fun Float.format(precision: Int): String = "%.${precision}f".format(Locale.ENGLISH, this)
 
     @Composable
     private fun BinaryState(state: WidgetModel.CompositeWidget.State.Binary) {
@@ -307,6 +310,8 @@ class MainActivity : AppCompatActivity() {
             WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
             WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
             WidgetModel.CompositeWidget.Units.PPM -> "ppm"
+            WidgetModel.CompositeWidget.Units.PPB -> "ppb"
+            WidgetModel.CompositeWidget.Units.LX -> "lx"
         }
 
         Row {
@@ -362,7 +367,7 @@ class MainActivity : AppCompatActivity() {
                 ),
                 toggle = {}
         )
-        ChangeTargetDialog("Гостиная", widget,  Color(0xffeed690) to Color(0xffdca324))
+        ChangeTargetDialog("Гостиная", widget, Color(0xffeed690) to Color(0xffdca324))
     }
 
     @Preview(name = "Widget list")
@@ -380,7 +385,7 @@ class MainActivity : AppCompatActivity() {
                                 "livingroom_co2",
                                 "CO2",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.Numeric(
+                                WidgetModel.CompositeWidget.State.NumericFloat(
                                         WidgetModel.CompositeWidget.Units.PPM,
                                         5000f
                                 )
@@ -389,7 +394,7 @@ class MainActivity : AppCompatActivity() {
                                 "livingroom_temp",
                                 "Температура",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.Numeric(
+                                WidgetModel.CompositeWidget.State.NumericFloat(
                                         WidgetModel.CompositeWidget.Units.CELSIUS,
                                         23.6f,
                                         precision = 1
@@ -399,7 +404,7 @@ class MainActivity : AppCompatActivity() {
                                 "livingroom_hum",
                                 "Влажность",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.Numeric(
+                                WidgetModel.CompositeWidget.State.NumericFloat(
                                         WidgetModel.CompositeWidget.Units.PERCENTS_0_1,
                                         0.37f
                                 )
@@ -408,9 +413,9 @@ class MainActivity : AppCompatActivity() {
                                 "livingroom_pm2.5",
                                 "PM2.5",
                                 WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.Numeric(
+                                WidgetModel.CompositeWidget.State.NumericInt(
                                         WidgetModel.CompositeWidget.Units.PPM,
-                                        853f
+                                        853
                                 )
                         ),
                         WidgetModel.CompositeWidget(
@@ -470,4 +475,32 @@ class MainActivity : AppCompatActivity() {
                 )))
         return groups
     }
+}
+
+@Composable
+private fun WidgetModel.CompositeWidget.Units.toUnitsOutlineText() = when (this) {
+    WidgetModel.CompositeWidget.Units.PPM -> "ppm"
+    WidgetModel.CompositeWidget.Units.PPB -> "ppb"
+    WidgetModel.CompositeWidget.Units.LX -> "lx"
+    WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
+    WidgetModel.CompositeWidget.Units.NONE -> ""
+    WidgetModel.CompositeWidget.Units.ON_OFF -> ""
+    WidgetModel.CompositeWidget.Units.CELSIUS -> ""
+}
+
+@Composable
+private fun WidgetModel.CompositeWidget.Units.toUnitsInlineText() = when (this) {
+    WidgetModel.CompositeWidget.Units.PPM -> ""
+    WidgetModel.CompositeWidget.Units.PPB -> ""
+    WidgetModel.CompositeWidget.Units.LX -> ""
+    WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> ""
+    WidgetModel.CompositeWidget.Units.NONE -> ""
+    WidgetModel.CompositeWidget.Units.ON_OFF -> ""
+    WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
+}
+
+@Composable
+private fun WidgetModel.CompositeWidget.Units.toUnitsMultiplier() = when (this) {
+    WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> 100
+    else -> 1
 }
