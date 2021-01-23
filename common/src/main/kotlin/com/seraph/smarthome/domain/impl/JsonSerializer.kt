@@ -18,6 +18,8 @@ internal class JsonSerializer<T : Any>(
             return gson.fromJson(string, klass.java)
         } catch (ex: JsonSyntaxException) {
             throw TypeMismatchException("Cannot read class $klass from json string $string", ex)
+        } catch (ex: NullPointerException) {
+            throw TypeMismatchException("Cannot read class $klass from json string $string", ex)
         }
     }
 
