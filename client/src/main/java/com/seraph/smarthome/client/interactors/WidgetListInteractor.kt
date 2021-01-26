@@ -138,12 +138,24 @@ class WidgetListInteractor(
                     )
                 }
                 is Widget.StateTrait.Numeric -> {
-                    val source = snapshot.getFloat(this.endpoint)
-                    return WidgetModel.CompositeWidget.State.Numeric(
-                            units = source.endpoint.units.mapToUnits(),
-                            state = source.value!!,
-                            precision = this.precision
-                    )
+                    when (snapshot.get(this.endpoint).endpoint.type) {
+                        Types.FLOAT -> {
+                            val source = snapshot.getFloat(this.endpoint)
+                            return WidgetModel.CompositeWidget.State.NumericFloat(
+                                    units = source.endpoint.units.mapToUnits(),
+                                    state = source.value!!,
+                                    precision = this.precision
+                            )
+                        }
+                        Types.INTEGER -> {
+                            val source = snapshot.getInt(this.endpoint)
+                            return WidgetModel.CompositeWidget.State.NumericInt(
+                                    units = source.endpoint.units.mapToUnits(),
+                                    state = source.value!!
+                            )
+                        }
+                        else -> throw NetworkTypeMismatchException("Expecting Int or Float types at ${this.endpoint}")
+                    }
                 }
             }
         } catch (ex: UnknownNetworkStateException) {
@@ -156,6 +168,8 @@ class WidgetListInteractor(
             Units.NO -> WidgetModel.CompositeWidget.Units.NONE
             Units.CELSIUS -> WidgetModel.CompositeWidget.Units.CELSIUS
             Units.PPM -> WidgetModel.CompositeWidget.Units.PPM
+            Units.PPB -> WidgetModel.CompositeWidget.Units.PPB
+            Units.LX -> WidgetModel.CompositeWidget.Units.LX
             Units.PERCENTS_0_1 -> WidgetModel.CompositeWidget.Units.PERCENTS_0_1
             Units.ON_OFF -> WidgetModel.CompositeWidget.Units.ON_OFF
         }
@@ -216,6 +230,21 @@ class WidgetListInteractor(
         } else {
             @Suppress("UNCHECKED_CAST")
             return snapshot as EndpointSnapshot<Float>
+        }
+    }
+
+    private fun NetworkSnapshot.getInt(
+            endpoint: EndpointAddr,
+            checkIsSet: Boolean = true,
+    ): EndpointSnapshot<Int> {
+
+        val snapshot = get(endpoint, checkIsSet)
+        if (snapshot.endpoint.type != Types.INTEGER) {
+            throw NetworkTypeMismatchException("Expecting Int type of ${endpoint}," +
+                    " got ${snapshot.endpoint.type} instead")
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            return snapshot as EndpointSnapshot<Int>
         }
     }
 

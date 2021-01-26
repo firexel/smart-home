@@ -115,6 +115,8 @@ enum class Units {
     NO,
     CELSIUS,
     PPM,
+    PPB,
     PERCENTS_0_1,
+    LX,
     ON_OFF
 }

@@ -3,12 +3,14 @@ package com.seraph.smarthome.io.hardware
 import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Types
+import com.seraph.smarthome.domain.Units
 import com.seraph.smarthome.util.Log
 
 class WirenboardWbmsw3Driver(
         private val scheduler: Scheduler,
         private val settings: Settings,
-        private val log: Log)
+        private val log: Log,
+)
     : DeviceDriver {
 
 
@@ -16,28 +18,32 @@ class WirenboardWbmsw3Driver(
         val busAddr = settings.addressAtBus
 
         visitor.declareOutput("temperature", Types.FLOAT)
+                .setUnits(Units.CELSIUS)
                 .beginReadings(ReadFloat16Cmd(busAddr, 0))
 
         visitor.declareOutput("humidity", Types.FLOAT)
-                .beginReadings(ReadFloat16Cmd(busAddr, 1))
+                .setUnits(Units.PERCENTS_0_1)
+                .beginReadings(ReadFloat16Cmd(busAddr, 1)) { it / 100 }
 
         visitor.declareOutput("illumination", Types.FLOAT)
+                .setUnits(Units.LX)
                 .beginReadings(ReadFloat32Cmd(busAddr, 9))
 
         visitor.declareOutput("co2", Types.INTEGER)
+                .setUnits(Units.PPM)
                 .beginReadings(ReadInt16Cmd(busAddr, 8))
 
-        visitor.declareOutput("aoc", Types.INTEGER)
+        visitor.declareOutput("voc", Types.INTEGER)
+                .setUnits(Units.PPB)
                 .beginReadings(ReadInt16Cmd(busAddr, 11))
-
     }
 
-    private fun <T> DeviceDriver.Output<T>.beginReadings(cmd: Bus.Command<T>) {
+    private fun <T> DeviceDriver.Output<T>.beginReadings(cmd: Bus.Command<T>, mapper: (T) -> T = { it }) {
         scheduler.post(cmd, 1000) {
             if (it.isSuccess) {
-                this.set(it.data)
+                this.set(mapper(it.data))
             }
-            beginReadings(cmd)
+            beginReadings(cmd, mapper)
         }
     }
 
@@ -61,6 +67,6 @@ class WirenboardWbmsw3Driver(
 
     data class Settings(
             @SerializedName("address_at_bus")
-            val addressAtBus: Byte
+            val addressAtBus: Byte,
     )
 }
