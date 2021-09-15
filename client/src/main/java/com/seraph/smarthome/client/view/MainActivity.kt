@@ -1,24 +1,19 @@
 package com.seraph.smarthome.client.view
 
 import android.os.Bundle
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ScrollableColumn
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Slider
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.drawWithCache
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RadialGradient
-import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,9 +49,10 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun Content(groups: List<WidgetGroupModel>) {
         MaterialTheme {
-            ScrollableColumn(modifier = Modifier
+            Column(modifier = Modifier
                     .background(Color.White)
-                    .fillMaxHeight()) {
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())) {
                 groups.forEach { group ->
                     Group(group)
                 }
@@ -156,7 +152,7 @@ class MainActivity : AppCompatActivity() {
     private fun NumericFloatState(state: WidgetModel.CompositeWidget.State.NumericFloat) {
         val unitsInline = state.units.toUnitsInlineText()
         val unitsOutline = state.units.toUnitsOutlineText()
-        val valueMultiplier =state.units.toUnitsMultiplier()
+        val valueMultiplier = state.units.toUnitsMultiplier()
         val value = (valueMultiplier * state.state).format(state.precision)
         ValueWithUnits(value + unitsInline, unitsOutline)
     }
@@ -199,6 +195,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun NamedCard(
             name: String,
@@ -218,7 +215,16 @@ class MainActivity : AppCompatActivity() {
 
             Column(Modifier
                     .gradientBackground(bg.first, bg.second)
-                    .appendIf(onClick != null) { clickable(onClick = onClick!!, onLongClick = onLongClick) }
+                    .appendIf(onClick != null) {
+                        if (onLongClick == null) {
+                            clickable(onClick = onClick!!)
+                        } else {
+                            combinedClickable(
+                                    onClick = onClick!!,
+                                    onLongClick = onLongClick
+                            )
+                        }
+                    }
             ) {
 
                 Card(
@@ -288,20 +294,30 @@ class MainActivity : AppCompatActivity() {
 
         var sliderState by remember { mutableStateOf(target.state) }
 
+        val colors = object : SliderColors {
+            @Composable
+            override fun thumbColor(enabled: Boolean): State<Color> =
+                    rememberUpdatedState(bg.second)
+
+            @Composable
+            override fun tickColor(enabled: Boolean, active: Boolean): State<Color> =
+                    rememberUpdatedState(if (active) bg.second else bg.first)
+
+            @Composable
+            override fun trackColor(enabled: Boolean, active: Boolean): State<Color> =
+                    rememberUpdatedState(if (active) bg.second else bg.first)
+
+        }
         Slider(
                 value = sliderState,
                 valueRange = target.min..target.max,
                 onValueChange = {
                     sliderState = it
                 },
-                onValueChangeEnd = {
+                onValueChangeFinished = {
                     target.setter(sliderState)
                 },
-                thumbColor = bg.second,
-                activeTrackColor = bg.second,
-                activeTickColor = bg.second,
-                inactiveTickColor = bg.first,
-                inactiveTrackColor = bg.first
+                colors = colors
         )
 
         val unitsSymbol = when (target.units) {
@@ -312,6 +328,9 @@ class MainActivity : AppCompatActivity() {
             WidgetModel.CompositeWidget.Units.PPM -> "ppm"
             WidgetModel.CompositeWidget.Units.PPB -> "ppb"
             WidgetModel.CompositeWidget.Units.LX -> "lx"
+            WidgetModel.CompositeWidget.Units.W -> "w"
+            WidgetModel.CompositeWidget.Units.V -> "v"
+            WidgetModel.CompositeWidget.Units.KWH -> "KWh"
         }
 
         Row {
@@ -335,12 +354,9 @@ class MainActivity : AppCompatActivity() {
     fun Modifier.gradientBackground(firstColor: Color, lastColor: Color) = drawWithCache {
         onDrawBehind {
             val radius = sqrt(size.height * size.height + size.width * size.width)
-            val gradient = RadialGradient(
-                    0f to firstColor,
-                    0.5f to firstColor,
-                    1f to lastColor,
-                    centerX = 0f,
-                    centerY = 0f,
+            val gradient = Brush.radialGradient(
+                    listOf(firstColor, firstColor, lastColor),
+                    Offset.Zero,
                     radius = radius
             )
             drawRect(brush = gradient)
@@ -482,6 +498,9 @@ private fun WidgetModel.CompositeWidget.Units.toUnitsOutlineText() = when (this)
     WidgetModel.CompositeWidget.Units.PPM -> "ppm"
     WidgetModel.CompositeWidget.Units.PPB -> "ppb"
     WidgetModel.CompositeWidget.Units.LX -> "lx"
+    WidgetModel.CompositeWidget.Units.W -> "w"
+    WidgetModel.CompositeWidget.Units.V -> "v"
+    WidgetModel.CompositeWidget.Units.KWH -> "KWh"
     WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
     WidgetModel.CompositeWidget.Units.NONE -> ""
     WidgetModel.CompositeWidget.Units.ON_OFF -> ""
@@ -493,6 +512,9 @@ private fun WidgetModel.CompositeWidget.Units.toUnitsInlineText() = when (this) 
     WidgetModel.CompositeWidget.Units.PPM -> ""
     WidgetModel.CompositeWidget.Units.PPB -> ""
     WidgetModel.CompositeWidget.Units.LX -> ""
+    WidgetModel.CompositeWidget.Units.W -> ""
+    WidgetModel.CompositeWidget.Units.V -> ""
+    WidgetModel.CompositeWidget.Units.KWH -> ""
     WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> ""
     WidgetModel.CompositeWidget.Units.NONE -> ""
     WidgetModel.CompositeWidget.Units.ON_OFF -> ""

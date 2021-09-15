@@ -10,11 +10,29 @@ import javax.net.ssl.SSLContext
 
 
 object Brokers {
-    fun unencrypted(addr: String, name: String, log: Log): Broker {
-        val options = PahoClientWrapper.Options(
-                hostUrl = addr,
-                name = name
-        )
+    fun unencrypted(
+            addr: String,
+            name: String,
+            log: Log,
+            userName: String? = null,
+            userPswd: String? = null
+    ): Broker {
+        val options = if (userName != null && userPswd != null) {
+            PahoClientWrapper.Options(
+                    hostUrl = addr,
+                    name = name,
+                    userName = userName,
+                    password = userPswd,
+                    sslOptions = null,
+                    publishQos = 2,
+                    subscribeQos = 2
+            )
+        } else {
+            PahoClientWrapper.Options(
+                    hostUrl = addr,
+                    name = name
+            )
+        }
         return createBroker(options, log)
     }
 
@@ -34,25 +52,6 @@ object Brokers {
                 password = userPswd,
                 socketFactory = createSslSocketFactory(),
                 sslOptions = createSslOptions(caFile, caPswd),
-                publishQos = 2,
-                subscribeQos = 2
-        )
-        return createBroker(options, log)
-    }
-
-    fun unencrypted(
-            addr: String,
-            name: String,
-            userName: String,
-            userPswd: String,
-            log: Log): Broker {
-
-        val options = PahoClientWrapper.Options(
-                hostUrl = addr,
-                name = name,
-                userName = userName,
-                password = userPswd,
-                sslOptions = null,
                 publishQos = 2,
                 subscribeQos = 2
         )

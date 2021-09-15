@@ -80,9 +80,9 @@ class Main {
                 Brokers.unencrypted(
                         address.toString(),
                         "Bridge",
+                        log,
                         userName = creds.login,
-                        userPswd = creds.passwd,
-                        log
+                        userPswd = creds.passwd
                 )
             } else {
                 Brokers.unencrypted(address.toString(), "Bridge", log)

@@ -23,7 +23,7 @@ sealed class WidgetModel {
         }
 
         enum class Units {
-            NONE, ON_OFF, PERCENTS_0_1, CELSIUS, PPM, PPB, LX
+            NONE, ON_OFF, PERCENTS_0_1, CELSIUS, PPM, PPB, LX, W, V, KWH
         }
 
         sealed class State {

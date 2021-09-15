@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.10'
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.17'
     }
 }
 
@@ -23,7 +23,7 @@ dependencies {
     implementation "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
     implementation 'com.fazecast:jSerialComm:[2.0.0,3.0.0)'
     implementation project(':common')
-    implementation 'com.google.protobuf:protobuf-java:3.9.1'
+    implementation 'com.google.protobuf:protobuf-java:3.10.0'
     implementation 'com.google.code.gson:gson:2.8.5'
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
@@ -46,7 +46,7 @@ sourceSets {
 protobuf {
     generatedFilesBaseDir = "$projectDir/gen"
     protoc {
-        artifact = 'com.google.protobuf:protoc:3.9.1' // use already compiled protoc
+        artifact = 'com.google.protobuf:protoc:3.17.3' // use already compiled protoc
     }
     generateProtoTasks {
         all().each { task ->

@@ -19,9 +19,9 @@ class MqttNetworkRepository(options: ConnectionOptions, log: Log) : NetworkRepos
         val broker = if (options.credentials != null) {
             Brokers.unencrypted(
                     addr, name,
+                    log.copy("Broker"),
                     options.credentials.login,
                     options.credentials.password,
-                    log.copy("Broker")
             )
         } else {
             Brokers.unencrypted(addr, name, log.copy("Broker"))

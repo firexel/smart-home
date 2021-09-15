@@ -118,5 +118,8 @@ enum class Units {
     PPB,
     PERCENTS_0_1,
     LX,
-    ON_OFF
+    ON_OFF,
+    W, // watts
+    KWH, // kWh
+    V // volts
 }
