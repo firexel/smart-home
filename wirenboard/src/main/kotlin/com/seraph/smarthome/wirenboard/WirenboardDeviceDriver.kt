@@ -73,9 +73,9 @@ class WirenboardDeviceDriver(
                 .setUnits(units)
                 .setDataKind(kind)
                 .observe {
-                    wbBroker.publish(control.writeTopic, writer(it))
+                    val data = writer(it)
+                    wbBroker.publish(control.writeTopic, data)
                 }
-
     }
 
     private fun <T> DeviceDriver.Visitor.declareOutput(

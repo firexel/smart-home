@@ -175,6 +175,7 @@ class WidgetListInteractor(
             Units.W -> WidgetModel.CompositeWidget.Units.W
             Units.KWH -> WidgetModel.CompositeWidget.Units.KWH
             Units.V -> WidgetModel.CompositeWidget.Units.V
+            Units.MBAR -> WidgetModel.CompositeWidget.Units.MBAR
         }
     }
 

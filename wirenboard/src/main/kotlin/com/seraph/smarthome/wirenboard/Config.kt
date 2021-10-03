@@ -1,7 +1,6 @@
 package com.seraph.smarthome.wirenboard
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -17,7 +16,7 @@ import java.net.URISyntaxException
 
 object AddressAsStringSerializer : KSerializer<Address> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(
-            "com.seraph.smarthome.wirenboard.Address", PrimitiveKind.STRING
+        "com.seraph.smarthome.wirenboard.Address", PrimitiveKind.STRING
     )
 
     override fun serialize(encoder: Encoder, value: Address) {
@@ -27,8 +26,10 @@ object AddressAsStringSerializer : KSerializer<Address> {
     override fun deserialize(decoder: Decoder): Address {
         val uri = URI(decoder.decodeString())
         if (uri.host == null || uri.port == -1) {
-            throw URISyntaxException(uri.toString(),
-                    "URI must have host and port parts")
+            throw URISyntaxException(
+                uri.toString(),
+                "URI must have host and port parts"
+            )
         }
         return Address(uri.scheme, uri.host, uri.port)
     }
@@ -43,21 +44,35 @@ data class Address(val scheme: String, val host: String, val port: Int) {
 
 @Serializable
 data class Credentials(
-        val login: String,
-        val passwd: String
+    val login: String,
+    val passwd: String
 )
 
 @Serializable
 data class Network(
-        val address: Address,
-        val credentials: Credentials? = null,
+    val name: String,
+    val address: Address,
+    val credentials: Credentials? = null,
+)
+
+@Serializable
+data class Excludes(
+    val devices: List<String>,
+    val endpoints: List<String>
+)
+
+@Serializable
+data class RenameBlock(
+    val id: String,
+    val name: String
 )
 
 @Serializable
 data class Config(
-        val wirenboard: Network,
-        val smarthome: Network,
-        val name: String
+    val wirenboard: Network,
+    val smarthome: Network,
+    val exclude: Excludes,
+    val rename: List<RenameBlock>
 )
 
 fun readConfig(file: File): Config {

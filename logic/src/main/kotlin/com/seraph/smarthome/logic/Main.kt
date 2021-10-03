@@ -55,6 +55,7 @@ private fun DeviceNode.instantiateDevice(
 
     return when (Drivers.valueOf(driver)) {
         Drivers.SWITCH -> Switch()
+        Drivers.DIMMER -> Dimmer(settings as Dimmer.Settings)
         Drivers.BUTTON -> Button(scheduler)
         Drivers.PID_THERMOSTAT -> PidRegulatedThermostat(scheduler, settings as PidRegulatedThermostat.Settings)
         Drivers.SLOW_PWM -> SlowPwm(scheduler, settings as SlowPwm.Settings)
@@ -82,6 +83,7 @@ fun addScene(name: String, scenery: ScenesManager, settings: ScenesManager.Setti
 
 enum class Drivers(val settingsClass: KClass<*>?) {
     SWITCH(null),
+    DIMMER(Dimmer.Settings::class),
     BUTTON(null),
     PID_THERMOSTAT(PidRegulatedThermostat.Settings::class),
     SLOW_PWM(SlowPwm.Settings::class),

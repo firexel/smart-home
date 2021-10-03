@@ -1,8 +1,9 @@
 package com.seraph.smarthome.wirenboard
 
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.ProducerScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
@@ -15,8 +16,7 @@ suspend fun <T> Flow<T>.firstOrDefault(def: T): T {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 fun <T> Flow<T>.timeout(
-        timeoutDelay: Long,
-        timeoutScope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+        timeoutDelay: Long
 ): Flow<T> {
     val upstreamFlow = this
 
@@ -28,75 +28,46 @@ fun <T> Flow<T>.timeout(
         coroutineScope {
 
             // reroute original flow values into a channel that will be part of select clause
-            val values = produce {
+            val valuesChannel = produce {
                 upstreamFlow.collect { value ->
                     send(TimeoutState.Value(value))
                 }
+                close()
             }
-
-            // reference to latest used timeout scope so it can be cancelled later
-            var latestTimeoutScope: ProducerScope<Unit>? = null
 
             // run in the loop until we get a confirmation that flow has ended
-            var latestValue: TimeoutState = TimeoutState.Initial
+            var latestValue: TimeoutState<T> = TimeoutState.Initial()
             while (latestValue !is TimeoutState.Final) {
-
-                // start waiting for timeout
-                val timeout = timeoutScope.produce {
-                    latestTimeoutScope = this
-                    delay(timeoutDelay)
-                    send(Unit)
+                latestValue = select {
+                    onTimeout(timeoutDelay) {
+                        TimeoutState.Final.Timeout()
+                    }
+                    try {
+                        valuesChannel.onReceive { it }
+                    } catch (ex: ClosedReceiveChannelException) {
+                        TimeoutState.Final.Done<T>()
+                    }
                 }
-
-                // whatever comes first decides our fate
-                select<Unit> {
-
-                    // Two options:
-                    // 1. We got normal value - emission from upstream, cancel timeout scope
-                    // and emit it to downstream
-                    //
-                    // 2. We got null value - upstream flow was cancelled (and thus channel was closed),
-                    // still cancel timeout and set latest value to Done marker, killing the while loop
-                    values.onReceiveCatching {
-                        latestTimeoutScope?.cancel()
-                        val orNull = it.getOrNull()
-                        if (orNull != null) {
-                            latestValue = orNull
-                            collector.emit(orNull.value)
-                        } else {
-                            latestValue = TimeoutState.Final.Done
-                        }
-                    }
-
-                    // we got a timeout! Set latest value to Timeout marker, killing the while loop
-                    timeout.onReceiveCatching {
-                        if (it.getOrNull() != null) {
-                            latestValue = TimeoutState.Final.Timeout
-                        }
-                    }
+                if (latestValue is TimeoutState.Value) {
+                    collector.emit(latestValue.value)
                 }
             }
 
-            // additional cancel in case upstream flow finished without emitting anything
-            latestTimeoutScope?.close()
-
-            // if latest value is a Timeout marker, throw timeout exception
             if (latestValue is TimeoutState.Final.Timeout) {
-                throw TimeoutException()
+                valuesChannel.cancel()
             }
         }
     }
 }
 
-private sealed class TimeoutState {
-
-    sealed class Final : TimeoutState() {
-        object Done : Final()
-        object Timeout : Final()
+private sealed class TimeoutState<T> {
+    sealed class Final<T> : TimeoutState<T>() {
+        class Done<T> : Final<T>()
+        class Timeout<T> : Final<T>()
     }
 
-    object Initial : TimeoutState()
-    data class Value<T>(val value: T) : TimeoutState()
+    class Initial<T> : TimeoutState<T>()
+    data class Value<T>(val value: T) : TimeoutState<T>()
 }
 
 class TimeoutException : RuntimeException("Timed out waiting for emission")

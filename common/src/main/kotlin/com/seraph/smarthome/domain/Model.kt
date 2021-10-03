@@ -121,5 +121,6 @@ enum class Units {
     ON_OFF,
     W, // watts
     KWH, // kWh
-    V // volts
+    V, // volts,
+    MBAR // millibars
 }
