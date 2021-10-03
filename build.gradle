@@ -140,7 +140,7 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                         environment envs
                         ignoreExitValue false
                         workingDir machineDir
-                        commandLine selectComposeExecutable(), '-f', localComposePath, 'up', '--build'
+                        commandLine selectDockerExecutable(), 'compose', '-f', localComposePath, 'up', '--build', '--remove-orphans', '--detach'
                     }
                 }
                 upTask.dependsOn buildImageTask
@@ -151,14 +151,6 @@ private void configureDockerImageAssemblyIn(def root, def project) {
 
 private ArrayList<File> findMachinesDirectories() {
     project.file("deploy/machines").listFiles().findAll { it.isDirectory() }
-}
-
-private static String selectComposeExecutable() {
-    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
-        return "/usr/local/bin/docker-compose"
-    } else {
-        return "docker-compose"
-    }
 }
 
 private static String selectDockerExecutable() {
