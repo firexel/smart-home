@@ -172,6 +172,10 @@ class WidgetListInteractor(
             Units.LX -> WidgetModel.CompositeWidget.Units.LX
             Units.PERCENTS_0_1 -> WidgetModel.CompositeWidget.Units.PERCENTS_0_1
             Units.ON_OFF -> WidgetModel.CompositeWidget.Units.ON_OFF
+            Units.W -> WidgetModel.CompositeWidget.Units.W
+            Units.KWH -> WidgetModel.CompositeWidget.Units.KWH
+            Units.V -> WidgetModel.CompositeWidget.Units.V
+            Units.MBAR -> WidgetModel.CompositeWidget.Units.MBAR
         }
     }
 

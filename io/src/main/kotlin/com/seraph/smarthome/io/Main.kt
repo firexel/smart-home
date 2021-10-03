@@ -65,11 +65,7 @@ class Main {
 
 private fun BrokerNode.createBroker(serviceName: String, log: ConsoleLog): Broker {
     val addr = "tcp://$address:$port"
-    return if (credentials != null) {
-        Brokers.unencrypted(addr, serviceName, credentials.login, credentials.password, log)
-    } else {
-        Brokers.unencrypted(addr, serviceName, log)
-    }
+    return Brokers.unencrypted(addr, serviceName, log, credentials?.login, credentials?.password)
 }
 
 enum class Rs485Drivers(val settingsClass: KClass<*>) {

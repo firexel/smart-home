@@ -200,7 +200,6 @@ class DriversManager(
             override fun unlock() {
                 if (locked) {
                     locked = false
-                    log.v("Unlocked")
                 }
             }
         }

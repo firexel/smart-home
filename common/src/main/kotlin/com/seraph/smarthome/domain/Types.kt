@@ -10,32 +10,37 @@ class Types {
     companion object {
         val FLOAT = object : Endpoint.Type<Float> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onFloat(this)
-            override val serializer: Serializer<Float> = FloatConverter()
+            override val serializer: Serializer<Float> = Converters.FLOAT
             override fun cast(obj: Any): Float = obj as Float
+            override fun toString(): String  = "Float"
         }
 
         val INTEGER = object : Endpoint.Type<Int> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onInt(this)
-            override val serializer: Serializer<Int> = IntConverter()
+            override val serializer: Serializer<Int> = Converters.INT
             override fun cast(obj: Any): Int = obj as Int
+            override fun toString(): String  = "Int"
         }
 
         val BOOLEAN = object : Endpoint.Type<Boolean> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onBoolean(this)
-            override val serializer: Serializer<Boolean> = BooleanConverter()
+            override val serializer: Serializer<Boolean> = Converters.BOOL
             override fun cast(obj: Any): Boolean = obj as Boolean
+            override fun toString(): String  = "Bool"
         }
 
         val ACTION = object : Endpoint.Type<Int> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onAction(this)
             override val serializer: Serializer<Int> = ActionConverter()
             override fun cast(obj: Any) = obj as Int
+            override fun toString(): String  = "Act"
         }
 
         val DEVICE_STATE = object : Endpoint.Type<DeviceState> {
             override fun <T> accept(visitor: Endpoint.Type.Visitor<T>): T = visitor.onDeviceState(this)
             override val serializer: Serializer<DeviceState> = DeviceStateConverter()
             override fun cast(obj: Any): DeviceState = obj as DeviceState
+            override fun toString(): String  = "State"
         }
 
         fun newActionId(): Int {
@@ -64,13 +69,26 @@ abstract class Serializer<T> {
     }
 }
 
+class Converters {
+    companion object {
+        val STRING:Serializer<String> = StringConverter()
+        val BOOL:Serializer<Boolean> = BooleanConverter()
+        val FLOAT:Serializer<Float> = FloatConverter()
+        val INT:Serializer<Int> = IntConverter()
+    }
+}
+
 internal abstract class BaseStringConverter<T> : Serializer<T>() {
-    override final fun fromBytes(bytes: ByteArray): T = fromString(String(bytes, Charsets.UTF_8))
+    final override fun fromBytes(bytes: ByteArray): T = fromString(String(bytes, Charsets.UTF_8))
+    final override fun toBytes(data: T): ByteArray = toString(data).toByteArray(Charsets.UTF_8)
 
-    override final fun toBytes(data: T): ByteArray = toString(data).toByteArray(Charsets.UTF_8)
+    internal abstract fun fromString(string: String): T
+    internal abstract fun toString(data: T): String
+}
 
-    abstract fun fromString(string: String): T
-    abstract fun toString(data: T): String
+internal class StringConverter : BaseStringConverter<String>() {
+    override fun fromString(string: String): String = string
+    override fun toString(data: String): String = data
 }
 
 internal class BooleanConverter : BaseStringConverter<Boolean>() {
