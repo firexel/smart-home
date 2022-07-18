@@ -43,13 +43,11 @@ class ConnectorTreeBuilder(
     }
 
     override fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T> {
-        val node = MapNode(block)
-        holder.install(node)
-        return node.output.wrap()
+        return MapNode(block).apply { holder.install(this) }.output.wrap()
     }
 
     override fun timer(tickInterval: Long, stopAfter: Long): Timer {
-        TODO("not implemented")
+        return TimerNode(tickInterval, stopAfter).apply { holder.install(this) }
     }
 
     override fun date(): Date {
