@@ -15,7 +15,7 @@ import kotlin.script.experimental.jvm.jvm
     compilationConfiguration = ConfigScriptCompilationConfiguration::class
 )
 abstract class ConfigScript(private val builder: TreeBuilder) {
-    fun config(block: TreeBuilderContext.() -> Unit) {
+    fun config(block: TreeBuilder.() -> Unit) {
         val context = TreeBuilderContext(builder)
         context.block()
     }
@@ -32,8 +32,8 @@ interface TreeBuilder {
     fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Consumer<T>
     fun <T : Any> output(devId: String, endId: String, type: KClass<T>): Producer<T>
     fun <T : Any> constant(value: T): Producer<T>
-    fun <T : Any> map(block: MapContext.() -> T): Producer<T>
-    fun <T : Any> Producer<T>.onChanged(block: TreeBuilderContext.(value: T) -> Unit)
+    fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T>
+    fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit)
 
     fun timer(tickInterval: Long = 1000L, stopAfter: Long = -1): Timer
     fun date(): Date
@@ -51,7 +51,7 @@ interface Date {
 }
 
 interface MapContext {
-    fun <T> monitor(producer: Producer<T>): T
+    suspend fun <T> monitor(producer: Producer<T>): T
 }
 
 object ConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(

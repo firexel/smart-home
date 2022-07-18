@@ -54,32 +54,32 @@ class DriversManagerTest {
         executor.fastForward()
 
         verify(network, times(1)).publish(any<Device>())
-        verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
+        verify(network, never()).set(any(), any<Endpoint<*>>(), any())
 
         driver.setOutputs()
         executor.fastForward()
 
-        verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
+        verify(network, never()).set(any(), any<Endpoint<*>>(), any())
 
         network.emulateDataReceived("root:early_poster", "in1", true)
         executor.fastForward()
 
-        verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
+        verify(network, never()).set(any(), any<Endpoint<*>>(), any())
 
         driver.setOutputs()
         executor.fastForward()
 
-        verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
+        verify(network, never()).set(any(), any<Endpoint<*>>(), any())
 
         network.emulateDataReceived("root:early_poster", "in2", true)
         executor.fastForward()
 
-        verify(network, never()).publish(any(), any<Endpoint<*>>(), any())
+        verify(network, never()).set(any(), any<Endpoint<*>>(), any())
 
         driver.setOutputs()
         executor.fastForward()
 
-        verify(network, times(2)).publish(
+        verify(network, times(2)).set(
                 eq(Device.Id("root").innerId("early_poster")),
                 any<Endpoint<*>>(),
                 any()
@@ -134,7 +134,8 @@ class DriversManagerTest {
 
         override fun publish(metainfo: Metainfo): Network.Publication = ImmediatePublication()
         override fun publish(device: Device): Network.Publication = ImmediatePublication()
-        override fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T): Network.Publication = ImmediatePublication()
+        override fun <T> set(device: Device.Id, endpoint: Endpoint<T>, data: T): Network.Publication = ImmediatePublication()
+        override fun <T> override(device: Device.Id, endpoint: Endpoint<T>, data: T): Network.Publication = ImmediatePublication()
 
         override fun subscribe(device: Device.Id?, func: (Device) -> Unit): Network.Subscription {
             TODO("not implemented")

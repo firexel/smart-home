@@ -66,6 +66,7 @@ data class Endpoint<N>(
         fun <T> accept(visitor: Visitor<T>): T
         fun cast(obj: Any): N
 
+        val canBeRetained:Boolean
         val serializer: Serializer<N>
 
         interface Visitor<out T> {

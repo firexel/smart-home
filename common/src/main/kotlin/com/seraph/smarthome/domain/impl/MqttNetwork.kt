@@ -64,7 +64,7 @@ class MqttNetwork(
     }
 
     private fun <T> publish(topic: Topic, serializer: Serializer<T>, data: T): NetworkPublication {
-        log.v("$topic <-- $data")
+        log.v("$data --> $topic")
         return NetworkPublication(transport.publish(topic, serializer.toBytes(data)))
     }
 
