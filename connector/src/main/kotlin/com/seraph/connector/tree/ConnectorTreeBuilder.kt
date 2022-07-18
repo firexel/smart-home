@@ -50,8 +50,8 @@ class ConnectorTreeBuilder(
         return TimerNode(tickInterval, stopAfter).apply { holder.install(this) }
     }
 
-    override fun date(): Date {
-        TODO("not implemented")
+    override fun clock(tickInterval: Clock.Interval): Clock {
+        return ClockNode(tickInterval).apply { holder.install(this) }
     }
 
     data class ProducerImpl<T>(val nodeProducer: Node.Producer<T>) : Producer<T>

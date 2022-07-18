@@ -85,5 +85,5 @@ internal class TimerNodeTest {
     }
 
     val INACCURATE: (Long?, Long?) -> Boolean =
-        { a, b -> abs(a!! - b!!) < 15 }
+        { a, b -> abs(a!! - b!!) < 30 }
 }

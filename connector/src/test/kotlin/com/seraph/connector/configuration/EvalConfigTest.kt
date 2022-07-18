@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import script.definition.*
+import java.time.LocalDateTime
 import kotlin.reflect.KClass
 
 
@@ -78,9 +79,9 @@ internal class EvalConfigTest {
                 }
             }
 
-            override fun date(): Date {
-                return object : Date {
-                    override val hourOfDate: Producer<Int>
+            override fun clock(tickInterval: Clock.Interval): Clock {
+                return object : Clock {
+                    override val time: Producer<LocalDateTime>
                         get() = mockProducer()
                 }
             }

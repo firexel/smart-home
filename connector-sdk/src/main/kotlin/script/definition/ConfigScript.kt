@@ -1,5 +1,6 @@
 package script.definition
 
+import java.time.LocalDateTime
 import kotlin.reflect.KClass
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptAcceptedLocation
@@ -35,8 +36,8 @@ interface TreeBuilder {
     fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T>
     fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit)
 
-    fun timer(tickInterval: Long = 1000L, stopAfter: Long = -1): Timer
-    fun date(): Date
+    fun timer(tickInterval: Long = 1000L, stopAfter: Long): Timer
+    fun clock(tickInterval: Clock.Interval): Clock
 }
 
 interface Timer {
@@ -46,8 +47,12 @@ interface Timer {
     val millisPassed: Producer<Long>
 }
 
-interface Date {
-    val hourOfDate: Producer<Int>
+interface Clock {
+    val time: Producer<LocalDateTime>
+
+    enum class Interval {
+        HOUR, MINUTE, SECOND
+    }
 }
 
 interface MapContext {

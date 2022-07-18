@@ -1,3 +1,4 @@
+import script.definition.Clock
 import script.definition.TreeBuilder
 
 config {
@@ -72,7 +73,7 @@ fun TreeBuilder.configureFilterAirCompressor() {
     compressorRelay.value = map {
         val flowGoes = monitor(flowSensor)
         val delayPassed = !monitor(compressorDelayTimer.active)
-        val itIsDaytime = monitor(date().hourOfDate) >= 6
+        val itIsDaytime = monitor(clock(Clock.Interval.HOUR).time).hour >= 6
         flowGoes && delayPassed && itIsDaytime
     }
 }
