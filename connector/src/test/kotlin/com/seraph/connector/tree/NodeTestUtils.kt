@@ -3,7 +3,9 @@ package com.seraph.connector.tree
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import org.junit.jupiter.api.fail
+import script.definition.Consumer
 import script.definition.Producer
 
 
@@ -28,6 +30,27 @@ internal suspend fun <T> List<T>.waitFor(
         }
         delay(10)
     }
+}
+
+internal suspend fun <T> List<T>.waitForNoChange(timeout: Long, reference: List<T>) =
+    waitForNoChange(timeout, { a, b -> a == b }, reference)
+
+internal suspend fun <T> List<T>.waitForNoChange(
+    timeout: Long,
+    comparator: (T, T) -> Boolean,
+    reference: List<T>
+) {
+    val endTime = System.currentTimeMillis() + timeout
+    while (true) {
+        val currentTime = System.currentTimeMillis()
+        if (!this.compare(reference, comparator)) {
+            break
+        } else if (currentTime > endTime) {
+            return
+        }
+        delay(10)
+    }
+    fail { "Item changed. Actual list is $this" }
 }
 
 internal fun <T> List<T>.compare(second: List<T>, comparator: (T, T) -> Boolean): Boolean {
@@ -63,7 +86,7 @@ internal fun <T> mockProducer(value: T): MutableProducer<T> {
             // noop
         }
     }
-    return object : Producer<T>, Node.Producer<T>, MutableProducer<T> {
+    return object : MutableProducer<T> {
         private val _flow = MutableStateFlow(value)
         override val parent: Node
             get() = parent
@@ -77,6 +100,36 @@ internal fun <T> mockProducer(value: T): MutableProducer<T> {
     }
 }
 
-internal interface MutableProducer<T> : Producer<T> {
+internal interface MutableProducer<T> : Producer<T>, Node.Producer<T> {
     var value: T
+}
+
+internal fun <T> mockConsumer(): MutableConsumer<T> {
+    val parent = object : Node {
+        override suspend fun run(scope: CoroutineScope) {
+            // noop
+        }
+    }
+    return object : MutableConsumer<T> {
+        override var value: Producer<T>?
+            get() = TODO("not applicable")
+            set(value) {}
+
+        override val parent: Node
+            get() = parent
+
+        override suspend fun consume(flow: StateFlow<T?>) {
+            flow.collect {
+                _collectedValues.add(it)
+            }
+        }
+
+        val _collectedValues = mutableListOf<T?>()
+        override val collectedValues: List<T?>
+            get() = _collectedValues
+    }
+}
+
+internal interface MutableConsumer<T> : Consumer<T>, Node.Consumer<T> {
+    val collectedValues: List<T?>
 }

@@ -106,4 +106,8 @@ class MetricCastVisitor(private val value: Any) : Endpoint.Visitor<Double> {
     override fun onDeviceState(endpoint: Endpoint<DeviceState>): Double {
         return (value as DeviceState).ordinal.toDouble()
     }
+
+    override fun onString(endpoint: Endpoint<String>): Double {
+        return Double.NaN
+    }
 }
