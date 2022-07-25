@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.seraph.connector.tree
 
 import com.seraph.connector.configuration.matchingType
@@ -6,9 +8,8 @@ import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.util.Log
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
@@ -37,25 +38,23 @@ class OutputNode<T : Any>(
                 return@launch
             }
 
-            var outputJob: Job? = null
-            while (true) {
-                val device = network.read(Device.Id(devId))
-                outputJob?.cancel()
-                val endpoint = device.endpoints.firstOrNull { it.id == Endpoint.Id(endId) }
-                if (endpoint == null) {
-                    log.w("Endpoint $devId/$endId not found")
-                    continue
-                }
-                if (!validateEndpoint(endpoint)) {
-                    continue
-                }
-                outputJob = scope.launch {
-                    @Suppress("UNCHECKED_CAST")
-                    while (true) {
-                        flow.value = network.read(Device.Id(devId), endpoint) as T
+            network.read(Device.Id(devId))
+                .flatMapLatest { device ->
+                    val endpoint = device.endpoints.firstOrNull { it.id == Endpoint.Id(endId) }
+                    if (endpoint == null) {
+                        log.w("Endpoint $devId/$endId not found")
+                        flow {}
+                    } else if (!validateEndpoint(endpoint)) {
+                        flow {}
+                    } else {
+                        network.read(Device.Id(devId), endpoint)
                     }
                 }
-            }
+                .flowOn(scope.coroutineContext)
+                .collect { value ->
+                    @Suppress("UNCHECKED_CAST")
+                    flow.value = value as T
+                }
         }
     }
 

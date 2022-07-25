@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.seraph.connector.tree
 
 import com.seraph.connector.configuration.matchingType
@@ -6,11 +8,10 @@ import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.util.Log
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
@@ -45,25 +46,27 @@ class InputNode<T : Any>(
                 return@launch
             }
 
-            var outputJob: Job? = null
-            while (true) {
-                val device = network.read(Device.Id(devId))
-                outputJob?.cancel()
-                val endpoint = device.endpoints.firstOrNull { it.id == Endpoint.Id(endId) }
-                if (endpoint == null) {
-                    log.w("Endpoint $devId/$endId not found")
-                    continue
-                }
-                if (!validateEndpoint(endpoint)) {
-                    continue
-                }
-                outputJob = scope.launch {
-                    for (data in buffer) {
-                        @Suppress("UNCHECKED_CAST")
-                        network.publish(device.id, endpoint as Endpoint<T>, data)
+            val id = Device.Id(devId)
+            network.read(id)
+                .flatMapLatest { device ->
+                    val endpoint = device.endpoints.firstOrNull { it.id == Endpoint.Id(endId) }
+                    if (endpoint == null) {
+                        log.w("Endpoint $devId/$endId not found")
+                        flow { }
+                    } else if (!validateEndpoint(endpoint)) {
+                        flow { }
+                    } else {
+                        flow { emit(endpoint) }
                     }
                 }
-            }
+                .flowOn(scope.coroutineContext)
+                .flatMapLatest { endpoint ->
+                    buffer.receiveAsFlow().map { value -> Pair(endpoint, value) }
+                }
+                .collect { (endpoint, value) ->
+                    @Suppress("UNCHECKED_CAST")
+                    network.publish(id, endpoint as Endpoint<T>, value)
+                }
         }
     }
 
