@@ -9,7 +9,6 @@ import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.ThreadExecutor
 import kotlinx.coroutines.runBlocking
 import java.io.File
-import kotlin.concurrent.thread
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -49,7 +48,8 @@ class Main {
                 config.smarthome.credentials?.passwd,
             )
             val network = MqttNetwork(shBroker, log.copy("Network"))
-            val drivers = DriversManager(network, Device.Id(config.smarthome.name), log = log.copy("Drivers"))
+            val drivers =
+                DriversManager(network, Device.Id(config.smarthome.name), log = log.copy("Drivers"))
             val bridge = WirenboardBridge(
                 wbWildcardBroker,
                 drivers,
@@ -67,7 +67,13 @@ class Main {
             if (config.exclude.endpoints.isNotEmpty()) {
                 list += WirenboardBridge.filterOutEndpointsById(config.exclude.endpoints)
             }
-            list += config.rename.map { WirenboardBridge.changeDeviceId(it.id, it.name) }
+            list += config.rename.flatMap {
+                val devId = it.id
+                val ends = (it.endpoints ?: listOf()).map { end ->
+                    WirenboardBridge.changeEndpointId(devId, end.id, end.name)
+                }
+                ends + WirenboardBridge.changeDeviceId(it.id, it.name)
+            }
             return list
         }
     }

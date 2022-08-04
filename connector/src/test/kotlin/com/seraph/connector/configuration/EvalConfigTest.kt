@@ -1,5 +1,6 @@
 package com.seraph.connector.configuration
 
+import com.seraph.connector.tree.TreeRunner
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -26,9 +27,16 @@ internal class EvalConfigTest {
         assertEquals(emptyList<ExecutionNote>(), result)
     }
 
+    @Test
+    fun testNoSyntaxErrorsInEmptyConfig() {
+        val result = evalConfigFromFile("test.empty.config.kts")
+        assertEquals(emptyList<ExecutionNote>(), result)
+    }
+
     private fun evalConfigFromFile(name: String): List<ExecutionNote> {
         return runBlocking {
-            EvalConfigInstaller { mockTreeBuilder() }.checkConfig(getFileFromResources(name))
+            val config = getFileFromResources(name)
+            ConfigExecutor(config).execute(mockTreeBuilder())
         }
     }
 
@@ -40,11 +48,8 @@ internal class EvalConfigTest {
         return inputStream.bufferedReader().readText()
     }
 
-    private fun mockTreeBuilder(): EvalConfigInstaller.CheckingTreeBuilder {
-        return object : EvalConfigInstaller.CheckingTreeBuilder {
-            override val results: List<ExecutionNote>
-                get() = emptyList()
-
+    private fun mockTreeBuilder(): TreeBuilder {
+        return object : TreeBuilder {
             override fun <T : Any> input(
                 devId: String,
                 endId: String,

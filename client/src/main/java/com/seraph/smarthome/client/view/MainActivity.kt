@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val widgets = mutableStateOf(listOf<WidgetGroupModel>())
         val presenter = WidgetListPresenterImpl(
-                InteractorObtainers.Companion.from(this), services
+            InteractorObtainers.Companion.from(this), services
         )
         presenter.widgets.observe {
             widgets.value = it
@@ -49,13 +50,17 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun Content(groups: List<WidgetGroupModel>) {
         MaterialTheme {
-            Column(modifier = Modifier
+            LazyColumn(
+                modifier = Modifier
                     .background(Color.White)
                     .fillMaxHeight()
-                    .verticalScroll(rememberScrollState())) {
-                groups.forEach { group ->
-                    Group(group)
-                }
+            ) {
+
+                items(
+                    groups.size,
+                    { groups[it].hashCode() },
+                    { Group(groups[it]) }
+                )
             }
         }
     }
@@ -63,9 +68,10 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun Group(group: WidgetGroupModel) {
         val typo = MaterialTheme.typography
-        Text(group.name,
-                style = typo.h4.copy(fontWeight = FontWeight.SemiBold),
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp)
+        Text(
+            group.name,
+            style = typo.h4.copy(fontWeight = FontWeight.SemiBold),
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp)
         )
         GridView(integerResource(id = gridColumns), group.widgets) {
             Widget(group, it)
@@ -80,9 +86,11 @@ class MainActivity : AppCompatActivity() {
             rows.forEach { row ->
                 Row {
                     for ((index, item) in row.withIndex()) {
-                        Box(Modifier
+                        Box(
+                            Modifier
                                 .fillMaxWidth(1f / (columns - index))
-                                .padding(padding)) {
+                                .padding(padding)
+                        ) {
                             child(item)
                         }
                     }
@@ -117,10 +125,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         NamedCard(
-                name = widget.name,
-                bg = bg,
-                onClick = widget.toggle,
-                onLongClick = onLongClick
+            name = widget.name,
+            bg = bg,
+            onClick = widget.toggle,
+            onLongClick = onLongClick
         ) {
 
             CompositeWidgetState(widget)
@@ -160,17 +168,25 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun NumericIntState(state: WidgetModel.CompositeWidget.State.NumericInt) {
         ValueWithUnits(
-                "${state.state}${state.units.toUnitsInlineText()}",
-                state.units.toUnitsOutlineText()
+            "${state.state}${state.units.toUnitsInlineText()}",
+            state.units.toUnitsOutlineText()
         )
     }
 
     @Composable
     private fun ValueWithUnits(valueText: String, unitsOutline: String) {
         Row {
-            Text(valueText, style = MaterialTheme.typography.h3, modifier = Modifier.alignByBaseline())
+            Text(
+                valueText,
+                style = MaterialTheme.typography.h3,
+                modifier = Modifier.alignByBaseline()
+            )
             if (unitsOutline.isNotEmpty()) {
-                Text(unitsOutline, style = MaterialTheme.typography.body1, modifier = Modifier.alignByBaseline())
+                Text(
+                    unitsOutline,
+                    style = MaterialTheme.typography.body1,
+                    modifier = Modifier.alignByBaseline()
+                )
             }
         }
     }
@@ -198,22 +214,22 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun NamedCard(
-            name: String,
-            bg: Pair<Color, Color>,
-            onClick: (() -> Unit)? = null,
-            onLongClick: (() -> Unit)? = null,
-            child: @Composable BoxScope.() -> Unit,
+        name: String,
+        bg: Pair<Color, Color>,
+        onClick: (() -> Unit)? = null,
+        onLongClick: (() -> Unit)? = null,
+        child: @Composable BoxScope.() -> Unit,
     ) {
 
         val typo = MaterialTheme.typography
 
         Card(
-                modifier = Modifier.aspectRatio(1.718f),
-                elevation = 0.dp,
-                border = BorderStroke(1.dp, bg.second)
+            modifier = Modifier.aspectRatio(1.718f),
+            elevation = 0.dp,
+            border = BorderStroke(1.dp, bg.second)
         ) {
-
-            Column(Modifier
+            Column(
+                Modifier
                     .gradientBackground(bg.first, bg.second)
                     .appendIf(onClick != null) {
                         if (onLongClick == null) {
@@ -226,48 +242,54 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
             ) {
-
                 Card(
-                        modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(1f),
-                        elevation = 0.dp) {
-
-                    Box(modifier = Modifier.padding(start = p1, end = p1),
-                            contentAlignment = Alignment.CenterStart,
-                            content = child
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(1f),
+                    elevation = 0.dp
+                ) {
+                    Box(
+                        modifier = Modifier.padding(start = p1, end = p1),
+                        contentAlignment = Alignment.CenterStart,
+                        content = child
                     )
                 }
 
-                Text(name, style = typo.body2,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                                .fillMaxWidth(1f)
-                                .padding(start = p1, top = 6.dp, bottom = p1, end = p1)
+                Text(
+                    name, style = typo.body2,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth(1f)
+                        .padding(start = p1, top = 6.dp, bottom = p1, end = p1)
                 )
             }
         }
     }
 
     @Composable
-    private fun ChangeTargetDialog(groupName: String, widget: WidgetModel.CompositeWidget, bg: Pair<Color, Color>) {
+    private fun ChangeTargetDialog(
+        groupName: String,
+        widget: WidgetModel.CompositeWidget,
+        bg: Pair<Color, Color>
+    ) {
         val typo = MaterialTheme.typography
         Card(elevation = 16.dp) {
             Box(
-                    modifier = Modifier
-                            .padding(start = p1 * 2, end = p1 * 2, top = p1, bottom = p1 * 2)
-                            .fillMaxWidth(),
-                    contentAlignment = Alignment.CenterStart,
+                modifier = Modifier
+                    .padding(start = p1 * 2, end = p1 * 2, top = p1, bottom = p1 * 2)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.CenterStart,
             ) {
                 Column {
                     Text(text = widget.name, style = typo.h4)
                     Text(
-                            text = groupName,
-                            style = typo.body1,
-                            modifier = Modifier.padding(bottom = p1),
-                            color = Color(0xb3000000))
+                        text = groupName,
+                        style = typo.body1,
+                        modifier = Modifier.padding(bottom = p1),
+                        color = Color(0xb3000000)
+                    )
 
                     CompositeWidgetState(widget)
 
@@ -331,19 +353,25 @@ class MainActivity : AppCompatActivity() {
             WidgetModel.CompositeWidget.Units.W -> "w"
             WidgetModel.CompositeWidget.Units.V -> "v"
             WidgetModel.CompositeWidget.Units.KWH -> "KWh"
+            WidgetModel.CompositeWidget.Units.MBAR -> "mBar"
         }
 
         Row {
             val left = (target.min * valueMultiplier).format(0)
             val right = (target.max * valueMultiplier).format(0)
-            Text(text = "$left$unitsSymbol", modifier = Modifier
+            Text(
+                text = "$left$unitsSymbol", modifier = Modifier
                     .weight(1f)
-                    .padding(start = p1))
+                    .padding(start = p1)
+            )
             Text(text = "$right$unitsSymbol", modifier = Modifier.padding(end = p1))
         }
     }
 
-    fun Modifier.appendIf(predicate: Boolean, modifier: @Composable Modifier.() -> Modifier): Modifier = composed {
+    fun Modifier.appendIf(
+        predicate: Boolean,
+        modifier: @Composable Modifier.() -> Modifier
+    ): Modifier = composed {
         if (predicate) {
             modifier()
         } else {
@@ -367,21 +395,21 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun DialogPreview() {
         val widget = WidgetModel.CompositeWidget(
-                "livingroom_light_main",
-                "Основной",
-                WidgetModel.CompositeWidget.Category.LIGHT,
-                WidgetModel.CompositeWidget.State.Binary(
-                        WidgetModel.CompositeWidget.Units.ON_OFF,
-                        false
-                ),
-                target = WidgetModel.CompositeWidget.Target.Numeric(
-                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1,
-                        0.42f,
-                        {},
-                        0.08f,
-                        1f
-                ),
-                toggle = {}
+            "livingroom_light_main",
+            "Основной",
+            WidgetModel.CompositeWidget.Category.LIGHT,
+            WidgetModel.CompositeWidget.State.Binary(
+                WidgetModel.CompositeWidget.Units.ON_OFF,
+                false
+            ),
+            target = WidgetModel.CompositeWidget.Target.Numeric(
+                WidgetModel.CompositeWidget.Units.PERCENTS_0_1,
+                0.42f,
+                {},
+                0.08f,
+                1f
+            ),
+            toggle = {}
         )
         ChangeTargetDialog("Гостиная", widget, Color(0xffeed690) to Color(0xffdca324))
     }
@@ -395,100 +423,104 @@ class MainActivity : AppCompatActivity() {
     private fun getTestData(): List<WidgetGroupModel> {
         val nope: () -> Unit = {}
         val groups = listOf(
-                WidgetGroupModel(
-                        "Гостиная", listOf(
-                        WidgetModel.CompositeWidget(
-                                "livingroom_co2",
-                                "CO2",
-                                WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.NumericFloat(
-                                        WidgetModel.CompositeWidget.Units.PPM,
-                                        5000f
-                                )
+            WidgetGroupModel(
+                "Гостиная", listOf(
+                    WidgetModel.CompositeWidget(
+                        "livingroom_co2",
+                        "CO2",
+                        WidgetModel.CompositeWidget.Category.GAUGE,
+                        WidgetModel.CompositeWidget.State.NumericFloat(
+                            WidgetModel.CompositeWidget.Units.PPM,
+                            5000f
+                        )
+                    ),
+                    WidgetModel.CompositeWidget(
+                        "livingroom_temp",
+                        "Температура",
+                        WidgetModel.CompositeWidget.Category.GAUGE,
+                        WidgetModel.CompositeWidget.State.NumericFloat(
+                            WidgetModel.CompositeWidget.Units.CELSIUS,
+                            23.6f,
+                            precision = 1
+                        )
+                    ),
+                    WidgetModel.CompositeWidget(
+                        "livingroom_hum",
+                        "Влажность",
+                        WidgetModel.CompositeWidget.Category.GAUGE,
+                        WidgetModel.CompositeWidget.State.NumericFloat(
+                            WidgetModel.CompositeWidget.Units.PERCENTS_0_1,
+                            0.37f
+                        )
+                    ),
+                    WidgetModel.CompositeWidget(
+                        "livingroom_pm2.5",
+                        "PM2.5",
+                        WidgetModel.CompositeWidget.Category.GAUGE,
+                        WidgetModel.CompositeWidget.State.NumericInt(
+                            WidgetModel.CompositeWidget.Units.PPM,
+                            853
+                        )
+                    ),
+                    WidgetModel.CompositeWidget(
+                        "livingroom_light_main",
+                        "Основной",
+                        WidgetModel.CompositeWidget.Category.LIGHT,
+                        WidgetModel.CompositeWidget.State.Binary(
+                            WidgetModel.CompositeWidget.Units.ON_OFF,
+                            false
                         ),
-                        WidgetModel.CompositeWidget(
-                                "livingroom_temp",
-                                "Температура",
-                                WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.NumericFloat(
-                                        WidgetModel.CompositeWidget.Units.CELSIUS,
-                                        23.6f,
-                                        precision = 1
-                                )
+                        toggle = nope
+                    ),
+                    WidgetModel.CompositeWidget(
+                        "livingroom_light_workplace",
+                        "Рабочее место",
+                        WidgetModel.CompositeWidget.Category.LIGHT,
+                        WidgetModel.CompositeWidget.State.Binary(
+                            WidgetModel.CompositeWidget.Units.ON_OFF,
+                            true
                         ),
-                        WidgetModel.CompositeWidget(
-                                "livingroom_hum",
-                                "Влажность",
-                                WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.NumericFloat(
-                                        WidgetModel.CompositeWidget.Units.PERCENTS_0_1,
-                                        0.37f
-                                )
+                        toggle = nope
+                    ),
+                    WidgetModel.CompositeWidget(
+                        "livingroom_light_entrance",
+                        "Коридор",
+                        WidgetModel.CompositeWidget.Category.LIGHT,
+                        WidgetModel.CompositeWidget.State.Unknown(),
+                        toggle = nope
+                    ),
+                    WidgetModel.BrokenWidget(
+                        "livingroom_broken",
+                        "Сломан",
+                        "TypeMismatchException at input state"
+                    ),
+                )
+            ),
+            WidgetGroupModel(
+                "Кухня", listOf(
+                    WidgetModel.CompositeWidget(
+                        "kitchen_onoff_stove",
+                        "Печка",
+                        WidgetModel.CompositeWidget.Category.SWITCH,
+                        WidgetModel.CompositeWidget.State.Binary(
+                            WidgetModel.CompositeWidget.Units.ON_OFF,
+                            false
                         ),
-                        WidgetModel.CompositeWidget(
-                                "livingroom_pm2.5",
-                                "PM2.5",
-                                WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.NumericInt(
-                                        WidgetModel.CompositeWidget.Units.PPM,
-                                        853
-                                )
+                        toggle = nope
+                    ),
+                    WidgetModel.CompositeWidget(
+                        "kitchen_co",
+                        "Сигнализация CO длинное имя",
+                        WidgetModel.CompositeWidget.Category.GAUGE,
+                        WidgetModel.CompositeWidget.State.Binary(
+                            WidgetModel.CompositeWidget.Units.NONE,
+                            true
                         ),
-                        WidgetModel.CompositeWidget(
-                                "livingroom_light_main",
-                                "Основной",
-                                WidgetModel.CompositeWidget.Category.LIGHT,
-                                WidgetModel.CompositeWidget.State.Binary(
-                                        WidgetModel.CompositeWidget.Units.ON_OFF,
-                                        false
-                                ),
-                                toggle = nope
-                        ),
-                        WidgetModel.CompositeWidget(
-                                "livingroom_light_workplace",
-                                "Рабочее место",
-                                WidgetModel.CompositeWidget.Category.LIGHT,
-                                WidgetModel.CompositeWidget.State.Binary(
-                                        WidgetModel.CompositeWidget.Units.ON_OFF,
-                                        true
-                                ),
-                                toggle = nope
-                        ),
-                        WidgetModel.CompositeWidget(
-                                "livingroom_light_entrance",
-                                "Коридор",
-                                WidgetModel.CompositeWidget.Category.LIGHT,
-                                WidgetModel.CompositeWidget.State.Unknown(),
-                                toggle = nope
-                        ),
-                        WidgetModel.BrokenWidget(
-                                "livingroom_broken",
-                                "Сломан",
-                                "TypeMismatchException at input state"
-                        ),
-                )),
-                WidgetGroupModel("Кухня", listOf(
-                        WidgetModel.CompositeWidget(
-                                "kitchen_onoff_stove",
-                                "Печка",
-                                WidgetModel.CompositeWidget.Category.SWITCH,
-                                WidgetModel.CompositeWidget.State.Binary(
-                                        WidgetModel.CompositeWidget.Units.ON_OFF,
-                                        false
-                                ),
-                                toggle = nope
-                        ),
-                        WidgetModel.CompositeWidget(
-                                "kitchen_co",
-                                "Сигнализация CO длинное имя",
-                                WidgetModel.CompositeWidget.Category.GAUGE,
-                                WidgetModel.CompositeWidget.State.Binary(
-                                        WidgetModel.CompositeWidget.Units.NONE,
-                                        true
-                                ),
-                                toggle = nope
-                        ),
-                )))
+                        toggle = nope
+                    ),
+                )
+            )
+        )
         return groups
     }
 }
@@ -505,6 +537,7 @@ private fun WidgetModel.CompositeWidget.Units.toUnitsOutlineText() = when (this)
     WidgetModel.CompositeWidget.Units.NONE -> ""
     WidgetModel.CompositeWidget.Units.ON_OFF -> ""
     WidgetModel.CompositeWidget.Units.CELSIUS -> ""
+    WidgetModel.CompositeWidget.Units.MBAR -> "mBar"
 }
 
 @Composable
@@ -519,6 +552,7 @@ private fun WidgetModel.CompositeWidget.Units.toUnitsInlineText() = when (this) 
     WidgetModel.CompositeWidget.Units.NONE -> ""
     WidgetModel.CompositeWidget.Units.ON_OFF -> ""
     WidgetModel.CompositeWidget.Units.CELSIUS -> "°"
+    WidgetModel.CompositeWidget.Units.MBAR -> ""
 }
 
 @Composable

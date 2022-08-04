@@ -8,10 +8,10 @@ import kotlin.reflect.KClass
 @Suppress("UNCHECKED_CAST")
 class ConnectorTreeBuilder(
     private val network: BlockingNetwork,
+    private val holder: TreeHolder,
     private val log: Log
 ) : TreeBuilder {
 
-    private val holder = TreeHolder()
 
     override fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Consumer<T> {
         val key = EndpointKey(devId, endId, type)

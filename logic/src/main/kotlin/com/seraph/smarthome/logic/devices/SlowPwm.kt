@@ -3,7 +3,7 @@ package com.seraph.smarthome.logic.devices
 import com.google.gson.annotations.SerializedName
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Types
-import com.seraph.smarthome.util.Scheduler
+import com.seraph.smarthome.threading.Scheduler
 import java.util.concurrent.atomic.AtomicReference
 
 class SlowPwm(

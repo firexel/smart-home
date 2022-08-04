@@ -11,10 +11,10 @@ import kotlin.reflect.KClass
 
 class ConfigChecker(
     private val monitor: NetworkMonitor
-) : EvalConfigInstaller.CheckingTreeBuilder {
+) : TreeBuilder {
 
     private var _results: MutableList<ExecutionNote> = mutableListOf()
-    override val results: List<ExecutionNote>
+    val results: List<ExecutionNote>
         get() = _results
 
     private fun report(severity: ExecutionNote.Severity, message: String) {

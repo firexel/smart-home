@@ -107,7 +107,7 @@ class Main {
 
         private fun postEndpoint(name: String, snapshot: EndpointSnapshot<*>) {
             fun <T> Endpoint<T>.publish(network: MqttNetwork, device: Device.Id, obj: Any) {
-                network.publish(device, this, this.cast(obj))
+                network.set(device, this, this.cast(obj))
             }
             eachConnectedNetwork(name) { network, monitor ->
                 val foreign = monitor.snapshot(snapshot.device.id, snapshot.endpoint.id)

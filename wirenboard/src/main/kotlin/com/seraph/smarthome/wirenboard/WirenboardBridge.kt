@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import java.util.List.copyOf
 
 class WirenboardBridge(
     private val wbBroker: Broker,
@@ -62,13 +63,14 @@ class WirenboardBridge(
 
         val info = runFilters(DeviceInfo(deviceId, deviceControls.filterNotNull()))
         if (info != null) {
+            val outerId = info.outerId.safe
             drivers.addDriver(
-                Device.Id(info.id),
+                Device.Id(outerId),
                 WirenboardDeviceDriver(
                     wbBroker,
                     deviceId, // preserve original wb id to subscribe correctly
                     info.controls,
-                    log.copy("Driver").copy(info.id)
+                    log.copy("Driver").copy(outerId)
                 )
             )
         } else {
@@ -135,7 +137,7 @@ class WirenboardBridge(
     internal data class TypedControl(val id: String, val type: String)
 
     data class DeviceInfo(
-        val id: String,
+        val outerId: String,
         val controls: List<WirenboardDeviceDriver.Control>
     )
 
@@ -146,7 +148,7 @@ class WirenboardBridge(
     companion object {
         fun filterOutByDeviceId(ids: List<String>): DeviceInfoFilter = object : DeviceInfoFilter {
             override fun filter(info: DeviceInfo): DeviceInfo? {
-                return if (ids.contains(info.id)) {
+                return if (ids.contains(info.outerId)) {
                     null
                 } else {
                     info
@@ -163,12 +165,25 @@ class WirenboardBridge(
 
         fun changeDeviceId(id: String, name: String): DeviceInfoFilter = object : DeviceInfoFilter {
             override fun filter(info: DeviceInfo): DeviceInfo? {
-                return if (info.id == id) {
-                    info.copy(id = name)
+                return if (info.outerId == id) {
+                    info.copy(outerId = name)
                 } else {
                     info
                 }
             }
         }
+
+        fun changeEndpointId(devId: String, endId: String, name: String): DeviceInfoFilter =
+            object : DeviceInfoFilter {
+                override fun filter(info: DeviceInfo): DeviceInfo? {
+                    return if (info.outerId == devId) {
+                        info.copy(controls = copyOf(info.controls).apply {
+                            firstOrNull { it.id == endId }?.rename(name)
+                        })
+                    } else {
+                        info
+                    }
+                }
+            }
     }
 }

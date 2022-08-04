@@ -10,11 +10,11 @@ import kotlin.script.experimental.host.toScriptSource
 import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 
-class ConfigEvaluator(config: String) {
+class ConfigExecutor(config: String) {
 
     private val source = config.toScriptSource()
 
-    fun evaluate(treeBuilder: TreeBuilder): List<ExecutionNote> {
+    fun execute(treeBuilder: TreeBuilder): List<ExecutionNote> {
         val compilationConfiguration = createJvmCompilationConfigurationFromTemplate<ConfigScript>()
         val evaluationEnv = ScriptEvaluationConfiguration().with {
             constructorArgs(treeBuilder)
