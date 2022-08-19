@@ -57,7 +57,8 @@ private void configureJarAssemblyIn(def project) {
                     configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
                 }
             }
-            exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/versions/9/module-info.class', 'META-INF/metadata.kotlin_module'
+            duplicatesStrategy DuplicatesStrategy.WARN
+            exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/versions/9/module-info.class', 'META-INF/metadata.kotlin_module', 'META-INF/compiler.common.jvm.kotlin_module'
             manifest {
                 attributes "Main-Class": mainClassName
             }

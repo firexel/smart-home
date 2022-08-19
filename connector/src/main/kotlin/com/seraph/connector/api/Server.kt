@@ -24,7 +24,7 @@ fun ConfigStorage.ConfigHeader.toResponse(): ConfigDataResponse {
 }
 
 fun startApiServer(cases: Cases) {
-    val server = embeddedServer(Netty, port = 8080) {
+    val server = embeddedServer(Netty, port = 8888) {
         routing {
             install(ContentNegotiation) {
                 json()

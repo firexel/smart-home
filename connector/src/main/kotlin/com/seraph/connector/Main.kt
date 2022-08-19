@@ -1,3 +1,5 @@
+package com.seraph.connector
+
 import com.seraph.connector.api.startApiServer
 import com.seraph.connector.configuration.ConfigChecker
 import com.seraph.connector.configuration.ConfigStorage
@@ -33,7 +35,7 @@ class Main {
 
 class CommandLineParams(parser: ArgParser) {
     val brokerAddress by parser.storing("-b", "--broker", help = "ip or domain of the mqtt broker")
-        .default("tcp://localhost:1883")
+        .default("tcp://broker:1883")
 
     val configStorage by parser.storing("-c", "--config", help = "config storage folder")
         .default("/etc/conf/connector")

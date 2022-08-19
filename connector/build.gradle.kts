@@ -4,6 +4,11 @@ plugins {
     kotlin("plugin.serialization")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 application {
     mainClass.set("com.seraph.connector.Main")
 }
@@ -18,6 +23,9 @@ tasks {
         useJUnitPlatform()
     }
 }
+
+var mainClassName: String by project.extra
+mainClassName = "com.seraph.connector.Main"
 
 val kotlin_version: String by rootProject.extra
 val kotlin_coroutines_version: String by rootProject.extra
