@@ -64,7 +64,7 @@ class Main {
         private fun constructNetworkBundles(config: Config, log: ConsoleLog): Map<String, NetworkBundle> {
             return config.networks.mapValues {
                 val creds = it.value.credentials
-                val name = it.key.capitalize(Locale.ENGLISH)
+                val name = it.key.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ENGLISH) else it.toString() }
                 val broker = createBroker(creds, log.copy("${name}Broker"), it.value.address)
                 val network = MqttNetwork(LocalBroker(broker), log.copy("${name}Network"))
                 val monitor = NetworkMonitor(
@@ -101,13 +101,14 @@ class Main {
                     is NetworkEvent.DeviceAdded -> postDevice(name, it.device)
                     is NetworkEvent.DeviceUpdated -> postDevice(name, it.device)
                     is NetworkEvent.MetainfoUpdated -> postMetainfo(name, it.metainfo)
+                    else -> Unit
                 }
             }
         }
 
         private fun postEndpoint(name: String, snapshot: EndpointSnapshot<*>) {
             fun <T> Endpoint<T>.publish(network: MqttNetwork, device: Device.Id, obj: Any) {
-                network.set(device, this, this.cast(obj))
+                network.publish(device, this, this.cast(obj))
             }
             eachConnectedNetwork(name) { network, monitor ->
                 val foreign = monitor.snapshot(snapshot.device.id, snapshot.endpoint.id)

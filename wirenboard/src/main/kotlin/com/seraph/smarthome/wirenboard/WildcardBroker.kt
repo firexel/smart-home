@@ -2,7 +2,7 @@ package com.seraph.smarthome.wirenboard
 
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
-import com.seraph.smarthome.util.Executor
+import com.seraph.smarthome.threading.Executor
 import com.seraph.smarthome.util.Log
 
 class WildcardBroker(

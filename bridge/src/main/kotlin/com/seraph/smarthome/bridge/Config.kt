@@ -1,5 +1,6 @@
 package com.seraph.smarthome.bridge
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -64,6 +65,7 @@ data class Config(
         val routes: List<Route>
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 fun readConfig(file: File): Config {
     return Json.decodeFromString(FileReader(file).readText())
 }
