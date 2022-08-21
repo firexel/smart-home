@@ -18,7 +18,13 @@ import kotlin.script.experimental.jvm.jvm
 abstract class ConfigScript(private val builder: TreeBuilder) {
     fun config(block: TreeBuilder.() -> Unit) {
         val context = TreeBuilderContext(builder)
-        context.block()
+        try {
+            context.block()
+        } catch (ex: Throwable) {
+            val exception = RuntimeException("Error executing script", ex)
+            exception.printStackTrace()
+            throw exception
+        }
     }
 }
 

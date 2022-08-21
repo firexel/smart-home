@@ -1,5 +1,6 @@
 package com.seraph.connector.tree
 
+import com.seraph.smarthome.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -7,7 +8,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlin.reflect.KClass
 
 @OptIn(DelicateCoroutinesApi::class)
-class TreeHolder {
+class TreeHolder(private val log: Log) {
 
     private val nodeCache = mutableMapOf<Key, Node>()
     private val context = newFixedThreadPoolContext(1, "Connector tree dispatcher")
@@ -34,6 +35,7 @@ class TreeHolder {
     }
 
     fun <T> connect(producer: Node.Producer<T>, consumer: Node.Consumer<T>) {
+        log.v("Connecting $producer and $consumer")
         scope.launch {
             val inbound = consumer.junction()
             inbound.attachedProducers().forEach { it.detach(inbound) }
@@ -98,7 +100,9 @@ class TreeHolder {
 
         init {
             scope.launch {
-                producer.flow.stateIn(scope).filterNotNull().collect { value ->
+                val flow = producer.flow
+                log.v("Connecting to producer $producer flow $flow scope $scope")
+                flow.stateIn(scope).filterNotNull().collect { value ->
                     lastValue = value
                     consumers.forEach { it.stateFlow.value = value }
                 }
@@ -107,6 +111,7 @@ class TreeHolder {
 
         fun attach(junction: ConsumerJunction<T>) {
             scope.launch {
+                log.v("Adding consumer ${junction.stateFlow}")
                 consumers.add(junction)
                 if (lastValue != null) {
                     junction.stateFlow.value = lastValue!!

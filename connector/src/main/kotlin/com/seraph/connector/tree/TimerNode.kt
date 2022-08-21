@@ -1,6 +1,7 @@
 package com.seraph.connector.tree
 
 import com.seraph.smarthome.util.Log
+import com.seraph.smarthome.util.NoLog
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,7 +12,7 @@ import java.lang.Long.max
 class TimerNode(
     private val tickInterval: Long,
     private val stopAfter: Long,
-    private val log: Log
+    private val log: Log = NoLog()
 ) : Node, Timer {
 
     private val activeState = MutableStateFlow(false)

@@ -38,8 +38,9 @@ class ConnectorTreeBuilder(
     }
 
     override fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit) {
-        val node = CallbackNode(this.unwrap(), block, this@ConnectorTreeBuilder)
+        val node = CallbackNode(block, this@ConnectorTreeBuilder, log.copy("Callback"))
         holder.install(node)
+        holder.connect(this.unwrap(), node.consumer)
     }
 
     override fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T> {
@@ -58,7 +59,11 @@ class ConnectorTreeBuilder(
     data class ProducerImpl<T>(val nodeProducer: Node.Producer<T>) : Producer<T>
 
     private fun <T> Node.Producer<T>.wrap(): Producer<T> = ProducerImpl(this)
-    private fun <T> Producer<T>.unwrap(): Node.Producer<T> = (this as ProducerImpl<T>).nodeProducer
+    private fun <T> Producer<T>.unwrap(): Node.Producer<T> = when (this) {
+        is ProducerImpl -> this.nodeProducer
+        is Node.Producer<*> -> this as Node.Producer<T>
+        else -> throw ClassCastException("$this cannot be casted to a Node.Producer")
+    }
 
     inner class ConsumerImpl<T>(val nodeConsumer: Node.Consumer<T>) : Consumer<T> {
         override var value: Producer<T>? = null

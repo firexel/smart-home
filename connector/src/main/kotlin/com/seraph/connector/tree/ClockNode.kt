@@ -12,7 +12,9 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
-class ClockNode(private val interval: Clock.Interval) : Node, Clock {
+class ClockNode(
+    private val interval: Clock.Interval,
+) : Node, Clock {
 
     private val state = MutableStateFlow(LocalDateTime.now())
 
@@ -29,7 +31,6 @@ class ClockNode(private val interval: Clock.Interval) : Node, Clock {
             while (isActive) {
                 val now = LocalDateTime.now()
                 state.value = now
-
                 val nextHourTick = LocalDateTime.now().let {
                     when (interval) {
                         Clock.Interval.HOUR ->
