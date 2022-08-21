@@ -35,7 +35,6 @@ class TreeHolder(private val log: Log) {
     }
 
     fun <T> connect(producer: Node.Producer<T>, consumer: Node.Consumer<T>) {
-        log.v("Connecting $producer and $consumer")
         scope.launch {
             val inbound = consumer.junction()
             inbound.attachedProducers().forEach { it.detach(inbound) }
@@ -101,7 +100,6 @@ class TreeHolder(private val log: Log) {
         init {
             scope.launch {
                 val flow = producer.flow
-                log.v("Connecting to producer $producer flow $flow scope $scope")
                 flow.stateIn(scope).filterNotNull().collect { value ->
                     lastValue = value
                     consumers.forEach { it.stateFlow.value = value }
@@ -111,7 +109,6 @@ class TreeHolder(private val log: Log) {
 
         fun attach(junction: ConsumerJunction<T>) {
             scope.launch {
-                log.v("Adding consumer ${junction.stateFlow}")
                 consumers.add(junction)
                 if (lastValue != null) {
                     junction.stateFlow.value = lastValue!!
