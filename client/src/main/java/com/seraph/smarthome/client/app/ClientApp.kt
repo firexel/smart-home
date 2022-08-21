@@ -14,7 +14,7 @@ class ClientApp : Application(), Services {
     override fun onCreate() {
         super.onCreate()
         val options = MqttNetworkRepository.ConnectionOptions( // set to copernicus
-                "192.168.1.202", 1883,
+                "192.168.0.64", 1883,
                 MqttNetworkRepository.ConnectionOptions.Credentials(
                         "client", "2BpS3tMm5Q3ZXdv90Hxr"
                 )

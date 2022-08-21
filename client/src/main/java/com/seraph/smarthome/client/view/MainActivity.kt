@@ -30,6 +30,7 @@ import java.util.*
 import kotlin.math.sqrt
 
 val p1 = 8.dp
+val p2 = 16.dp
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,10 +56,10 @@ class MainActivity : AppCompatActivity() {
                     .background(Color.White)
                     .fillMaxHeight()
             ) {
-
                 items(
                     groups.size,
                     { groups[it].hashCode() },
+                    { 1 },
                     { Group(groups[it]) }
                 )
             }
@@ -225,7 +226,7 @@ class MainActivity : AppCompatActivity() {
 
         Card(
             modifier = Modifier.aspectRatio(1.718f),
-            elevation = 0.dp,
+            elevation = p2,
             border = BorderStroke(1.dp, bg.second)
         ) {
             Column(
@@ -246,7 +247,7 @@ class MainActivity : AppCompatActivity() {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(1f),
-                    elevation = 0.dp
+                    elevation = p1
                 ) {
                     Box(
                         modifier = Modifier.padding(start = p1, end = p1),
