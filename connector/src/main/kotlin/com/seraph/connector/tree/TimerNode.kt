@@ -1,5 +1,6 @@
 package com.seraph.connector.tree
 
+import com.seraph.smarthome.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,7 +10,8 @@ import java.lang.Long.max
 
 class TimerNode(
     private val tickInterval: Long,
-    private val stopAfter: Long
+    private val stopAfter: Long,
+    private val log: Log
 ) : Node, Timer {
 
     private val activeState = MutableStateFlow(false)
@@ -19,6 +21,16 @@ class TimerNode(
 
     override suspend fun run(scope: CoroutineScope) {
         this.scope = scope
+
+        /**
+         * This hack used to keep stored context in Completing state forever to be able to launch
+         * coroutines on it in start() method
+         */
+        scope.launch {
+            while (isActive) {
+                delay(1000L)
+            }
+        }
         start()
     }
 
@@ -26,6 +38,7 @@ class TimerNode(
         val prevTimer = job
         job = scope?.launch {
             prevTimer?.let {
+                log.v("Cancelling previous")
                 it.cancel(RestartCancellation())
                 it.join()
             }
@@ -45,8 +58,10 @@ class TimerNode(
                 }
             } catch (ex: StopCancellation) {
                 activeState.value = false
+                log.v("Cancelled externally")
             } catch (ex: RestartCancellation) {
                 // do nothing
+                log.v("Restart exception")
             }
         }
     }

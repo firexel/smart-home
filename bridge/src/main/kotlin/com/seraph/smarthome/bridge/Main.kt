@@ -6,7 +6,7 @@ import com.seraph.smarthome.domain.Metainfo
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.impl.Brokers
-import com.seraph.smarthome.transport.impl.LocalBroker
+import com.seraph.smarthome.transport.impl.WildcardBroker
 import com.seraph.smarthome.util.*
 import java.io.File
 import java.util.*
@@ -41,35 +41,42 @@ class Main {
             }
         }
 
-        private fun mapNetworksToBundles(config: Config, bundles: Map<String, NetworkBundle>): Map<String, List<NetworkBundle>> {
+        private fun mapNetworksToBundles(
+            config: Config,
+            bundles: Map<String, NetworkBundle>
+        ): Map<String, List<NetworkBundle>> {
             val allNetworks = config.routes.flatMap { listOf(it.from, it.to) }.toSet()
             return allNetworks.associateWith { name ->
                 config.routes
-                        .filter { it.from == name || it.to == name }
-                        .map {
-                            if (it.from == name) {
-                                it.to
-                            } else {
-                                it.from
-                            }
+                    .filter { it.from == name || it.to == name }
+                    .map {
+                        if (it.from == name) {
+                            it.to
+                        } else {
+                            it.from
                         }
-                        .distinct()
-                        .map {
-                            bundles[it]
-                                    ?: throw IllegalArgumentException("Network $it is not described")
-                        }
+                    }
+                    .distinct()
+                    .map {
+                        bundles[it]
+                            ?: throw IllegalArgumentException("Network $it is not described")
+                    }
             }
         }
 
-        private fun constructNetworkBundles(config: Config, log: ConsoleLog): Map<String, NetworkBundle> {
+        private fun constructNetworkBundles(
+            config: Config,
+            log: ConsoleLog
+        ): Map<String, NetworkBundle> {
             return config.networks.mapValues {
                 val creds = it.value.credentials
-                val name = it.key.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ENGLISH) else it.toString() }
+                val name =
+                    it.key.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ENGLISH) else it.toString() }
                 val broker = createBroker(creds, log.copy("${name}Broker"), it.value.address)
-                val network = MqttNetwork(LocalBroker(broker), log.copy("${name}Network"))
+                val network = MqttNetwork(WildcardBroker(broker), log.copy("${name}Network"))
                 val monitor = NetworkMonitor(
-                        network, log.copy("${name}Monitor"),
-                        recordEvents = true
+                    network, log.copy("${name}Monitor"),
+                    recordEvents = true
                 )
                 NetworkBundle(it.key, network, monitor)
             }
@@ -78,11 +85,11 @@ class Main {
         private fun createBroker(creds: Credentials?, log: ConsoleLog, address: Address): Broker {
             return if (creds != null) {
                 Brokers.unencrypted(
-                        address.toString(),
-                        "Bridge",
-                        log,
-                        userName = creds.login,
-                        userPswd = creds.passwd
+                    address.toString(),
+                    "Bridge",
+                    log,
+                    userName = creds.login,
+                    userPswd = creds.passwd
                 )
             } else {
                 Brokers.unencrypted(address.toString(), "Bridge", log)
@@ -136,7 +143,10 @@ class Main {
             }
         }
 
-        private fun eachConnectedNetwork(name: String, actor: (MqttNetwork, NetworkMonitor) -> Unit) {
+        private fun eachConnectedNetwork(
+            name: String,
+            actor: (MqttNetwork, NetworkMonitor) -> Unit
+        ) {
             (networksMap[name] ?: error("Unknown network $name")).forEach { bundle ->
                 actor(bundle.network, bundle.monitor)
             }
@@ -144,8 +154,8 @@ class Main {
     }
 
     data class NetworkBundle(
-            val name: String,
-            val network: MqttNetwork,
-            val monitor: NetworkMonitor
+        val name: String,
+        val network: MqttNetwork,
+        val monitor: NetworkMonitor
     )
 }

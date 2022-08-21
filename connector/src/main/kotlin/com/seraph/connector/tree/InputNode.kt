@@ -59,7 +59,6 @@ class InputNode<T : Any>(
                         flow { emit(endpoint) }
                     }
                 }
-                .flowOn(scope.coroutineContext)
                 .flatMapLatest { endpoint ->
                     buffer.receiveAsFlow().map { value -> Pair(endpoint, value) }
                 }

@@ -7,15 +7,14 @@ import com.seraph.connector.configuration.FileConfigStorage
 import com.seraph.connector.tools.BlockingNetworkImpl
 import com.seraph.connector.tree.ConnectorTreeBuilder
 import com.seraph.connector.tree.TreeRunner
-import com.seraph.connector.usecase.ApplyConfigCase
-import com.seraph.connector.usecase.Cases
-import com.seraph.connector.usecase.CheckConfigCase
-import com.seraph.connector.usecase.ListConfigsCase
+import com.seraph.connector.usecase.*
 import com.seraph.smarthome.domain.Network
 import com.seraph.smarthome.domain.impl.MqttNetwork
+import com.seraph.smarthome.domain.impl.Topics
+import com.seraph.smarthome.threading.ThreadExecutor
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.impl.Brokers
-import com.seraph.smarthome.transport.impl.LocalBroker
+import com.seraph.smarthome.transport.impl.WildcardBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.Log
 import com.seraph.smarthome.util.NetworkMonitor
@@ -56,16 +55,29 @@ class Application(argv: Array<String>) : Cases {
         log.i("Started with following params: ${argv.asList()}")
         params = CommandLineParams(ArgParser(argv))
         storage = FileConfigStorage(File(params.configStorage))
-        broker = Brokers.unencrypted(params.brokerAddress, "Connector", log.copy("Broker"))
-        network = MqttNetwork(LocalBroker(broker), log.copy("Network"))
+        broker = createBroker()
+        network = MqttNetwork(broker, log.copy("Network"))
         monitor = NetworkMonitor(network, log.copy("Monitor"), false)
+        monitor.start()
         runner = TreeRunner { holder ->
             ConnectorTreeBuilder(
-                BlockingNetworkImpl(network),
+                BlockingNetworkImpl(network, log.copy("BlockingNetwork")),
                 holder,
                 log.copy("ConfigRunner")
             )
         }
+    }
+
+    private fun createBroker(): Broker {
+        val inner = Brokers.unencrypted(
+            params.brokerAddress, "Connector",
+            log.copy("Broker")
+        )
+        return WildcardBroker(
+            inner, ThreadExecutor(),
+            log.copy("WildcardBroker"),
+            listOf(Topics.structure())
+        )
     }
 
     fun run() {
@@ -85,7 +97,7 @@ class Application(argv: Array<String>) : Cases {
         ConfigChecker(monitor)
     )
 
-    override fun listConfigs(): ListConfigsCase = ListConfigsCase(
-        storage
-    )
+    override fun listConfigs(): ListConfigsCase = ListConfigsCase(storage)
+
+    override fun dumpNetwork(): DumpNetworkStateCase = DumpNetworkStateCase(monitor)
 }

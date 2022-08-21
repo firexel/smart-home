@@ -11,7 +11,6 @@ import com.seraph.smarthome.wirenboard.WirenboardDeviceDriver.Control.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import java.util.List.copyOf
@@ -42,14 +41,17 @@ class WirenboardBridge(
     }
 
     private suspend fun createDevice(deviceId: String) {
-        val typedControls = wbBroker.subscribeAsFlow(WirenboardTopics.controlType(deviceId))
-            .timeout(1500L)
+        val topic = WirenboardTopics.controlType(deviceId)
+        val typedControls = wbBroker.subscribeAsFlow(topic)
+            .timeout(15000L)
             .map { p ->
                 TypedControl(p.topic.segments[4], Converters.STRING.fromBytes(p.data))
                     .apply { log.v("Control '$id' found for '$deviceId' with type '$type'") }
             }
-            .onCompletion { log.v("Finished waiting for controls for '$deviceId'") }
             .toList()
+
+        log.i("Finished waiting for controls for '$deviceId' on topic $topic. " +
+                "${typedControls.size} found total")
 
         val deviceControls = typedControls.map { control ->
             val readonly =

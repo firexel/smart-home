@@ -1,6 +1,8 @@
 package com.seraph.connector.api
 
-@kotlinx.serialization.Serializable
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class ConfigApplyResponse(
     val status: ApplyStatus,
     val errors: List<String>,
@@ -8,22 +10,29 @@ data class ConfigApplyResponse(
     val config: ConfigDataResponse?
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class ConfigsListResponse(
     val configs: List<ConfigDataResponse>
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class ConfigDataResponse(
     val id: String,
     val dateCreated: String
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class ConfigCheckResponse(
     val errors: List<String>,
     val warnings: List<String>
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 enum class ApplyStatus { OK, NOT_APPLIED }
+
+@Serializable
+data class EndpointDumpResponse(
+    val type: String,
+    val direction: String,
+    val value: String?
+)

@@ -3,10 +3,10 @@ package com.seraph.smarthome.wirenboard
 import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
-import com.seraph.smarthome.transport.impl.Brokers
-import com.seraph.smarthome.transport.impl.LocalBroker
-import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.threading.ThreadExecutor
+import com.seraph.smarthome.transport.impl.Brokers
+import com.seraph.smarthome.transport.impl.WildcardBroker
+import com.seraph.smarthome.util.ConsoleLog
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -21,15 +21,13 @@ class Main {
         fun main(argv: Array<String>) {
             val log = ConsoleLog("WB")
             val config = readConfig(File("config.json"))
-            val wbBroker = LocalBroker(
-                Brokers.unencrypted(
-                    config.wirenboard.address.toString(),
-                    config.wirenboard.name,
-                    log.copy("WBBroker"),
-                    config.wirenboard.credentials?.login,
-                    config.wirenboard.credentials?.passwd,
-                    randomizeName = true
-                )
+            val wbBroker = Brokers.unencrypted(
+                config.wirenboard.address.toString(),
+                config.wirenboard.name,
+                log.copy("WBBroker"),
+                config.wirenboard.credentials?.login,
+                config.wirenboard.credentials?.passwd,
+                randomizeName = true
             )
             val wbWildcardBroker = WildcardBroker(
                 wbBroker, ThreadExecutor(), log.copy("Wildcard"),

@@ -8,8 +8,8 @@ import com.seraph.smarthome.transport.Topic
 import com.seraph.smarthome.util.Log
 
 class MqttNetwork(
-        private val transport: Broker,
-        private val log: Log,
+    private val transport: Broker,
+    private val log: Log,
 ) : Network {
 
     private val gson: Gson = with(GsonBuilder()) {
@@ -18,27 +18,31 @@ class MqttNetwork(
     }
 
     override fun publish(metainfo: Metainfo): Network.Publication =
-            publish(Topics.metadata(), KotlinMetainfoSerializer(), metainfo)
+        publish(Topics.metadata(), KotlinMetainfoSerializer(), metainfo)
 
     override fun subscribe(func: (Metainfo) -> Unit): Network.Subscription {
         return subscribe(Topics.metadata(), KotlinMetainfoSerializer(), func)
     }
 
     override fun publish(device: Device): Network.Publication =
-            publish(Topics.structure(device.id), JsonSerializer(gson, Device::class), device)
+        publish(Topics.structure(device.id), JsonSerializer(gson, Device::class), device)
 
     override fun subscribe(device: Device.Id?, func: (Device) -> Unit): Network.Subscription {
         return subscribe(Topics.structure(device), JsonSerializer(gson, Device::class), func)
     }
 
-    override fun <T> publish(device: Device.Id, endpoint: Endpoint<T>, data: T): Network.Publication =
-            publish(Topics.endpoint(device, endpoint), endpoint.type.serializer, data)
+    override fun <T> publish(
+        device: Device.Id,
+        endpoint: Endpoint<T>,
+        data: T
+    ): Network.Publication =
+        publish(Topics.endpoint(device, endpoint), endpoint.type.serializer, data)
 
 
     override fun <T> subscribe(
-            device: Device.Id,
-            endpoint: Endpoint<T>,
-            func: (Device.Id, Endpoint<T>, data: T) -> Unit,
+        device: Device.Id,
+        endpoint: Endpoint<T>,
+        func: (Device.Id, Endpoint<T>, data: T) -> Unit,
     ): Network.Subscription {
 
         return subscribe(Topics.endpoint(device, endpoint), endpoint.type.serializer) { data ->
@@ -46,7 +50,11 @@ class MqttNetwork(
         }
     }
 
-    private fun <T> subscribe(topic: Topic, serializer: Serializer<T>, acceptor: (T) -> Unit): Network.Subscription {
+    private fun <T> subscribe(
+        topic: Topic,
+        serializer: Serializer<T>,
+        acceptor: (T) -> Unit
+    ): Network.Subscription {
         val sub = transport.subscribe(topic) { responseTopic, data ->
             try {
                 val deserialized = serializer.fromBytes(data)
@@ -70,7 +78,8 @@ class MqttNetwork(
 
     override var statusListener: Network.StatusListener = NoListener()
 
-    private class NetworkPublication(private val publication: Broker.Publication) : Network.Publication {
+    private class NetworkPublication(private val publication: Broker.Publication) :
+        Network.Publication {
         override fun waitForCompletion(millis: Long) {
             publication.waitForCompletion(millis)
         }

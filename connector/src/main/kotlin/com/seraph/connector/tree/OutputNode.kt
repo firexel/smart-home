@@ -50,7 +50,6 @@ class OutputNode<T : Any>(
                         network.read(Device.Id(devId), endpoint)
                     }
                 }
-                .flowOn(scope.coroutineContext)
                 .collect { value ->
                     @Suppress("UNCHECKED_CAST")
                     flow.value = value as T

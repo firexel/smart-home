@@ -4,4 +4,5 @@ interface Cases {
     fun listConfigs(): ListConfigsCase
     fun applyConfig(): ApplyConfigCase
     fun checkConfig(config: String): CheckConfigCase
+    fun dumpNetwork(): DumpNetworkStateCase
 }

@@ -29,11 +29,22 @@ fun startApiServer(cases: Cases) {
             install(ContentNegotiation) {
                 json()
             }
-            post("config/list") {
+            get("config/list") {
                 val list = cases.listConfigs().run().map { it.toResponse() }
-                call.respond(
-                    HttpStatusCode.OK, ConfigsListResponse(list)
-                )
+                call.respond(HttpStatusCode.OK, ConfigsListResponse(list))
+            }
+            get("network/dump") {
+                val dump = cases.dumpNetwork().run().devices
+                    .mapValues {
+                        it.value.endpoints.mapValues {
+                            EndpointDumpResponse(
+                                it.value.type,
+                                it.value.direction,
+                                it.value.value?.toString()
+                            )
+                        }
+                    }
+                call.respond(HttpStatusCode.OK, dump)
             }
             post("config/reapply") {
                 val id = call.request.queryParameters.getOrFail("id")

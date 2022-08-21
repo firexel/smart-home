@@ -47,7 +47,8 @@ class ConnectorTreeBuilder(
     }
 
     override fun timer(tickInterval: Long, stopAfter: Long): Timer {
-        return TimerNode(tickInterval, stopAfter).apply { holder.install(this) }
+        val log = log.copy("Timer")
+        return TimerNode(tickInterval, stopAfter, log).apply { holder.install(this) }
     }
 
     override fun clock(tickInterval: Clock.Interval): Clock {

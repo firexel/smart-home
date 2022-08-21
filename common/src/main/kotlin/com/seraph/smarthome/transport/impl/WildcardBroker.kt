@@ -1,15 +1,17 @@
-package com.seraph.smarthome.wirenboard
+package com.seraph.smarthome.transport.impl
 
+import com.seraph.smarthome.threading.Executor
+import com.seraph.smarthome.threading.ThreadExecutor
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
-import com.seraph.smarthome.threading.Executor
 import com.seraph.smarthome.util.Log
+import com.seraph.smarthome.util.NoLog
 
 class WildcardBroker(
     private val wrapped: Broker,
-    private val executor: Executor,
-    private val log: Log,
-    private val wildcards: List<Topic>
+    private val executor: Executor = ThreadExecutor(),
+    private val log: Log = NoLog(),
+    private val wildcards: List<Topic> = emptyList()
 ) : Broker {
 
     private val subs: MutableList<Subscription> = mutableListOf()
@@ -41,6 +43,7 @@ class WildcardBroker(
                     override fun unsubscribe() {
                         synchronized(lock) {
                             listeners.remove(token)
+//                            TODO("Fix unsubscribe")
 //                            if (listeners.isEmpty()) {
 //                                subscription?.unsubscribe()
 //                                values.clear()

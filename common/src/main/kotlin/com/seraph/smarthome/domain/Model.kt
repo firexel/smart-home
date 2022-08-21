@@ -9,9 +9,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Metainfo(
-        val brokerName: String,
-        val role: Role,
-        val widgetGroups: List<WidgetGroup>
+    val brokerName: String,
+    val role: Role,
+    val widgetGroups: List<WidgetGroup>
 ) {
     enum class Role {
         USER, ADMIN
@@ -19,11 +19,13 @@ data class Metainfo(
 }
 
 data class Device(
-        val id: Id,
-        val endpoints: List<Endpoint<*>> = emptyList()
+    val id: Id,
+    val endpoints: List<Endpoint<*>> = emptyList()
 ) {
     data class Id(val segments: List<String>) {
-        constructor(vararg segments: String) : this(segments.toList())
+        constructor(vararg segments: String) : this(
+            segments.flatMap { it.split(":") }.toList()
+        )
 
         val value: String = segments.joinToString(":")
         override fun toString(): String = value
@@ -32,13 +34,13 @@ data class Device(
 }
 
 data class Endpoint<N>(
-        val id: Id,
-        val type: Type<N>,
-        val direction: Direction,
-        val retention: Retention,
-        val dataKind: DataKind,
-        val interaction: Interaction,
-        val units: Units = Units.NO
+    val id: Id,
+    val type: Type<N>,
+    val direction: Direction,
+    val retention: Retention,
+    val dataKind: DataKind,
+    val interaction: Interaction,
+    val units: Units = Units.NO
 ) {
     data class Id(val value: String) {
         override fun toString(): String = value
@@ -66,7 +68,7 @@ data class Endpoint<N>(
         fun <T> accept(visitor: Visitor<T>): T
         fun cast(obj: Any): N
 
-        val canBeRetained:Boolean
+        val canBeRetained: Boolean
         val serializer: Serializer<N>
 
         interface Visitor<out T> {
@@ -99,11 +101,18 @@ data class Endpoint<N>(
     @Suppress("UNCHECKED_CAST")
     private inner class BypassVisitor<out T>(private val visitor: Visitor<T>) : Type.Visitor<T> {
         override fun onInt(type: Type<Int>): T = visitor.onInt(this@Endpoint as Endpoint<Int>)
-        override fun onString(type: Type<String>): T = visitor.onString(this@Endpoint as Endpoint<String>)
+        override fun onString(type: Type<String>): T =
+            visitor.onString(this@Endpoint as Endpoint<String>)
+
         override fun onAction(type: Type<Int>): T = visitor.onAction(this@Endpoint as Endpoint<Int>)
-        override fun onBoolean(type: Type<Boolean>): T = visitor.onBoolean(this@Endpoint as Endpoint<Boolean>)
-        override fun onFloat(type: Type<Float>): T = visitor.onFloat(this@Endpoint as Endpoint<Float>)
-        override fun onDeviceState(type: Type<DeviceState>): T = visitor.onDeviceState(this@Endpoint as Endpoint<DeviceState>)
+        override fun onBoolean(type: Type<Boolean>): T =
+            visitor.onBoolean(this@Endpoint as Endpoint<Boolean>)
+
+        override fun onFloat(type: Type<Float>): T =
+            visitor.onFloat(this@Endpoint as Endpoint<Float>)
+
+        override fun onDeviceState(type: Type<DeviceState>): T =
+            visitor.onDeviceState(this@Endpoint as Endpoint<DeviceState>)
     }
 
     interface Visitor<out T> {
