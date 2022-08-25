@@ -32,7 +32,7 @@ import kotlin.math.sqrt
 val p1 = 8.dp
 val p2 = 16.dp
 
-class MainActivity : AppCompatActivity() {
+class FacilityScreen : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val widgets = mutableStateOf(listOf<WidgetGroupModel>())

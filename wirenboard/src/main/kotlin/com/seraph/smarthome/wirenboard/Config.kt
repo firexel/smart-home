@@ -83,7 +83,6 @@ data class Config(
     val rename: List<DeviceRename>
 )
 
-@OptIn(ExperimentalSerializationApi::class)
 fun readConfig(file: File): Config {
     return Json.decodeFromString(FileReader(file).readText())
 }

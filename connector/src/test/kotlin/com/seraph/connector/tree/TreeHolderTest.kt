@@ -1,5 +1,6 @@
 package com.seraph.connector.tree
 
+import com.seraph.smarthome.util.NoLog
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 
@@ -92,7 +93,7 @@ internal class TreeHolderTest {
 
     fun runTest(block: suspend (holder: TreeHolder) -> Unit) {
         runBlocking {
-            val holder = TreeHolder()
+            val holder = TreeHolder(NoLog())
             try {
                 block(holder)
             } finally {
