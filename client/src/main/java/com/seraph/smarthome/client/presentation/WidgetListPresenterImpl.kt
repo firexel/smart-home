@@ -9,7 +9,6 @@ import ru.mail.march.interactor.InteractorObtainer
 class WidgetListPresenterImpl(obtainer: InteractorObtainer, services: Services) : WidgetListPresenter {
 
     override lateinit var widgets: DataChannel<List<WidgetGroupModel>>
-    override lateinit var state: DataChannel<WidgetListPresenter.ConnectionState>
 
     init {
         val widgetListInteractor = obtainer.obtain(WidgetListInteractor::class.java) {
