@@ -1,6 +1,6 @@
 package com.seraph.discovery
 
-import com.seraph.discovery.model.FacilityInfoResponse
+import com.seraph.discovery.model.ResponsesList
 import com.seraph.discovery.server.DiscoveryServer
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.Log
@@ -39,7 +39,7 @@ class Application(argv: Array<String>) {
     }
 
     fun run() {
-        val response:FacilityInfoResponse = Json.decodeFromStream(FileInputStream(params.configFile))
-        runBlocking { DiscoveryServer(response, log.copy("Server")).serve() }
+        val responses: ResponsesList = Json.decodeFromStream(FileInputStream(params.configFile))
+        runBlocking { DiscoveryServer(responses.responses, log.copy("Server")).serve() }
     }
 }

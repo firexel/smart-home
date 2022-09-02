@@ -18,7 +18,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class DiscoveryServer(
-    private val response: FacilityInfoResponse,
+    private val responses: List<FacilityInfoResponse>,
     private val log: Log
 ) {
     private val port = 1705
@@ -48,13 +48,17 @@ class DiscoveryServer(
     private suspend fun handleRequest(packet: DatagramPacket) {
         try {
             val addr = readRequest(packet)
-            runInterruptible { doCallback(addr.host, addr.port) }
+            runInterruptible {
+                responses.forEach { response ->
+                    doCallback(response, addr.host, addr.port)
+                }
+            }
         } catch (ex: Throwable) {
             log.w("Error processing request from ${packet.address.hostAddress}: $ex")
         }
     }
 
-    private fun doCallback(host: String, port: Int) {
+    private fun doCallback(response: FacilityInfoResponse, host: String, port: Int) {
         val data = Json.encodeToString(response).toByteArray(Charsets.UTF_8)
         val url = URL("http://$host:$port")
         val conn = url.openConnection() as HttpURLConnection

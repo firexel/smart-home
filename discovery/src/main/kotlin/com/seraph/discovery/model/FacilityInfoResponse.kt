@@ -12,3 +12,8 @@ data class FacilityInfoResponse(
     val brokerLogin: String?,
     val brokerPassword: String?
 )
+
+@Serializable
+data class ResponsesList(
+    val responses: List<FacilityInfoResponse>
+)
