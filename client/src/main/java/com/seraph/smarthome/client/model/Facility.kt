@@ -1,8 +1,6 @@
 package com.seraph.smarthome.client.model
 
-import android.graphics.Bitmap
-
-data class FacilityModel(
+data class Facility(
     val id: String,
     val name: String,
     val cover: String,

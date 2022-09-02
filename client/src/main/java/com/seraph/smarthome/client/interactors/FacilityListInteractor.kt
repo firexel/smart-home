@@ -1,26 +1,32 @@
 package com.seraph.smarthome.client.interactors
 
-import com.seraph.smarthome.client.model.FacilityModel
+import com.seraph.smarthome.client.model.Facility
 import com.seraph.smarthome.client.repositories.DiscoveryReceiver
-import com.seraph.smarthome.client.repositories.FacilityDatabase
+import com.seraph.smarthome.client.repositories.FacilityStorage
 import com.seraph.smarthome.client.repositories.StoredFacility
+import com.seraph.smarthome.device.validate
 import com.seraph.smarthome.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 
 class FacilityListInteractor(
-    private val database: FacilityDatabase,
+    private val storage: FacilityStorage,
     private val log: Log
 ) {
 
-    suspend fun run(): Flow<List<FacilityModel>> {
-        return database.facilityDao().getAll().map {
+    private val _currentFacility = MutableStateFlow<String?>("")
+    val currentFacility: Flow<String?> = _currentFacility
+
+    suspend fun run(): Flow<List<Facility>> {
+        _currentFacility.value = storage.currentFacilityId
+        return storage.database.facilityDao().getAll().map {
             it.map {
-                FacilityModel(
+                Facility(
                     it.id,
                     it.name,
                     it.cover,
@@ -31,6 +37,11 @@ class FacilityListInteractor(
                 )
             }
         }
+    }
+
+    fun setCurrent(facility: Facility) {
+        storage.currentFacilityId = facility.id
+        _currentFacility.value = facility.id
     }
 
     suspend fun refresh() {
@@ -48,7 +59,7 @@ class FacilityListInteractor(
                         it.brokerLogin,
                         it.brokerPassword
                     )
-                    database.facilityDao().insertFacility(facility)
+                    storage.database.facilityDao().insertFacility(facility)
                 }
         }
     }

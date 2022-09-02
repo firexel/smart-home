@@ -3,6 +3,9 @@ package com.seraph.smarthome.client.view
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,11 +24,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.seraph.smarthome.client.app.services
 import com.seraph.smarthome.client.model.WidgetGroupModel
 import com.seraph.smarthome.client.model.WidgetModel
+import com.seraph.smarthome.client.presentation.WidgetListPresenter
 import com.seraph.smarthome.client.presentation.WidgetListPresenterImpl
-import ru.mail.march.interactor.InteractorObtainers
+import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.math.sqrt
 
@@ -33,35 +39,130 @@ val p1 = 8.dp
 val p2 = 16.dp
 
 class FacilityScreen : AppCompatActivity() {
+
+    private val defaultState = WidgetListPresenter.ViewModel(
+        null, emptyList(), emptyList()
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val widgets = mutableStateOf(listOf<WidgetGroupModel>())
-        val presenter = WidgetListPresenterImpl(
-            InteractorObtainers.Companion.from(this), services
-        )
-        presenter.widgets.observe {
-            widgets.value = it
+        val model = mutableStateOf(defaultState)
+        val presenter = WidgetListPresenterImpl(services)
+
+        lifecycleScope.launch {
+            presenter.run()
+                .flowWithLifecycle(lifecycle)
+                .collect { model.value = it }
         }
+
         setContent {
-            val widgetList: List<WidgetGroupModel> by widgets
-            Content(widgetList)
+            val modelSnapshot by model
+            Content(modelSnapshot)
         }
     }
 
     @Composable
-    private fun Content(groups: List<WidgetGroupModel>) {
+    private fun Content(model: WidgetListPresenter.ViewModel) {
         MaterialTheme {
-            LazyColumn(
-                modifier = Modifier
-                    .background(Color.White)
-                    .fillMaxHeight()
+            CombinedList(model)
+        }
+    }
+
+    @Composable
+    private fun CombinedList(model: WidgetListPresenter.ViewModel) {
+
+        LazyColumn(
+            modifier = Modifier
+                .background(Color.White)
+                .fillMaxHeight()
+        ) {
+            items(
+                model.groups.size + 1,
+                { if (it == 0) 0 else model.groups[it - 1].hashCode() },
+                { if (it == 0) 0 else 1 },
+                { if (it == 0) FacilityHeader(model) else Group(model.groups[it - 1]) }
+            )
+        }
+    }
+
+    @OptIn(ExperimentalMaterialApi::class)
+    @Composable
+    private fun FacilityHeader(model: WidgetListPresenter.ViewModel) {
+        var expanded by remember { mutableStateOf(false) }
+        val transition = updateTransition(targetState = expanded, label = "HeaderTransition")
+        val elevation by transition.animateDp(label = "elevation") {
+            when (it) {
+                true -> 8.dp
+                false -> 0.dp
+            }
+        }
+        val outerPadding by transition.animateDp(label = "outer") {
+            when (it) {
+                true -> 16.dp
+                false -> 0.dp
+            }
+        }
+
+        Column(
+            modifier = Modifier.padding(
+                start = outerPadding,
+                end = outerPadding,
+                top = outerPadding
+            )
+        ) {
+            Card(
+                elevation = elevation,
+                border = BorderStroke(0.dp, Color(0)),
+                onClick = { expanded = !expanded }
             ) {
-                items(
-                    groups.size,
-                    { groups[it].hashCode() },
-                    { 1 },
-                    { Group(groups[it]) }
-                )
+                if (model.currentFacility != null) {
+                    Column(Modifier.padding(16.dp)) {
+                        Facility(model.currentFacility)
+                    }
+                } else {
+                    Row(
+                        Modifier.fillMaxWidth()
+                    ) {
+                        if (model.otherFacilities.isEmpty()) {
+                            Text("Нет доступных домов", style = MaterialTheme.typography.h4)
+                        } else {
+                            Text("Выберите дом...", style = MaterialTheme.typography.h4)
+                        }
+                    }
+                }
+            }
+            if (model.otherFacilities.isNotEmpty()) {
+                AnimatedVisibility(expanded) {
+                    Column {
+                        model.otherFacilities.forEach {
+                            Card(
+                                elevation = 8.dp,
+                                border = BorderStroke(1.dp, Color(0xffa4a4a4)),
+                                onClick = {
+                                    expanded = !expanded
+                                    it.select()
+                                },
+                                modifier = Modifier.padding(top = p1)
+                            ) {
+                                Column(Modifier.padding(16.dp)) {
+                                    Facility(it)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun Facility(place: WidgetListPresenter.FacilityViewModel) {
+        Row(
+            Modifier.fillMaxWidth()
+        ) {
+            Column {
+                Text(place.name, style = MaterialTheme.typography.h4)
+                Text("Локальное подключение", style = MaterialTheme.typography.subtitle1)
             }
         }
     }
@@ -237,8 +338,8 @@ class FacilityScreen : AppCompatActivity() {
                             clickable(onClick = onClick!!)
                         } else {
                             combinedClickable(
-                                    onClick = onClick!!,
-                                    onLongClick = onLongClick
+                                onClick = onClick!!,
+                                onLongClick = onLongClick
                             )
                         }
                     }
@@ -295,7 +396,10 @@ class FacilityScreen : AppCompatActivity() {
                     CompositeWidgetState(widget)
 
                     when (widget.target) {
-                        is WidgetModel.CompositeWidget.Target.Numeric -> NumericTarget(widget.target, bg)
+                        is WidgetModel.CompositeWidget.Target.Numeric -> NumericTarget(
+                            widget.target,
+                            bg
+                        )
                         is WidgetModel.CompositeWidget.Target.Binary -> BinaryTarget(widget.target)
                     }
                 }
@@ -309,7 +413,10 @@ class FacilityScreen : AppCompatActivity() {
     }
 
     @Composable
-    fun NumericTarget(target: WidgetModel.CompositeWidget.Target.Numeric, bg: Pair<Color, Color>) {
+    fun NumericTarget(
+        target: WidgetModel.CompositeWidget.Target.Numeric,
+        bg: Pair<Color, Color>
+    ) {
         val valueMultiplier = when (target.units) {
             WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> 100
             else -> 1
@@ -320,27 +427,27 @@ class FacilityScreen : AppCompatActivity() {
         val colors = object : SliderColors {
             @Composable
             override fun thumbColor(enabled: Boolean): State<Color> =
-                    rememberUpdatedState(bg.second)
+                rememberUpdatedState(bg.second)
 
             @Composable
             override fun tickColor(enabled: Boolean, active: Boolean): State<Color> =
-                    rememberUpdatedState(if (active) bg.second else bg.first)
+                rememberUpdatedState(if (active) bg.second else bg.first)
 
             @Composable
             override fun trackColor(enabled: Boolean, active: Boolean): State<Color> =
-                    rememberUpdatedState(if (active) bg.second else bg.first)
+                rememberUpdatedState(if (active) bg.second else bg.first)
 
         }
         Slider(
-                value = sliderState,
-                valueRange = target.min..target.max,
-                onValueChange = {
-                    sliderState = it
-                },
-                onValueChangeFinished = {
-                    target.setter(sliderState)
-                },
-                colors = colors
+            value = sliderState,
+            valueRange = target.min..target.max,
+            onValueChange = {
+                sliderState = it
+            },
+            onValueChangeFinished = {
+                target.setter(sliderState)
+            },
+            colors = colors
         )
 
         val unitsSymbol = when (target.units) {
@@ -384,9 +491,9 @@ class FacilityScreen : AppCompatActivity() {
         onDrawBehind {
             val radius = sqrt(size.height * size.height + size.width * size.width)
             val gradient = Brush.radialGradient(
-                    listOf(firstColor, firstColor, lastColor),
-                    Offset.Zero,
-                    radius = radius
+                listOf(firstColor, firstColor, lastColor),
+                Offset.Zero,
+                radius = radius
             )
             drawRect(brush = gradient)
         }
@@ -418,10 +525,23 @@ class FacilityScreen : AppCompatActivity() {
     @Preview(name = "Widget list")
     @Composable
     fun ContentPreview() {
-        Content(getTestData())
+        Content(WidgetListPresenter.ViewModel(testFacility(), emptyList(), testWidgets()))
     }
 
-    private fun getTestData(): List<WidgetGroupModel> {
+    private fun testFacility(): WidgetListPresenter.FacilityViewModel {
+        return object : WidgetListPresenter.FacilityViewModel {
+            override val name: String
+                get() = "Demo stand"
+            override val cover: String
+                get() = ""
+
+            override fun select() {
+                // not intended
+            }
+        }
+    }
+
+    private fun testWidgets(): List<WidgetGroupModel> {
         val nope: () -> Unit = {}
         val groups = listOf(
             WidgetGroupModel(

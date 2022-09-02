@@ -1,6 +1,8 @@
 package com.seraph.smarthome.client.repositories
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.annotation.NonNull
 import androidx.annotation.Nullable
 import androidx.room.*
@@ -21,7 +23,7 @@ data class StoredFacility(
 @Dao
 interface FacilityDao {
     @Query("SELECT * FROM facility")
-    suspend fun getAll(): Flow<List<StoredFacility>>
+    fun getAll(): Flow<List<StoredFacility>>
 
     @Query("SELECT * FROM facility WHERE id = :id")
     suspend fun findFacility(id: String): StoredFacility?
@@ -30,21 +32,35 @@ interface FacilityDao {
     suspend fun insertFacility(facility: StoredFacility)
 }
 
+@Database(entities = [StoredFacility::class], version = 1)
 abstract class FacilityDatabase : RoomDatabase() {
     abstract fun facilityDao(): FacilityDao
+}
+
+class FacilityStorage(
+    private val context: Context,
+    val database: FacilityDatabase
+) {
+    private val sharedPreferences: SharedPreferences
+        get() = context.getSharedPreferences("facilities", Context.MODE_PRIVATE)
+
+    var currentFacilityId: String?
+        get() = sharedPreferences.getString("current", null)
+        set(value) = sharedPreferences.edit().putString("current", value).apply()
 
     companion object {
+        @SuppressLint("StaticFieldLeak")
         @Volatile
-        private var INSTANCE: FacilityDatabase? = null
+        private var INSTANCE: FacilityStorage? = null
 
-        fun getDatabase(context: Context): FacilityDatabase {
+        fun getInstance(context: Context): FacilityStorage {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                val db = Room.databaseBuilder(
                     context,
                     FacilityDatabase::class.java,
                     "facility_database"
                 ).build()
-
+                val instance = FacilityStorage(context.applicationContext, db)
                 INSTANCE = instance
                 instance
             }
