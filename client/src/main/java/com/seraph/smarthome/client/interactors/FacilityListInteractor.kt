@@ -8,10 +8,7 @@ import com.seraph.smarthome.device.validate
 import com.seraph.smarthome.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class FacilityListInteractor(
@@ -19,11 +16,10 @@ class FacilityListInteractor(
     private val log: Log
 ) {
 
-    private val _currentFacility = MutableStateFlow<String?>("")
-    val currentFacility: Flow<String?> = _currentFacility
+    private val _currentFacility = MutableStateFlow<String?>(storage.currentFacilityId )
+    val currentFacility: Flow<String?> = _currentFacility.asStateFlow()
 
     suspend fun run(): Flow<List<Facility>> {
-        _currentFacility.value = storage.currentFacilityId
         return storage.database.facilityDao().getAll().map {
             it.map {
                 Facility(

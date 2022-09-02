@@ -9,6 +9,7 @@ import com.seraph.smarthome.domain.Units
 import com.seraph.smarthome.domain.Widget
 import com.seraph.smarthome.util.EndpointSnapshot
 import com.seraph.smarthome.util.Log
+import com.seraph.smarthome.util.NetworkMonitor
 import com.seraph.smarthome.util.NetworkSnapshot
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
@@ -20,20 +21,25 @@ class WidgetListInteractor(
     private val log: Log,
 ) {
     fun run(): Flow<List<WidgetGroupModel>> = callbackFlow {
+        trySendBlocking(extractGroups(networkRepo.monitor))
         val subscription = networkRepo.monitor.subscribe {
-            val snapshot = it.snapshot()
-            val meta = snapshot.metainfo
-            val groups = meta.widgetGroups.map { group ->
-                val widgets = group.widgets.map { widget ->
-                    mapCompositeWidget(snapshot, widget)
-                }
-                WidgetGroupModel(group.name, widgets)
-            }
-            trySendBlocking(groups)
+            trySendBlocking(extractGroups(it))
         }
         awaitClose {
             subscription.unsubscribe()
         }
+    }
+
+    private fun extractGroups(it: NetworkMonitor): List<WidgetGroupModel> {
+        val snapshot = it.snapshot()
+        val meta = snapshot.metainfo
+        val groups = meta.widgetGroups.map { group ->
+            val widgets = group.widgets.map { widget ->
+                mapCompositeWidget(snapshot, widget)
+            }
+            WidgetGroupModel(group.name, widgets)
+        }
+        return groups
     }
 
     private fun mapCompositeWidget(snapshot: NetworkSnapshot, widget: Widget): WidgetModel {

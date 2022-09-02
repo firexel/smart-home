@@ -7,6 +7,7 @@ import com.seraph.smarthome.transport.impl.Brokers
 import com.seraph.smarthome.transport.impl.WildcardBroker
 import com.seraph.smarthome.util.Log
 import com.seraph.smarthome.util.NetworkMonitor
+import kotlin.random.Random
 
 class MqttNetworkRepository(options: ConnectionOptions, log: Log) : NetworkRepository {
 
@@ -14,7 +15,7 @@ class MqttNetworkRepository(options: ConnectionOptions, log: Log) : NetworkRepos
     override lateinit var monitor: NetworkMonitor
 
     init {
-        val name = "Client ${Build.MANUFACTURER} ${Build.MODEL}"
+        val name = "Client ${Build.MANUFACTURER} ${Build.MODEL} ${Random.Default.nextInt()}"
         val addr = "tcp://${options.address}:${options.port}"
         val broker = if (options.credentials != null) {
             Brokers.unencrypted(
@@ -28,6 +29,7 @@ class MqttNetworkRepository(options: ConnectionOptions, log: Log) : NetworkRepos
         }
         network = MqttNetwork(WildcardBroker(broker), log.copy("Network"))
         monitor = NetworkMonitor(network, log.copy("Monitor"), recordEvents = false)
+        monitor.start()
     }
 
     data class ConnectionOptions(

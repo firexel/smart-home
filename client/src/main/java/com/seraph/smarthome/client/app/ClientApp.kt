@@ -9,6 +9,8 @@ import com.seraph.smarthome.client.repositories.FacilityStorage
 import com.seraph.smarthome.client.repositories.MqttNetworkRepository
 import com.seraph.smarthome.util.Log
 
+private val widgetListInteractorCache = mutableMapOf<String, WidgetListInteractor>()
+
 class ClientApp : Application(), Services {
 
     override fun facilityListInteractor(): FacilityListInteractor {
@@ -18,42 +20,36 @@ class ClientApp : Application(), Services {
         )
     }
 
-    private val widgetListInteractorCache = mutableMapOf<String, WidgetListInteractor>()
     override fun widgetListInteractor(facility: Facility): WidgetListInteractor {
-        return widgetListInteractorCache.getOrPut(facility.id) {
-            val creds = if (facility.brokerLogin != null && facility.brokerPassword != null) {
-                MqttNetworkRepository.ConnectionOptions.Credentials(
-                    facility.brokerLogin, facility.brokerPassword
-                )
-            } else {
-                null
+        return synchronized(widgetListInteractorCache) {
+            widgetListInteractorCache.getOrPut(facility.id) {
+                createWidgetListInteractor(facility)
             }
-            val options = MqttNetworkRepository.ConnectionOptions(
-                facility.brokerHost, facility.brokerPort, creds
-            )
-            val repo = MqttNetworkRepository(
-                options,
-                log.copy("MqttNetworkRepository[${facility.id}]")
-            )
-            return WidgetListInteractor(
-                repo,
-                log.copy("WidgetListInteractor[${facility.id}]")
-            )
         }
     }
 
-    override val log: Log = AdbLog()
-
-    override fun onCreate() {
-        super.onCreate()
-        val options = MqttNetworkRepository.ConnectionOptions( // set to copernicus
-            "192.168.0.64", 1883,
+    private fun createWidgetListInteractor(facility: Facility): WidgetListInteractor {
+        val creds = if (facility.brokerLogin != null && facility.brokerPassword != null) {
             MqttNetworkRepository.ConnectionOptions.Credentials(
-                "client", "2BpS3tMm5Q3ZXdv90Hxr"
+                facility.brokerLogin, facility.brokerPassword
             )
+        } else {
+            null
+        }
+        val options = MqttNetworkRepository.ConnectionOptions(
+            facility.brokerHost, facility.brokerPort, creds
         )
-        MqttNetworkRepository(options, log.copy("MqttNetworkRepository"))
+        val repo = MqttNetworkRepository(
+            options,
+            log.copy("MqttNetworkRepository[${facility.id}]")
+        )
+        return WidgetListInteractor(
+            repo,
+            log.copy("WidgetListInteractor[${facility.id}]")
+        )
     }
+
+    override val log: Log = AdbLog()
 }
 
 val Context.services: Services

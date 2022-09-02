@@ -52,7 +52,9 @@ class FacilityScreen : AppCompatActivity() {
         lifecycleScope.launch {
             presenter.run()
                 .flowWithLifecycle(lifecycle)
-                .collect { model.value = it }
+                .collect {
+                    model.value = it
+                }
         }
 
         setContent {
