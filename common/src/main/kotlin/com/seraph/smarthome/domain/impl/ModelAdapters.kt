@@ -94,6 +94,7 @@ private data class NormalizedEndpoint(
         override fun onBoolean(type: Endpoint.Type<Boolean>): NormalizedType = NormalizedType.BOOLEAN
         override fun onFloat(type: Endpoint.Type<Float>): NormalizedType = NormalizedType.FLOAT
         override fun onDeviceState(type: Endpoint.Type<DeviceState>): NormalizedType = NormalizedType.DEVICE_STATE
+        override fun onString(type: Endpoint.Type<String>): NormalizedType =  NormalizedType.STRING
     }
 
     fun makeEndpoint(): Endpoint<*> = Endpoint(
@@ -109,10 +110,11 @@ private data class NormalizedEndpoint(
                 NormalizedType.FLOAT -> Types.FLOAT
                 NormalizedType.DEVICE_STATE -> Types.DEVICE_STATE
                 NormalizedType.INTEGER -> Types.INTEGER
+                NormalizedType.STRING -> Types.STRING
             }
     )
 
-    private enum class NormalizedType {
-        BOOLEAN, ACTION, FLOAT, INTEGER, DEVICE_STATE
+    enum class NormalizedType {
+        BOOLEAN, ACTION, FLOAT, INTEGER, DEVICE_STATE, STRING
     }
 }

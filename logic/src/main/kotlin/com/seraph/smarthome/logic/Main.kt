@@ -11,8 +11,8 @@ import com.seraph.smarthome.logic.scenes.Scene
 import com.seraph.smarthome.logic.scenes.ScenesManager
 import com.seraph.smarthome.transport.impl.Brokers
 import com.seraph.smarthome.util.ConsoleLog
-import com.seraph.smarthome.util.Scheduler
-import com.seraph.smarthome.util.ThreadScheduler
+import com.seraph.smarthome.threading.Scheduler
+import com.seraph.smarthome.threading.ThreadScheduler
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 import java.io.FileReader

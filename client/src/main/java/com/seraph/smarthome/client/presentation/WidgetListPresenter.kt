@@ -1,14 +1,21 @@
 package com.seraph.smarthome.client.presentation
 
 import com.seraph.smarthome.client.model.WidgetGroupModel
-import ru.mail.march.channel.DataChannel
+import kotlinx.coroutines.flow.Flow
 
 interface WidgetListPresenter {
 
-    val widgets: DataChannel<List<WidgetGroupModel>>
-    val state: DataChannel<ConnectionState>
+    suspend fun run(): Flow<ViewModel>
 
-    enum class ConnectionState {
-        CONNECTING, CONNECTED
+    data class ViewModel(
+        val currentFacility: FacilityViewModel?,
+        val otherFacilities: List<FacilityViewModel>,
+        val groups: List<WidgetGroupModel>
+    )
+
+    interface FacilityViewModel {
+        val name: String
+        val cover: String
+        fun select()
     }
 }

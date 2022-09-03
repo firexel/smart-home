@@ -1,5 +1,6 @@
 package com.seraph.smarthome.wirenboard
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -62,7 +63,14 @@ data class Excludes(
 )
 
 @Serializable
-data class RenameBlock(
+data class DeviceRename(
+    val id: String,
+    val name: String,
+    val endpoints: List<EndpointRename>?
+)
+
+@Serializable
+data class EndpointRename(
     val id: String,
     val name: String
 )
@@ -72,7 +80,7 @@ data class Config(
     val wirenboard: Network,
     val smarthome: Network,
     val exclude: Excludes,
-    val rename: List<RenameBlock>
+    val rename: List<DeviceRename>
 )
 
 fun readConfig(file: File): Config {

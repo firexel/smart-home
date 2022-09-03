@@ -3,7 +3,7 @@ package com.seraph.smarthome.logic.devices
 import com.seraph.smarthome.device.DeviceDriver
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
-import com.seraph.smarthome.util.Scheduler
+import com.seraph.smarthome.threading.Scheduler
 import java.util.concurrent.atomic.AtomicReference
 
 class Button(private val scheduler: Scheduler) : DeviceDriver {

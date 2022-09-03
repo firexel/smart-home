@@ -1,0 +1,86 @@
+package com.seraph.connector.tree
+
+import com.seraph.connector.tools.BlockingNetwork
+import com.seraph.smarthome.util.Log
+import script.definition.*
+import kotlin.reflect.KClass
+
+@Suppress("UNCHECKED_CAST")
+class ConnectorTreeBuilder(
+    private val network: BlockingNetwork,
+    private val holder: TreeHolder,
+    private val log: Log
+) : TreeBuilder {
+
+
+    override fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Consumer<T> {
+        val key = EndpointKey(devId, endId, type)
+        val node: InputNode<T> = holder.obtain(key, InputNode::class) {
+            val log = log.copy("Input").copy("$devId/$endId")
+            InputNode(devId, endId, type, network, log)
+        } as InputNode<T>
+        return node.consumer.wrap()
+    }
+
+    override fun <T : Any> output(devId: String, endId: String, type: KClass<T>): Producer<T> {
+        val key = EndpointKey(devId, endId, type)
+        val node: OutputNode<T> = holder.obtain(key, OutputNode::class) {
+            val log = log.copy("Output").copy("$devId/$endId")
+            OutputNode(devId, endId, type, network, log)
+        } as OutputNode<T>
+        return node.producer.wrap()
+    }
+
+    override fun <T : Any> constant(value: T): Producer<T> {
+        val node = ConstantNode(value)
+        holder.install(node)
+        return node.value.wrap()
+    }
+
+    override fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit) {
+        val node = CallbackNode(block, this@ConnectorTreeBuilder, log.copy("Callback"))
+        holder.install(node)
+        holder.connect(this.unwrap(), node.consumer)
+    }
+
+    override fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T> {
+        return MapNode(block).apply { holder.install(this) }.output.wrap()
+    }
+
+    override fun timer(tickInterval: Long, stopAfter: Long): Timer {
+        val log = log.copy("Timer")
+        return TimerNode(tickInterval, stopAfter, log).apply { holder.install(this) }
+    }
+
+    override fun clock(tickInterval: Clock.Interval): Clock {
+        return ClockNode(tickInterval).apply { holder.install(this) }
+    }
+
+    private fun <T> Node.Producer<T>.wrap(): Producer<T> = this as Producer<T>
+
+    fun <T> Producer<T>.unwrap(): Node.Producer<T> = when (this) {
+        is Node.Producer<*> -> this as Node.Producer<T>
+        else -> throw ClassCastException("$this cannot be casted to a Node.Producer")
+    }
+
+    inner class ConsumerImpl<T>(val nodeConsumer: Node.Consumer<T>) : Consumer<T> {
+        override var value: Producer<T>? = null
+            set(producer) {
+                field = producer
+                if (producer != null) {
+                    holder.connect(producer.unwrap(), nodeConsumer)
+                } else {
+                    holder.disconnect(nodeConsumer)
+                }
+            }
+    }
+
+    private fun <T> Node.Consumer<T>.wrap(): Consumer<T> = ConsumerImpl(this)
+    private fun <T> Consumer<T>.unwrap(): Node.Consumer<T> = (this as ConsumerImpl<T>).nodeConsumer
+
+    data class EndpointKey(
+        val devId: String,
+        val endId: String,
+        val type: KClass<*>
+    )
+}

@@ -3,13 +3,12 @@ package com.seraph.smarthome.wirenboard
 import com.seraph.smarthome.device.DriversManager
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.impl.MqttNetwork
+import com.seraph.smarthome.threading.ThreadExecutor
 import com.seraph.smarthome.transport.impl.Brokers
-import com.seraph.smarthome.transport.impl.LocalBroker
+import com.seraph.smarthome.transport.impl.WildcardBroker
 import com.seraph.smarthome.util.ConsoleLog
-import com.seraph.smarthome.util.ThreadExecutor
 import kotlinx.coroutines.runBlocking
 import java.io.File
-import kotlin.concurrent.thread
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -22,15 +21,13 @@ class Main {
         fun main(argv: Array<String>) {
             val log = ConsoleLog("WB")
             val config = readConfig(File("config.json"))
-            val wbBroker = LocalBroker(
-                Brokers.unencrypted(
-                    config.wirenboard.address.toString(),
-                    config.wirenboard.name,
-                    log.copy("WBBroker"),
-                    config.wirenboard.credentials?.login,
-                    config.wirenboard.credentials?.passwd,
-                    randomizeName = true
-                )
+            val wbBroker = Brokers.unencrypted(
+                config.wirenboard.address.toString(),
+                config.wirenboard.name,
+                log.copy("WBBroker"),
+                config.wirenboard.credentials?.login,
+                config.wirenboard.credentials?.passwd,
+                randomizeName = true
             )
             val wbWildcardBroker = WildcardBroker(
                 wbBroker, ThreadExecutor(), log.copy("Wildcard"),
@@ -49,7 +46,8 @@ class Main {
                 config.smarthome.credentials?.passwd,
             )
             val network = MqttNetwork(shBroker, log.copy("Network"))
-            val drivers = DriversManager(network, Device.Id(config.smarthome.name), log = log.copy("Drivers"))
+            val drivers =
+                DriversManager(network, Device.Id(config.smarthome.name), log = log.copy("Drivers"))
             val bridge = WirenboardBridge(
                 wbWildcardBroker,
                 drivers,
@@ -67,7 +65,13 @@ class Main {
             if (config.exclude.endpoints.isNotEmpty()) {
                 list += WirenboardBridge.filterOutEndpointsById(config.exclude.endpoints)
             }
-            list += config.rename.map { WirenboardBridge.changeDeviceId(it.id, it.name) }
+            list += config.rename.flatMap {
+                val devId = it.id
+                val ends = (it.endpoints ?: listOf()).map { end ->
+                    WirenboardBridge.changeEndpointId(devId, end.id, end.name)
+                }
+                ends + WirenboardBridge.changeDeviceId(it.id, it.name)
+            }
             return list
         }
     }

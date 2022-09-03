@@ -1,15 +1,17 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.5.21'
+    ext.kotlin_version = '1.6.21'
     ext.kotlin_argparser_version = '2.0.3'
+    ext.kotlin_coroutines_version = '1.6.3'
+    ext.ktor_version = '2.0.3'
     ext.march_version = '0.0.2-snapshot'
     repositories {
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.2'
+        classpath 'com.android.tools.build:gradle:7.2.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
         classpath 'com.bmuschko:gradle-docker-plugin:3.2.4'
@@ -23,6 +25,7 @@ allprojects {
     repositories {
         google()
         jcenter()
+        mavenCentral()
     }
 }
 
@@ -38,7 +41,7 @@ import static org.codehaus.groovy.runtime.DefaultGroovyMethods.with
 allprojects.each {
     def root = project
     it.afterEvaluate { project ->
-        if (project.hasProperty("mainClassName")) {
+        if (project.hasProperty("mainClassName") && project.mainClassName != null) {
             configureJarAssemblyIn(project)
             configureDockerImageAssemblyIn(root, project)
         }
@@ -54,7 +57,8 @@ private void configureJarAssemblyIn(def project) {
                     configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
                 }
             }
-            exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/versions/9/module-info.class', 'META-INF/metadata.kotlin_module'
+            duplicatesStrategy DuplicatesStrategy.WARN
+            exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/versions/9/module-info.class', 'META-INF/metadata.kotlin_module', 'META-INF/compiler.common.jvm.kotlin_module'
             manifest {
                 attributes "Main-Class": mainClassName
             }

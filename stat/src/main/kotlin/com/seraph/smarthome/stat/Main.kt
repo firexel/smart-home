@@ -4,7 +4,7 @@ import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.transport.impl.Brokers
-import com.seraph.smarthome.transport.impl.LocalBroker
+import com.seraph.smarthome.transport.impl.WildcardBroker
 import com.seraph.smarthome.util.ConsoleLog
 import com.seraph.smarthome.util.EndpointSnapshot
 import com.seraph.smarthome.util.NetworkEvent
@@ -27,7 +27,7 @@ class Main {
             log.i("Config is $config")
 
             val broker = Brokers.unencrypted(config.network.toString(), "Stat", log.copy("Broker"))
-            val network = MqttNetwork(LocalBroker(broker), log.copy("Network"))
+            val network = MqttNetwork(WildcardBroker(broker), log.copy("Network"))
 
             senders = config.outputs.map {
                 when (it) {
@@ -105,5 +105,9 @@ class MetricCastVisitor(private val value: Any) : Endpoint.Visitor<Double> {
 
     override fun onDeviceState(endpoint: Endpoint<DeviceState>): Double {
         return (value as DeviceState).ordinal.toDouble()
+    }
+
+    override fun onString(endpoint: Endpoint<String>): Double {
+        return Double.NaN
     }
 }
