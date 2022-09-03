@@ -9,7 +9,7 @@ class MapNode<T>(private val block: suspend MapContext.() -> T) : Node {
 
     private val outputFlow = MutableStateFlow<T?>(null)
 
-    public val output: Node.Producer<T> = object : Node.Producer<T> {
+    public val output: Node.Producer<T> = object : Node.Producer<T>, Producer<T> {
         override val parent: Node
             get() = this@MapNode
         override val flow: Flow<T?>

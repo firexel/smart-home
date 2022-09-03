@@ -56,11 +56,9 @@ class ConnectorTreeBuilder(
         return ClockNode(tickInterval).apply { holder.install(this) }
     }
 
-    data class ProducerImpl<T>(val nodeProducer: Node.Producer<T>) : Producer<T>
+    private fun <T> Node.Producer<T>.wrap(): Producer<T> = this as Producer<T>
 
-    private fun <T> Node.Producer<T>.wrap(): Producer<T> = ProducerImpl(this)
-    private fun <T> Producer<T>.unwrap(): Node.Producer<T> = when (this) {
-        is ProducerImpl -> this.nodeProducer
+    fun <T> Producer<T>.unwrap(): Node.Producer<T> = when (this) {
         is Node.Producer<*> -> this as Node.Producer<T>
         else -> throw ClassCastException("$this cannot be casted to a Node.Producer")
     }

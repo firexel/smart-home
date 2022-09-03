@@ -21,23 +21,25 @@ class WildcardBroker(
         val callback: (Topic, ByteArray) -> Unit
     )
 
-    private inner class Subscription(val wildcard: Topic) {
+    private inner class Subscription(public val wildcard: Topic) {
         private val listeners: MutableMap<Any, Listener> = mutableMapOf()
-        private var subscription: Broker.Subscription? = null
+        private val subscription: Broker.Subscription
         private val values: MutableMap<Topic, ByteArray> = mutableMapOf()
         private val lock = Any()
+
+        init {
+            synchronized(lock) {
+                subscription = wrapped.subscribe(wildcard) { t, d ->
+                    store(t, d)
+                    propagate(t, d)
+                }
+            }
+        }
 
         fun addListener(topic: Topic, listener: (Topic, ByteArray) -> Unit): Broker.Subscription {
             return synchronized(lock) {
                 val token = Any()
                 listeners[token] = Listener(topic, listener)
-                if (listeners.size == 1) {
-                    log.v("-*> '$topic' > '$wildcard'")
-                    subscription = wrapped.subscribe(wildcard) { t, d ->
-                        store(t, d)
-                        propagate(t, d)
-                    }
-                }
                 feedRetainedValues(topic, listener)
                 object : Broker.Subscription {
                     override fun unsubscribe() {
@@ -87,6 +89,7 @@ class WildcardBroker(
             var activeSub = subs.find { it.wildcard.matches(topic) }
             if (activeSub == null) {
                 activeSub = Subscription(wildcards.find { it.matches(topic) } ?: topic)
+                log.v("-*> '$topic' > '${activeSub.wildcard}'")
                 subs.add(activeSub)
             }
             activeSub.addListener(topic, listener)

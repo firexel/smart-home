@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import script.definition.Producer
 import kotlin.reflect.KClass
 
 class OutputNode<T : Any>(
@@ -23,7 +24,7 @@ class OutputNode<T : Any>(
 
     private val flow = MutableStateFlow<T?>(null)
 
-    val producer: Node.Producer<T> = object : Node.Producer<T> {
+    val producer: Node.Producer<T> = object : Node.Producer<T>, Producer<T> {
         override val parent: Node
             get() = this@OutputNode
         override val flow: Flow<T?>
