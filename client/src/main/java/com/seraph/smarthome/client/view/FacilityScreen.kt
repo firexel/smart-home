@@ -4,7 +4,9 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -14,18 +16,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Dimension
 import com.seraph.smarthome.client.app.services
 import com.seraph.smarthome.client.model.WidgetGroupModel
 import com.seraph.smarthome.client.model.WidgetModel
@@ -89,8 +98,8 @@ class FacilityScreen : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    private fun FacilityHeader(model: WidgetListPresenter.ViewModel) {
-        var expanded by remember { mutableStateOf(false) }
+    private fun FacilityHeader(model: WidgetListPresenter.ViewModel, defExpanded: Boolean = false) {
+        var expanded by remember { mutableStateOf(defExpanded) }
         val transition = updateTransition(targetState = expanded, label = "HeaderTransition")
         val elevation by transition.animateDp(label = "elevation") {
             when (it) {
@@ -112,18 +121,25 @@ class FacilityScreen : AppCompatActivity() {
                 top = outerPadding
             )
         ) {
+            val stroke by transition.animateColor(label = "color") {
+                when (it) {
+                    true -> Color(0xffa4a4a4)
+                    false -> Color(0)
+                }
+            }
             Card(
                 elevation = elevation,
-                border = BorderStroke(0.dp, Color(0)),
+                border = BorderStroke(1.dp, stroke),
                 onClick = { expanded = !expanded }
             ) {
                 if (model.currentFacility != null) {
-                    Column(Modifier.padding(16.dp)) {
-                        Facility(model.currentFacility)
+                    Column(Modifier) {
+                        Facility(model.currentFacility, expanded)
                     }
                 } else {
                     Row(
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                     ) {
                         if (model.otherFacilities.isEmpty()) {
                             Text("Нет доступных домов", style = MaterialTheme.typography.h4)
@@ -146,9 +162,7 @@ class FacilityScreen : AppCompatActivity() {
                                 },
                                 modifier = Modifier.padding(top = p1)
                             ) {
-                                Column(Modifier.padding(16.dp)) {
-                                    Facility(it)
-                                }
+                                Facility(it, true)
                             }
                         }
                     }
@@ -158,12 +172,56 @@ class FacilityScreen : AppCompatActivity() {
     }
 
     @Composable
-    private fun Facility(place: WidgetListPresenter.FacilityViewModel) {
+    private fun Facility(place: WidgetListPresenter.FacilityViewModel, showCover: Boolean) {
+
+        val transition = updateTransition(targetState = showCover, label = "FacilityTransition")
+        val widthTransition by transition.animateDp(label = "width") {
+            when (it) {
+                true -> 112.dp
+                else -> 0.dp
+            }
+        }
+        val alphaTransition by transition.animateFloat(label = "alpha") {
+            when (it) {
+                true -> 1f
+                else -> 0f
+            }
+        }
+        val stroke by transition.animateColor(label = "color") {
+            when (it) {
+                true -> Color(0xffa4a4a4)
+                false -> Color(0)
+            }
+        }
+
         Row(
             Modifier.fillMaxWidth()
         ) {
-            Column {
-                Text(place.name, style = MaterialTheme.typography.h4)
+            Card(
+                elevation = p2,
+                border = BorderStroke(1.dp, stroke),
+                modifier = Modifier
+                    .width(widthTransition)
+                    .height(84.dp)
+                    .alpha(alphaTransition)
+            ) {
+                val w = with(LocalDensity.current) { 112.dp.roundToPx() }
+                val h = with(LocalDensity.current) { 84.dp.roundToPx() }
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(place.cover)
+                        .size(w, h)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Home cover"
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .align(Alignment.CenterVertically)
+            ) {
+                Text(place.name, style = MaterialTheme.typography.h4, maxLines = 1)
                 Text("Локальное подключение", style = MaterialTheme.typography.subtitle1)
             }
         }
@@ -528,6 +586,21 @@ class FacilityScreen : AppCompatActivity() {
     @Composable
     fun ContentPreview() {
         Content(WidgetListPresenter.ViewModel(testFacility(), emptyList(), testWidgets()))
+    }
+
+    @Preview(name = "No homes state")
+    @Composable
+    fun ContentPreviewNoHomes() {
+        FacilityHeader(WidgetListPresenter.ViewModel(null, emptyList(), emptyList()))
+    }
+
+    @Preview(name = "Expanded homes state")
+    @Composable
+    fun ContentPreviewExpandedHomes() {
+        FacilityHeader(
+            WidgetListPresenter.ViewModel(testFacility(), listOf(testFacility()), emptyList()),
+            defExpanded = true
+        )
     }
 
     private fun testFacility(): WidgetListPresenter.FacilityViewModel {
