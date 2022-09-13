@@ -65,7 +65,7 @@ class WirenboardBridge(
 
         val info = runFilters(DeviceInfo(deviceId, deviceControls.filterNotNull()))
         if (info != null) {
-            val outerId = info.outerId.safe
+            val outerId = info.wbId.safe
             drivers.addDriver(
                 Device.Id(outerId),
                 WirenboardDeviceDriver(
@@ -139,53 +139,11 @@ class WirenboardBridge(
     internal data class TypedControl(val id: String, val type: String)
 
     data class DeviceInfo(
-        val outerId: String,
+        val wbId: String,
         val controls: List<WirenboardDeviceDriver.Control>
     )
 
     interface DeviceInfoFilter {
         fun filter(info: DeviceInfo): DeviceInfo?
-    }
-
-    companion object {
-        fun filterOutByDeviceId(ids: List<String>): DeviceInfoFilter = object : DeviceInfoFilter {
-            override fun filter(info: DeviceInfo): DeviceInfo? {
-                return if (ids.contains(info.outerId)) {
-                    null
-                } else {
-                    info
-                }
-            }
-        }
-
-        fun filterOutEndpointsById(ids: List<String>): DeviceInfoFilter =
-            object : DeviceInfoFilter {
-                override fun filter(info: DeviceInfo): DeviceInfo? {
-                    return info.copy(controls = info.controls.filter { !ids.contains(it.id) })
-                }
-            }
-
-        fun changeDeviceId(id: String, name: String): DeviceInfoFilter = object : DeviceInfoFilter {
-            override fun filter(info: DeviceInfo): DeviceInfo? {
-                return if (info.outerId == id) {
-                    info.copy(outerId = name)
-                } else {
-                    info
-                }
-            }
-        }
-
-        fun changeEndpointId(devId: String, endId: String, name: String): DeviceInfoFilter =
-            object : DeviceInfoFilter {
-                override fun filter(info: DeviceInfo): DeviceInfo? {
-                    return if (info.outerId == devId) {
-                        info.copy(controls = copyOf(info.controls).apply {
-                            firstOrNull { it.id == endId }?.rename(name)
-                        })
-                    } else {
-                        info
-                    }
-                }
-            }
     }
 }

@@ -15,11 +15,12 @@ fun TreeBuilder.configureCandleLight() {
     /* Shortcuts */
     val key1 = output("wb:wb_gpio", "ext2_in5_out", Boolean::class)
     val key2 = output("wb:wb_gpio", "ext2_in6_out", Boolean::class)
-    val candleOn = input("wb:wb_mdm3_0x54", "k1_in", Boolean::class)
-    val candlePower = input("wb:wb_mdm3_0x54", "channel_1_in", Int::class)
+    val candleOn = input("wb:d1", "k1_in", Boolean::class)
+    val candlePower = input("wb:d1", "channel_1_in", Int::class)
 
     candleOn.value = map { monitor(key1) || monitor(key2) }
     candlePower.value = map {
+        println("Mapping channel_1_in ---- ")
         when (monitor(key1) to monitor(key2)) {
             false to false -> 0
             false to true -> 15
@@ -37,10 +38,10 @@ fun TreeBuilder.configureMasterBedroomLights() {
     val spotsKey = output("wb:wb_gpio", "ext2_in3_out", Boolean::class)
     val ntshLightKey = output("wb:wb_gpio", "ext2_in2_out", Boolean::class)
     val alexLightKey = output("wb:wb_gpio", "ext2_in1_out", Boolean::class)
-    val spotsOn = input("wb:wb_mdm3_0x54", "k2_in", Boolean::class)
-    val ntshLightOn = input("wb:wb_mr6c_31", "k5_in", Boolean::class)
-    val alexLightOn = input("wb:wb_mr6c_31", "k3_in", Boolean::class)
-    val spotsPower = input("wb:wb_mdm3_0x54", "channel_2_in", Int::class)
+    val spotsOn = input("wb:d1", "k2_in", Boolean::class)
+    val ntshLightOn = input("wb:r1", "k5_in", Boolean::class)
+    val alexLightOn = input("wb:r1", "k3_in", Boolean::class)
+    val spotsPower = input("wb:d1", "channel_2_in", Int::class)
 
     spotsOn.value = spotsKey
     spotsPower.value = map { if (monitor(spotsKey)) 100 else 0 }
@@ -53,8 +54,8 @@ fun TreeBuilder.configureMasterBedroomLights() {
  */
 fun TreeBuilder.configureStreetLights() {
     /* Shortcuts */
-    val projectors = input("wb:wb_mr6c_57", "k1_in", Boolean::class)
-    val facade = input("wb:wb_mr3_29", "k1_in", Boolean::class)
+    val projectors = input("wb:r2", "k1_in", Boolean::class)
+    val facade = input("wb:r2", "k1_in", Boolean::class)
 
     val clock = clock(Clock.Interval.HOUR)
     val onTime = map {

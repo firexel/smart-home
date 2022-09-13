@@ -41,7 +41,8 @@ interface TreeBuilder {
     fun <T : Any> constant(value: T): Producer<T>
     fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T>
     fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit)
-
+//    fun <T : Any> Producer<T>.stored(name: String): Producer<T>
+//    fun <T : Any> virtual(devId: String, type: KClass<T>, readonly: Boolean = false): Producer<T>
     fun timer(tickInterval: Long = 1000L, stopAfter: Long): Timer
     fun clock(tickInterval: Clock.Interval): Clock
 }

@@ -9,6 +9,7 @@ import com.seraph.smarthome.transport.impl.WildcardBroker
 import com.seraph.smarthome.util.ConsoleLog
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.util.regex.Pattern
 
 /**
  * Created by aleksandr.naumov on 03.12.2017.
@@ -58,21 +59,49 @@ class Main {
         }
 
         private fun makeFilters(config: Config): List<WirenboardBridge.DeviceInfoFilter> {
-            val list = mutableListOf<WirenboardBridge.DeviceInfoFilter>()
-            if (config.exclude.devices.isNotEmpty()) {
-                list += WirenboardBridge.filterOutByDeviceId(config.exclude.devices)
+            return config.devices.map { (id, filter) ->
+                RegexDeviceFilter(id, filter)
             }
-            if (config.exclude.endpoints.isNotEmpty()) {
-                list += WirenboardBridge.filterOutEndpointsById(config.exclude.endpoints)
-            }
-            list += config.rename.flatMap {
-                val devId = it.id
-                val ends = (it.endpoints ?: listOf()).map { end ->
-                    WirenboardBridge.changeEndpointId(devId, end.id, end.name)
+        }
+
+        private class RegexDeviceFilter(id: String, private val filter: DeviceFilter) :
+            WirenboardBridge.DeviceInfoFilter {
+
+            private val idPattern = Regex(id)
+
+            override fun filter(info: WirenboardBridge.DeviceInfo): WirenboardBridge.DeviceInfo? {
+                var newInfo = info
+                if (info.wbId.matches(idPattern)) {
+                    if (filter.exclude) {
+                        return null
+                    } else {
+                        if (filter.rename != null) {
+                            newInfo = newInfo.copy(wbId = filter.rename)
+                        }
+                        if (filter.endpoints.isNotEmpty()) {
+                            filter.endpoints.forEach { (id, filter) ->
+                                val endPattern = Regex(id)
+                                newInfo =
+                                    newInfo.copy(controls = newInfo.controls.mapNotNull { control ->
+                                        if (control.id.matches(endPattern)) {
+                                            if (filter.exclude) {
+                                                null
+                                            } else if (filter.rename != null) {
+                                                control.rename(filter.rename)
+                                                control
+                                            } else {
+                                                control
+                                            }
+                                        } else {
+                                            control
+                                        }
+                                    })
+                            }
+                        }
+                    }
                 }
-                ends + WirenboardBridge.changeDeviceId(it.id, it.name)
+                return newInfo
             }
-            return list
         }
     }
 }

@@ -57,30 +57,23 @@ data class Network(
 )
 
 @Serializable
-data class Excludes(
-    val devices: List<String>,
-    val endpoints: List<String>
+data class EndpointFilter(
+    val exclude: Boolean = false,
+    val rename: String? = null
 )
 
 @Serializable
-data class DeviceRename(
-    val id: String,
-    val name: String,
-    val endpoints: List<EndpointRename>?
-)
-
-@Serializable
-data class EndpointRename(
-    val id: String,
-    val name: String
+data class DeviceFilter(
+    val exclude: Boolean = false,
+    val rename: String? = null,
+    val endpoints: Map<String, EndpointFilter> = emptyMap()
 )
 
 @Serializable
 data class Config(
     val wirenboard: Network,
     val smarthome: Network,
-    val exclude: Excludes,
-    val rename: List<DeviceRename>
+    val devices: Map<String, DeviceFilter>,
 )
 
 fun readConfig(file: File): Config {
