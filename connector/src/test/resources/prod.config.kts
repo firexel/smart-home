@@ -20,7 +20,6 @@ fun TreeBuilder.configureCandleLight() {
 
     candleOn.value = map { monitor(key1) || monitor(key2) }
     candlePower.value = map {
-        println("Mapping channel_1_in ---- ")
         when (monitor(key1) to monitor(key2)) {
             false to false -> 0
             false to true -> 15
@@ -55,7 +54,7 @@ fun TreeBuilder.configureMasterBedroomLights() {
 fun TreeBuilder.configureStreetLights() {
     /* Shortcuts */
     val projectors = input("wb:r2", "k1_in", Boolean::class)
-    val facade = input("wb:r2", "k1_in", Boolean::class)
+    val facade = input("wb:r5", "k1_in", Boolean::class)
 
     val clock = clock(Clock.Interval.HOUR)
     val onTime = map {
