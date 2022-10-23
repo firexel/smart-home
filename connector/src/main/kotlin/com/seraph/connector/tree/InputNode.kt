@@ -27,14 +27,9 @@ class InputNode<T : Any>(
         log.w("Value $it was dropped")
     }
 
-    val consumer: Node.Consumer<T> = object : Node.Consumer<T> {
-        override val parent: Node
-            get() = this@InputNode
-
-        override suspend fun consume(flow: StateFlow<T?>) {
-            flow.filterNotNull().collect {
-                buffer.send(it)
-            }
+    val consumer: ConsumerNode<T> = ConsumerNode(this) { flow ->
+        flow.filterNotNull().collect {
+            buffer.send(it)
         }
     }
 

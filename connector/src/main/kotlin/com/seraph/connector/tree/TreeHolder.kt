@@ -92,7 +92,7 @@ class TreeHolder(private val log: Log) {
     }
 
     inner class ProducerJunction<T>(
-        private val producer: Node.Producer<T>
+        val producer: Node.Producer<T>
     ) {
         private val consumers = mutableSetOf<ConsumerJunction<T>>()
         private var lastValue: T? = null

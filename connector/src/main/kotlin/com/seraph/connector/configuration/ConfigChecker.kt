@@ -1,10 +1,13 @@
 package com.seraph.connector.configuration
 
+import com.seraph.connector.tree.Node
 import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 import com.seraph.smarthome.util.NetworkMonitor
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import script.definition.*
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
@@ -21,12 +24,24 @@ class ConfigChecker(
         _results.add(ExecutionNote(severity, message))
     }
 
-    override fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Consumer<T> {
+    override fun <T : Any> Node.Producer<T>.transmitTo(consumer: Node.Consumer<T>) {
+        // do nothing
+    }
+
+    override fun <T : Any> Node.Consumer<T>.receiveFrom(producer: Node.Producer<T>) {
+        // do nothing
+    }
+
+    override fun <T : Any> Node.Consumer<T>.disconnect() {
+        // do nothing
+    }
+
+    override fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Node.Consumer<T> {
         checkEndpointMatching(devId, endId, type, Endpoint.Direction.INPUT)
         return mockConsumer()
     }
 
-    override fun <T : Any> output(devId: String, endId: String, type: KClass<T>): Producer<T> {
+    override fun <T : Any> output(devId: String, endId: String, type: KClass<T>): Node.Producer<T> {
         checkEndpointMatching(devId, endId, type, Endpoint.Direction.OUTPUT)
         return mockProducer()
     }
@@ -70,28 +85,48 @@ class ConfigChecker(
         }
     }
 
-    override fun <T : Any> constant(value: T): Producer<T> {
+    override fun <T : Any> constant(value: T): Node.Producer<T> {
         return mockProducer()
     }
 
-    override fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T> {
+    override fun <T : Any> map(block: suspend MapContext.() -> T): Node.Producer<T> {
         return mockProducer()
     }
 
-    override fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit) {
+    override fun <T : Any> Node.Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit) {
         // do nothing
     }
 
-    fun <T> mockConsumer(): Consumer<T> {
-        return object : Consumer<T> {
-            override var value: Producer<T>?
-                get() = null
-                set(value) {}
+    override fun <T : Any> synthetic(
+        devId: String,
+        type: KClass<T>,
+        access: Synthetic.ExternalAccess,
+        persistence: Synthetic.Persistence<T>
+    ): Synthetic<T> = object : Synthetic<T> {
+        override val output: Node.Producer<T>
+            get() = mockProducer()
+        override val input: Node.Consumer<T>
+            get() = mockConsumer()
+    }
+
+    fun <T> mockConsumer(): Node.Consumer<T> {
+        return object : Node.Consumer<T> {
+            override val parent: Node
+                get() = throw RuntimeException("Should not being called")
+
+            override suspend fun consume(flow: StateFlow<T?>) {
+                throw RuntimeException("Should not being called")
+            }
         }
     }
 
-    fun <T> mockProducer(): Producer<T> {
-        return object : Producer<T> {}
+    fun <T> mockProducer(): Node.Producer<T> {
+        return object : Node.Producer<T> {
+            override val parent: Node
+                get() = throw RuntimeException("Should not being called")
+            override val flow: Flow<T?>
+                get() = throw RuntimeException("Should not being called")
+        }
     }
 
     override fun timer(tickInterval: Long, stopAfter: Long): Timer {
@@ -100,17 +135,17 @@ class ConfigChecker(
 
             override fun stop() {}
 
-            override val active: Producer<Boolean>
+            override val active: Node.Producer<Boolean>
                 get() = mockProducer()
 
-            override val millisPassed: Producer<Long>
+            override val millisPassed: Node.Producer<Long>
                 get() = mockProducer()
         }
     }
 
     override fun clock(tickInterval: Clock.Interval): Clock {
         return object : Clock {
-            override val time: Producer<LocalDateTime>
+            override val time: Node.Producer<LocalDateTime>
                 get() = mockProducer()
         }
     }

@@ -1,5 +1,6 @@
 package script.definition
 
+import com.seraph.connector.tree.Node
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
 import kotlin.script.experimental.annotations.KotlinScript
@@ -30,32 +31,56 @@ abstract class ConfigScript(private val builder: TreeBuilder) {
 
 class TreeBuilderContext(private val builder: TreeBuilder) : TreeBuilder by builder
 
-interface Producer<T>
-interface Consumer<T> {
-    var value: Producer<T>?
-}
-
 interface TreeBuilder {
-    fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Consumer<T>
-    fun <T : Any> output(devId: String, endId: String, type: KClass<T>): Producer<T>
-    fun <T : Any> constant(value: T): Producer<T>
-    fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T>
-    fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit)
-//    fun <T : Any> Producer<T>.stored(name: String): Producer<T>
-//    fun <T : Any> virtual(devId: String, type: KClass<T>, readonly: Boolean = false): Producer<T>
+
+    infix fun <T : Any> Node.Producer<T>.transmitTo(consumer: Node.Consumer<T>)
+    infix fun <T : Any> Node.Consumer<T>.receiveFrom(producer: Node.Producer<T>)
+    fun <T : Any> Node.Consumer<T>.disconnect()
+
+    fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Node.Consumer<T>
+    fun <T : Any> output(devId: String, endId: String, type: KClass<T>): Node.Producer<T>
+    fun <T : Any> constant(value: T): Node.Producer<T>
+    fun <T : Any> map(block: suspend MapContext.() -> T): Node.Producer<T>
+    fun <T : Any> Node.Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit)
+
+    fun <T : Any> synthetic(
+        devId: String,
+        type: KClass<T>,
+        access: Synthetic.ExternalAccess,
+        persistence: Synthetic.Persistence<T>
+    ): Synthetic<T>
+
     fun timer(tickInterval: Long = 1000L, stopAfter: Long): Timer
     fun clock(tickInterval: Clock.Interval): Clock
+    fun <T> monitor(windowWidthMs: Long, aggregator: (List<T>) -> T?): Monitor<T>
 }
 
-interface Timer {
+interface Monitor<T> : Node {
+    val input: Node.Consumer<T>
+    val output: Node.Producer<T>
+}
+
+interface Synthetic<T> : Node {
+    val output: Node.Producer<T>
+    val input: Node.Consumer<T>
+
+    enum class ExternalAccess { READ, WRITE, READ_WRITE }
+    sealed class Persistence<T> {
+        class None<T> : Persistence<T>()
+        class Runtime<T>(val default: T?) : Persistence<T>()
+        class Stored<T>(val default: T?) : Persistence<T>()
+    }
+}
+
+interface Timer : Node {
     fun start()
     fun stop()
-    val active: Producer<Boolean>
-    val millisPassed: Producer<Long>
+    val active: Node.Producer<Boolean>
+    val millisPassed: Node.Producer<Long>
 }
 
-interface Clock {
-    val time: Producer<LocalDateTime>
+interface Clock : Node {
+    val time: Node.Producer<LocalDateTime>
 
     enum class Interval {
         HOUR, MINUTE, SECOND
@@ -63,7 +88,7 @@ interface Clock {
 }
 
 interface MapContext {
-    suspend fun <T> monitor(producer: Producer<T>): T
+    suspend fun <T> snapshot(producer: Node.Producer<T>): T
 }
 
 object ConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(

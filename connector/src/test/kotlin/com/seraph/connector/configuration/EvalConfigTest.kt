@@ -1,6 +1,8 @@
 package com.seraph.connector.configuration
 
-import com.seraph.connector.tree.TreeRunner
+import com.seraph.connector.tree.Node
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -54,20 +56,41 @@ internal class EvalConfigTest {
                 devId: String,
                 endId: String,
                 type: KClass<T>
-            ): Consumer<T> = mockConsumer()
+            ): Node.Consumer<T> = mockConsumer()
 
             override fun <T : Any> output(
                 devId: String,
                 endId: String,
                 type: KClass<T>
-            ): Producer<T> = mockProducer()
+            ): Node.Producer<T> = mockProducer()
 
-            override fun <T : Any> constant(value: T): Producer<T> = mockProducer()
+            override fun <T : Any> constant(value: T): Node.Producer<T> = mockProducer()
 
-            override fun <T : Any> map(block: suspend MapContext.() -> T): Producer<T> = mockProducer()
+            override fun <T : Any> map(block: suspend MapContext.() -> T): Node.Producer<T> =
+                mockProducer()
 
-            override fun <T : Any> Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit) {
+            override fun <T : Any> Node.Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit) {
+            }
 
+            override fun <T : Any> Node.Producer<T>.transmitTo(consumer: Node.Consumer<T>) {
+            }
+
+            override fun <T : Any> Node.Consumer<T>.receiveFrom(producer: Node.Producer<T>) {
+            }
+
+            override fun <T : Any> Node.Consumer<T>.disconnect() {
+            }
+
+            override fun <T : Any> synthetic(
+                devId: String,
+                type: KClass<T>,
+                access: Synthetic.ExternalAccess,
+                persistence: Synthetic.Persistence<T>
+            ): Synthetic<T> = object : Synthetic<T> {
+                override val output: Node.Producer<T>
+                    get() = mockProducer()
+                override val input: Node.Consumer<T>
+                    get() = mockConsumer()
             }
 
             override fun timer(tickInterval: Long, stopAfter: Long): Timer {
@@ -76,31 +99,39 @@ internal class EvalConfigTest {
 
                     override fun stop() {}
 
-                    override val active: Producer<Boolean>
+                    override val active: Node.Producer<Boolean>
                         get() = mockProducer()
 
-                    override val millisPassed: Producer<Long>
+                    override val millisPassed: Node.Producer<Long>
                         get() = mockProducer()
                 }
             }
 
             override fun clock(tickInterval: Clock.Interval): Clock {
                 return object : Clock {
-                    override val time: Producer<LocalDateTime>
+                    override val time: Node.Producer<LocalDateTime>
                         get() = mockProducer()
                 }
             }
 
-            fun <T> mockConsumer(): Consumer<T> {
-                return object : Consumer<T> {
-                    override var value: Producer<T>?
-                        get() = TODO("not implemented")
-                        set(value) {}
+            fun <T> mockConsumer(): Node.Consumer<T> {
+                return object : Node.Consumer<T> {
+                    override val parent: Node
+                        get() = TODO("Not yet implemented")
+
+                    override suspend fun consume(flow: StateFlow<T?>) {
+                        TODO("Not yet implemented")
+                    }
                 }
             }
 
-            fun <T> mockProducer(): Producer<T> {
-                return object : Producer<T> {}
+            fun <T> mockProducer(): Node.Producer<T> {
+                return object : Node.Producer<T> {
+                    override val parent: Node
+                        get() = TODO("Not yet implemented")
+                    override val flow: Flow<T?>
+                        get() = TODO("Not yet implemented")
+                }
             }
         }
     }

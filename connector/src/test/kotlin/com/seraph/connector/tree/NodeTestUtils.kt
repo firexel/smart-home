@@ -5,8 +5,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.jupiter.api.fail
-import script.definition.Consumer
-import script.definition.Producer
 
 
 internal suspend fun <T> List<T>.waitFor(reference: List<T>) =
@@ -100,7 +98,7 @@ internal fun <T> mockProducer(value: T): MutableProducer<T> {
     }
 }
 
-internal interface MutableProducer<T> : Producer<T>, Node.Producer<T> {
+internal interface MutableProducer<T> : Node.Producer<T> {
     var value: T
 }
 
@@ -111,9 +109,6 @@ internal fun <T> mockConsumer(): MutableConsumer<T> {
         }
     }
     return object : MutableConsumer<T> {
-        override var value: Producer<T>?
-            get() = TODO("not applicable")
-            set(value) {}
 
         override val parent: Node
             get() = parent
@@ -130,6 +125,6 @@ internal fun <T> mockConsumer(): MutableConsumer<T> {
     }
 }
 
-internal interface MutableConsumer<T> : Consumer<T>, Node.Consumer<T> {
+internal interface MutableConsumer<T> : Node.Consumer<T> {
     val collectedValues: List<T?>
 }

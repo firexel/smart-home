@@ -19,4 +19,6 @@ interface Node {
     interface Consumer<T> : Child {
         suspend fun consume(flow: StateFlow<T?>)
     }
+
+    class NodeInitException(msg:String, cause:Throwable? = null) : RuntimeException(msg, cause)
 }
