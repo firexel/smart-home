@@ -56,10 +56,22 @@ fun TreeBuilder.configureStreetLights() {
     val projectors = input("wb:r2", "k1_in", Boolean::class)
     val facade = input("wb:r5", "k1_in", Boolean::class)
 
-    val clock = clock(Clock.Interval.HOUR)
+    val clock = clock(Clock.Interval.MINUTE)
+
     val onTime = map {
         val time = monitor(clock.time)
-        time.hour >= 19 || time.hour <= 8
+
+        val start = time
+            .withHour(8)
+            .withMinute(0)
+            .withSecond(0)
+            .withNano(0)
+
+        val end = start
+            .withHour(17)
+            .withMinute(30)
+
+        time.isAfter(end) || time.isBefore(start)
     }
     projectors.value = onTime
     facade.value = onTime
