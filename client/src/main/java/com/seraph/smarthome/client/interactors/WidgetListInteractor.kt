@@ -20,13 +20,20 @@ class WidgetListInteractor(
     private val networkRepo: NetworkRepository,
     private val log: Log,
 ) {
-    fun run(): Flow<List<WidgetGroupModel>> = callbackFlow {
-        trySendBlocking(extractGroups(networkRepo.monitor))
-        val subscription = networkRepo.monitor.subscribe {
-            trySendBlocking(extractGroups(it))
-        }
-        awaitClose {
-            subscription.unsubscribe()
+    suspend fun run(): Flow<List<WidgetGroupModel>> {
+        return callbackFlow {
+            var groups = extractGroups(networkRepo.monitor)
+            trySendBlocking(groups)
+            val subscription = networkRepo.monitor.subscribe {
+                val newGroups = extractGroups(it)
+                if (groups != newGroups) {
+                    groups = newGroups
+                    trySendBlocking(newGroups)
+                }
+            }
+            awaitClose {
+                subscription.unsubscribe()
+            }
         }
     }
 
@@ -190,6 +197,7 @@ class WidgetListInteractor(
             Units.W -> WidgetModel.CompositeWidget.Units.W
             Units.KWH -> WidgetModel.CompositeWidget.Units.KWH
             Units.V -> WidgetModel.CompositeWidget.Units.V
+            Units.A -> WidgetModel.CompositeWidget.Units.A
             Units.MBAR -> WidgetModel.CompositeWidget.Units.MBAR
         }
     }
