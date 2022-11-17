@@ -520,6 +520,7 @@ class FacilityScreen : AppCompatActivity() {
             WidgetModel.CompositeWidget.Units.LX -> "lx"
             WidgetModel.CompositeWidget.Units.W -> "w"
             WidgetModel.CompositeWidget.Units.V -> "v"
+            WidgetModel.CompositeWidget.Units.A -> "A"
             WidgetModel.CompositeWidget.Units.KWH -> "KWh"
             WidgetModel.CompositeWidget.Units.MBAR -> "mBar"
         }
@@ -728,6 +729,7 @@ private fun WidgetModel.CompositeWidget.Units.toUnitsOutlineText() = when (this)
     WidgetModel.CompositeWidget.Units.LX -> "lx"
     WidgetModel.CompositeWidget.Units.W -> "w"
     WidgetModel.CompositeWidget.Units.V -> "v"
+    WidgetModel.CompositeWidget.Units.A -> "A"
     WidgetModel.CompositeWidget.Units.KWH -> "KWh"
     WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> "%"
     WidgetModel.CompositeWidget.Units.NONE -> ""
@@ -743,6 +745,7 @@ private fun WidgetModel.CompositeWidget.Units.toUnitsInlineText() = when (this) 
     WidgetModel.CompositeWidget.Units.LX -> ""
     WidgetModel.CompositeWidget.Units.W -> ""
     WidgetModel.CompositeWidget.Units.V -> ""
+    WidgetModel.CompositeWidget.Units.A -> ""
     WidgetModel.CompositeWidget.Units.KWH -> ""
     WidgetModel.CompositeWidget.Units.PERCENTS_0_1 -> ""
     WidgetModel.CompositeWidget.Units.NONE -> ""

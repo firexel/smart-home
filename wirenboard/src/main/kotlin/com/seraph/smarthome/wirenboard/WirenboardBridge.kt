@@ -110,6 +110,8 @@ class WirenboardBridge(
             FloatControl(control.id, readonly, 1f, Units.LX)
         "voltage" ->
             FloatControl(control.id, readonly, 1f, Units.V)
+        "current" ->
+            FloatControl(control.id, readonly, 1f, Units.A)
         "power" ->
             FloatControl(control.id, readonly, 1f, Units.W)
         "power_consumption" ->

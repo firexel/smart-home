@@ -136,5 +136,6 @@ enum class Units {
     W, // watts
     KWH, // kWh
     V, // volts,
+    A, // amperes,
     MBAR // millibars
 }

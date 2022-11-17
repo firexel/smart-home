@@ -23,7 +23,7 @@ sealed class WidgetModel {
         }
 
         enum class Units {
-            NONE, ON_OFF, PERCENTS_0_1, CELSIUS, PPM, PPB, LX, W, V, KWH, MBAR
+            NONE, ON_OFF, PERCENTS_0_1, CELSIUS, PPM, PPB, LX, W, V, A, KWH, MBAR
         }
 
         sealed class State {
@@ -54,7 +54,22 @@ sealed class WidgetModel {
             data class Binary(
                     override val units: Units,
                     val setter: (Boolean) -> Unit,
-            ) : Target()
+            ) : Target() {
+                override fun equals(other: Any?): Boolean {
+                    if (this === other) return true
+                    if (javaClass != other?.javaClass) return false
+
+                    other as Binary
+
+                    if (units != other.units) return false
+
+                    return true
+                }
+
+                override fun hashCode(): Int {
+                    return units.hashCode()
+                }
+            }
 
             data class Numeric(
                     override val units: Units,
@@ -62,7 +77,53 @@ sealed class WidgetModel {
                     val setter: (Float) -> Unit,
                     val min: Float,
                     val max: Float,
-            ) : Target()
+            ) : Target() {
+                override fun equals(other: Any?): Boolean {
+                    if (this === other) return true
+                    if (javaClass != other?.javaClass) return false
+
+                    other as Numeric
+
+                    if (units != other.units) return false
+                    if (state != other.state) return false
+                    if (min != other.min) return false
+                    if (max != other.max) return false
+
+                    return true
+                }
+
+                override fun hashCode(): Int {
+                    var result = units.hashCode()
+                    result = 31 * result + state.hashCode()
+                    result = 31 * result + min.hashCode()
+                    result = 31 * result + max.hashCode()
+                    return result
+                }
+            }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as CompositeWidget
+
+            if (id != other.id) return false
+            if (name != other.name) return false
+            if (category != other.category) return false
+            if (state != other.state) return false
+            if (target != other.target) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = id.hashCode()
+            result = 31 * result + name.hashCode()
+            result = 31 * result + category.hashCode()
+            result = 31 * result + (state?.hashCode() ?: 0)
+            result = 31 * result + (target?.hashCode() ?: 0)
+            return result
         }
     }
 
