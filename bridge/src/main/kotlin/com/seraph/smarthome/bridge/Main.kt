@@ -119,7 +119,7 @@ class Main {
             }
             eachConnectedNetwork(name) { network, monitor ->
                 val foreign = monitor.snapshot(snapshot.device.id, snapshot.endpoint.id)
-                if (foreign?.value != snapshot.value) {
+                if (foreign?.value != snapshot.value || System.currentTimeMillis() - (foreign?.timeSet ?: 0) > 1000) {
                     snapshot.endpoint.publish(network, snapshot.device.id, snapshot.value!!)
                 }
             }
