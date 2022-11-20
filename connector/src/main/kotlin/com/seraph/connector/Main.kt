@@ -60,11 +60,13 @@ class Application(argv: Array<String>) : Cases {
         monitor = NetworkMonitor(network, log.copy("Monitor"), false)
         monitor.start()
         runner = TreeRunner(log.copy("TreeRunner")) { holder ->
-            ConnectorTreeBuilder(
-                BlockingNetworkImpl(network, log.copy("BlockingNetwork")),
-                holder,
-                log.copy("ConfigRunner")
-            )
+            TODO()
+//            ConnectorTreeBuilder(
+//                BlockingNetworkImpl(network, log.copy("BlockingNetwork")),
+//                holder,
+//
+//                log.copy("ConfigRunner")
+//            )
         }
     }
 

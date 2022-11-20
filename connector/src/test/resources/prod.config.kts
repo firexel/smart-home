@@ -18,9 +18,9 @@ fun TreeBuilder.configureCandleLight() {
     val candleOn = input("wb:d1", "k1_in", Boolean::class)
     val candlePower = input("wb:d1", "channel_1_in", Int::class)
 
-    map { monitor(key1) || monitor(key2) } transmitTo candleOn
+    map { snapshot(key1) || snapshot(key2) } transmitTo candleOn
     candlePower receiveFrom map {
-        when (monitor(key1) to monitor(key2)) {
+        when (snapshot(key1) to snapshot(key2)) {
             false to false -> 0
             false to true -> 15
             true to false -> 50
@@ -43,7 +43,7 @@ fun TreeBuilder.configureMasterBedroomLights() {
     val spotsPower = input("wb:d1", "channel_2_in", Int::class)
 
     spotsOn receiveFrom spotsKey
-    spotsPower receiveFrom map { if (monitor(spotsKey)) 100 else 0 }
+    spotsPower receiveFrom map { if (snapshot(spotsKey)) 100 else 0 }
     ntshLightOn receiveFrom ntshLightKey
     alexLightOn receiveFrom alexLightKey
 }
@@ -59,7 +59,7 @@ fun TreeBuilder.configureStreetLights() {
     val clock = clock(Clock.Interval.MINUTE)
 
     val onTime = map {
-        val time = monitor(clock.time)
+        val time = snapshot(clock.time)
 
         val start = time
             .withHour(8)

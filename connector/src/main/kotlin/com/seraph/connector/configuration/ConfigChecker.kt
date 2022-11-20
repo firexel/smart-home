@@ -6,6 +6,7 @@ import com.seraph.smarthome.domain.DeviceState
 import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.domain.Types
 import com.seraph.smarthome.util.NetworkMonitor
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import script.definition.*
@@ -97,17 +98,17 @@ class ConfigChecker(
         // do nothing
     }
 
-    override fun <T : Any> synthetic(
-        devId: String,
-        type: KClass<T>,
-        access: Synthetic.ExternalAccess,
-        persistence: Synthetic.Persistence<T>
-    ): Synthetic<T> = object : Synthetic<T> {
-        override val output: Node.Producer<T>
-            get() = mockProducer()
-        override val input: Node.Consumer<T>
-            get() = mockConsumer()
-    }
+//    override fun <T : Any> synthetic(
+//        devId: String,
+//        type: KClass<T>,
+//        access: Synthetic.ExternalAccess,
+//        persistence: Synthetic.Persistence<T>
+//    ): Synthetic<T> = object : Synthetic<T> {
+//        override val output: Node.Producer<T>
+//            get() = mockProducer()
+//        override val input: Node.Consumer<T>
+//            get() = mockConsumer()
+//    }
 
     fun <T> mockConsumer(): Node.Consumer<T> {
         return object : Node.Consumer<T> {
@@ -140,6 +141,10 @@ class ConfigChecker(
 
             override val millisPassed: Node.Producer<Long>
                 get() = mockProducer()
+
+            override suspend fun run(scope: CoroutineScope) {
+                // nothing
+            }
         }
     }
 
@@ -147,6 +152,10 @@ class ConfigChecker(
         return object : Clock {
             override val time: Node.Producer<LocalDateTime>
                 get() = mockProducer()
+
+            override suspend fun run(scope: CoroutineScope) {
+                // nothing
+            }
         }
     }
 }

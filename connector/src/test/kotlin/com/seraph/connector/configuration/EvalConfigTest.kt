@@ -1,6 +1,7 @@
 package com.seraph.connector.configuration
 
 import com.seraph.connector.tree.Node
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
@@ -81,17 +82,17 @@ internal class EvalConfigTest {
             override fun <T : Any> Node.Consumer<T>.disconnect() {
             }
 
-            override fun <T : Any> synthetic(
-                devId: String,
-                type: KClass<T>,
-                access: Synthetic.ExternalAccess,
-                persistence: Synthetic.Persistence<T>
-            ): Synthetic<T> = object : Synthetic<T> {
-                override val output: Node.Producer<T>
-                    get() = mockProducer()
-                override val input: Node.Consumer<T>
-                    get() = mockConsumer()
-            }
+//            override fun <T : Any> synthetic(
+//                devId: String,
+//                type: KClass<T>,
+//                access: Synthetic.ExternalAccess,
+//                persistence: Synthetic.Persistence<T>
+//            ): Synthetic<T> = object : Synthetic<T> {
+//                override val output: Node.Producer<T>
+//                    get() = mockProducer()
+//                override val input: Node.Consumer<T>
+//                    get() = mockConsumer()
+//            }
 
             override fun timer(tickInterval: Long, stopAfter: Long): Timer {
                 return object : Timer {
@@ -104,6 +105,10 @@ internal class EvalConfigTest {
 
                     override val millisPassed: Node.Producer<Long>
                         get() = mockProducer()
+
+                    override suspend fun run(scope: CoroutineScope) {
+                        // nothing
+                    }
                 }
             }
 
@@ -111,6 +116,10 @@ internal class EvalConfigTest {
                 return object : Clock {
                     override val time: Node.Producer<LocalDateTime>
                         get() = mockProducer()
+
+                    override suspend fun run(scope: CoroutineScope) {
+                        // nothing
+                    }
                 }
             }
 

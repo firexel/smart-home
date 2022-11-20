@@ -43,16 +43,16 @@ interface TreeBuilder {
     fun <T : Any> map(block: suspend MapContext.() -> T): Node.Producer<T>
     fun <T : Any> Node.Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit)
 
-    fun <T : Any> synthetic(
-        devId: String,
-        type: KClass<T>,
-        access: Synthetic.ExternalAccess,
-        persistence: Synthetic.Persistence<T>
-    ): Synthetic<T>
+//    fun <T : Any> synthetic(
+//        devId: String,
+//        type: KClass<T>,
+//        access: Synthetic.ExternalAccess,
+//        persistence: Synthetic.Persistence<T>
+//    ): Synthetic<T>
 
     fun timer(tickInterval: Long = 1000L, stopAfter: Long): Timer
     fun clock(tickInterval: Clock.Interval): Clock
-    fun <T> monitor(windowWidthMs: Long, aggregator: (List<T>) -> T?): Monitor<T>
+//    fun <T> monitor(windowWidthMs: Long, aggregator: (List<T>) -> T?): Monitor<T>
 }
 
 interface Monitor<T> : Node {
