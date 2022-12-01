@@ -2,9 +2,9 @@ package com.seraph.connector.tree
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import script.definition.MapContext
+import script.definition.RuntimeReadContext
 
-class MapNode<T>(private val block: suspend MapContext.() -> T) : Node {
+class MapNode<T>(private val block: suspend RuntimeReadContext.() -> T) : Node {
 
     val output: StateFlowProducerNode<T> = StateFlowProducerNode(this, null)
 
@@ -14,8 +14,8 @@ class MapNode<T>(private val block: suspend MapContext.() -> T) : Node {
 
     inner class RunContext(
         private val scope: CoroutineScope,
-        private val block: suspend MapContext.() -> T
-    ) : MapContext {
+        private val block: suspend RuntimeReadContext.() -> T
+    ) : RuntimeReadContext {
 
         private val monitors = mutableMapOf<Node.Producer<*>, Deferred<*>>()
 

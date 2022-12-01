@@ -4,10 +4,14 @@ import com.seraph.connector.api.startApiServer
 import com.seraph.connector.configuration.ConfigChecker
 import com.seraph.connector.configuration.ConfigStorage
 import com.seraph.connector.configuration.FileConfigStorage
+import com.seraph.connector.storage.SqliteStorageProvider
 import com.seraph.connector.tools.BlockingNetworkImpl
 import com.seraph.connector.tree.ConnectorTreeBuilder
+import com.seraph.connector.tree.StorageProvider
 import com.seraph.connector.tree.TreeRunner
 import com.seraph.connector.usecase.*
+import com.seraph.smarthome.device.DriversManager
+import com.seraph.smarthome.domain.Device
 import com.seraph.smarthome.domain.Network
 import com.seraph.smarthome.domain.impl.MqttNetwork
 import com.seraph.smarthome.domain.impl.Topics
@@ -48,25 +52,33 @@ class Application(argv: Array<String>) : Cases {
     private val network: Network
     private val monitor: NetworkMonitor
     private val runner: TreeRunner
-    private val storage: ConfigStorage
+    private val configStorage: ConfigStorage
+    private val dataStorage: StorageProvider
 
     init {
         log = ConsoleLog("Connector")
         log.i("Started with following params: ${argv.asList()}")
         params = CommandLineParams(ArgParser(argv))
-        storage = FileConfigStorage(File(params.configStorage))
+        configStorage = FileConfigStorage(File(params.configStorage))
         broker = createBroker()
         network = MqttNetwork(broker, log.copy("Network"))
         monitor = NetworkMonitor(network, log.copy("Monitor"), false)
         monitor.start()
+        dataStorage = SqliteStorageProvider.open(
+            "jdbc:sqlite:data.db",
+            log.copy("Database")
+        )
+        val drivers =
+            DriversManager(network, Device.Id("connector"), log = log.copy("Drivers"))
+
         runner = TreeRunner(log.copy("TreeRunner")) { holder ->
-            TODO()
-//            ConnectorTreeBuilder(
-//                BlockingNetworkImpl(network, log.copy("BlockingNetwork")),
-//                holder,
-//
-//                log.copy("ConfigRunner")
-//            )
+            ConnectorTreeBuilder(
+                BlockingNetworkImpl(network, log.copy("BlockingNetwork")),
+                holder,
+                dataStorage,
+                drivers,
+                log.copy("ConfigRunner")
+            )
         }
     }
 
@@ -90,7 +102,7 @@ class Application(argv: Array<String>) : Cases {
     override fun applyConfig(): ApplyConfigCase = ApplyConfigCase(
         ConfigChecker(monitor),
         runner,
-        storage,
+        configStorage,
         log.copy("ApplyConfigCase")
     )
 
@@ -99,7 +111,7 @@ class Application(argv: Array<String>) : Cases {
         ConfigChecker(monitor)
     )
 
-    override fun listConfigs(): ListConfigsCase = ListConfigsCase(storage)
+    override fun listConfigs(): ListConfigsCase = ListConfigsCase(configStorage)
 
     override fun dumpNetwork(): DumpNetworkStateCase = DumpNetworkStateCase(monitor)
 }

@@ -45,32 +45,34 @@ class ConnectorTreeBuilder(
         holder.connect(this, node.consumer)
     }
 
-//    override fun <T : Any> synthetic(
-//        devId: String,
-//        type: KClass<T>,
-//        access: Synthetic.ExternalAccess,
-//        persistence: Synthetic.Persistence<T>
-//    ): Synthetic<T> {
-//        val node: SyntheticNode<T> = holder.obtain(devId, SyntheticNode::class) {
-//            TODO()
-////            SyntheticNode(
-////                devId,
-////                type,
-////                persistence,
-////                storageProvider.makeStorage(devId),
-////                driversManager,
-////                log.copy("Synthetic").copy(devId)
-////            )
-//        } as SyntheticNode<T>
-//        return node
-//    }
+    override fun <T : Any> synthetic(
+        devId: String,
+        type: KClass<T>,
+        access: Synthetic.ExternalAccess,
+        units: Units,
+        persistence: Synthetic.Persistence<T>
+    ): Synthetic<T> {
+        val node: SyntheticNode<T> = holder.obtain(devId, SyntheticNode::class) {
+            SyntheticNode(
+                devId,
+                type,
+                persistence,
+                access,
+                units,
+                storageProvider.makeStorage(devId),
+                driversManager,
+                log.copy("Synthetic").copy(devId)
+            )
+        } as SyntheticNode<T>
+        return node
+    }
 
-//    override fun <T> monitor(windowWidthMs: Long, aggregator: (List<T>) -> T?): Monitor<T> {
-//        return MonitorNode(windowWidthMs, aggregator, java.time.Clock.systemDefaultZone())
-//            .apply { holder.install(this) }
-//    }
+    override fun <R, T> monitor(windowWidthMs: Long, aggregator: (List<R>) -> T?): Monitor<R, T> {
+        return MonitorNode(windowWidthMs, aggregator, java.time.Clock.systemDefaultZone())
+            .apply { holder.install(this) }
+    }
 
-    override fun <T : Any> map(block: suspend MapContext.() -> T): Node.Producer<T> {
+    override fun <T : Any> map(block: suspend RuntimeReadContext.() -> T): Node.Producer<T> {
         return MapNode(block).apply { holder.install(this) }.output
     }
 

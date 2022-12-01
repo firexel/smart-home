@@ -34,6 +34,8 @@ val kotlin_argparser_version: String by rootProject.extra
 
 dependencies {
     implementation("org.xerial:sqlite-jdbc:3.39.4.0")
+    implementation("org.ktorm:ktorm-core:3.5.0")
+    implementation("org.ktorm:ktorm-support-sqlite:3.5.0")
     implementation("org.jetbrains.kotlin:kotlin-scripting-common")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host")

@@ -1,11 +1,16 @@
 import script.definition.Clock
+import script.definition.Synthetic
 import script.definition.TreeBuilder
+import script.definition.Units
+import kotlin.math.abs
+import kotlin.math.min
 
 config {
     println("Applying config ---- ")
     configureCandleLight()
     configureMasterBedroomLights()
     configureStreetLights()
+    configureStreetTemp()
 }
 
 /**
@@ -75,4 +80,59 @@ fun TreeBuilder.configureStreetLights() {
     }
     projectors receiveFrom onTime
     facade receiveFrom onTime
+}
+
+/**
+ * Deduce outside temperature
+ */
+fun TreeBuilder.configureStreetTemp() {
+    /* Shortcuts */
+    val t1 = output("wb:wb_w1", "28_0517c0ddbbff_out", Float::class)
+    val t2 = output("wb:wb_w1", "28_0517c0e102ff_out", Float::class)
+    val t3 = output("wb:wb_w1", "28_0517c0e7e2ff_out", Float::class)
+
+    val quorum = map {
+        val measures = listOf(snapshot(t1), snapshot(t2), snapshot(t3))
+            .filter { it <= 50 && it >= -50 }
+
+        when (measures.size) {
+            0 -> 0f
+            1 -> measures.first()
+            2 -> measures.average().toFloat()
+            else -> {
+                measures
+                    .map { m ->
+                        measures.sumOf { abs(it - m).toDouble() } to m
+                    }
+                    .sortedByDescending { it.first }
+                    .takeLast(measures.size - 1)
+                    .map { it.second }
+                    .average()
+                    .toFloat()
+            }
+        }
+    }
+
+    quorum transmitTo synthetic(
+        "outside_temp", Float::class,
+        Synthetic.ExternalAccess.READ,
+        Units.CELSIUS
+    ).input
+
+    synthetic("target_coolant_temp", Float::class,
+        Synthetic.ExternalAccess.READ, Units.CELSIUS
+    ).input receiveFrom map {
+        val t = snapshot(quorum)
+        val k = 0.97 // heat curve type
+        val a = -0.1 * k - 0.06
+        val b = 6.04 * k + 1.98
+        val c = -5.06 * k + 18.06
+        val x = -0.2 * t + 5
+        val target = a*x*x + b*x + c
+        when {
+            target > 70 -> 70
+            target < 20 -> 20
+            else -> target
+        }.toFloat()
+    }
 }

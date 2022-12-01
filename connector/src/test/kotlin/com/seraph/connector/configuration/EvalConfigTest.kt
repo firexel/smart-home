@@ -67,7 +67,7 @@ internal class EvalConfigTest {
 
             override fun <T : Any> constant(value: T): Node.Producer<T> = mockProducer()
 
-            override fun <T : Any> map(block: suspend MapContext.() -> T): Node.Producer<T> =
+            override fun <T : Any> map(block: suspend RuntimeReadContext.() -> T): Node.Producer<T> =
                 mockProducer()
 
             override fun <T : Any> Node.Producer<T>.onChanged(block: TreeBuilder.(value: T) -> Unit) {
@@ -82,17 +82,34 @@ internal class EvalConfigTest {
             override fun <T : Any> Node.Consumer<T>.disconnect() {
             }
 
-//            override fun <T : Any> synthetic(
-//                devId: String,
-//                type: KClass<T>,
-//                access: Synthetic.ExternalAccess,
-//                persistence: Synthetic.Persistence<T>
-//            ): Synthetic<T> = object : Synthetic<T> {
-//                override val output: Node.Producer<T>
-//                    get() = mockProducer()
-//                override val input: Node.Consumer<T>
-//                    get() = mockConsumer()
-//            }
+            override fun <T : Any> synthetic(
+                devId: String,
+                type: KClass<T>,
+                access: Synthetic.ExternalAccess,
+                units: Units,
+                persistence: Synthetic.Persistence<T>
+            ): Synthetic<T> = object : Synthetic<T> {
+                override val output: Node.Producer<T>
+                    get() = mockProducer()
+                override val input: Node.Consumer<T>
+                    get() = mockConsumer()
+
+                override suspend fun run(scope: CoroutineScope) {
+                    // do nothing
+                }
+            }
+
+            override fun <R, T> monitor(windowWidthMs: Long, aggregator: (List<R>) -> T?): Monitor<R, T> =
+                object : Monitor<R, T> {
+                    override val output: Node.Producer<T>
+                        get() = mockProducer()
+                    override val input: Node.Consumer<R>
+                        get() = mockConsumer()
+
+                    override suspend fun run(scope: CoroutineScope) {
+                        // do nothing
+                    }
+                }
 
             override fun timer(tickInterval: Long, stopAfter: Long): Timer {
                 return object : Timer {

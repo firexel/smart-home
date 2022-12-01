@@ -6,18 +6,18 @@ import script.definition.Monitor
 import java.time.Clock
 import java.util.*
 
-class MonitorNode<T>(
+class MonitorNode<R, T>(
     private val timeWindowMs: Long,
-    private val aggregator: (List<T>) -> T?,
+    private val aggregator: (List<R>) -> T?,
     private val clock: Clock
-) : Monitor<T> {
+) : Monitor<R, T> {
 
     override val output = StateFlowProducerNode<T>(this, null)
-    override val input = StateFlowConsumerNode<T>(this, null)
+    override val input = StateFlowConsumerNode<R>(this, null)
 
     override suspend fun run(scope: CoroutineScope) {
         scope.launch {
-            val records = LinkedList<RecordedValue<T>>()
+            val records = LinkedList<RecordedValue<R>>()
             input.stateFlow.collect { nextValue ->
                 if (nextValue != null) {
                     val now = clock.millis()
@@ -29,7 +29,7 @@ class MonitorNode<T>(
         }
     }
 
-    private fun updateOutput(records: LinkedList<RecordedValue<T>>) {
+    private fun updateOutput(records: LinkedList<RecordedValue<R>>) {
         if (records.isNotEmpty()) {
             aggregator(records.map { it.data })?.let { aggregated ->
                 output.value = aggregated
@@ -37,7 +37,7 @@ class MonitorNode<T>(
         }
     }
 
-    private fun LinkedList<RecordedValue<T>>.trim(now: Long) {
+    private fun LinkedList<RecordedValue<R>>.trim(now: Long) {
         while (isNotEmpty() && first.timeRecorded < now - timeWindowMs) {
             removeFirst()
         }

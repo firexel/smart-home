@@ -1,5 +1,6 @@
 import com.seraph.connector.tree.Node
 import script.definition.Clock
+import script.definition.Synthetic
 import script.definition.TreeBuilder
 import kotlin.math.abs
 
@@ -14,6 +15,7 @@ config {
     configureLivingroomCandleLight()
     val powerType = configurePowerMonitoring()
     configureEconomizer(powerType)
+    configureMonitor()
 }
 
 /**
@@ -141,4 +143,15 @@ fun TreeBuilder.configureEconomizer(powerType: Node.Producer<PowerType>) {
     val boilerEnable = input("wb:r7", "input2", Boolean::class)
     boilerReducePower receiveFrom map { snapshot(powerType) != PowerType.CITY }
     boilerEnable receiveFrom map { snapshot(powerType) != PowerType.UPS }
+}
+
+fun TreeBuilder.configureMonitor() {
+    val m = monitor<Float>(10_000) { it.average().toFloat() }
+    m.input receiveFrom output("wb:power_meter", "p1", Float::class)
+    m.output transmitTo synthetic(
+        "power_average",
+        Float::class,
+        Synthetic.ExternalAccess.READ,
+        persistence = Synthetic.Persistence.None()
+    ).input
 }
