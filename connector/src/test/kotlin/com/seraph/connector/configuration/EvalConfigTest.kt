@@ -99,6 +99,15 @@ internal class EvalConfigTest {
                 }
             }
 
+            override fun geo(lat: String, lon: String, timezone: String): Geo {
+                return object : Geo {
+                    override val todaySunriseTime: LocalDateTime
+                        get() = LocalDateTime.now()
+                    override val todaySunsetTime: LocalDateTime
+                        get() = LocalDateTime.now()
+                }
+            }
+
             override fun <R, T> monitor(windowWidthMs: Long, aggregator: (List<R>) -> T?): Monitor<R, T> =
                 object : Monitor<R, T> {
                     override val output: Node.Producer<T>

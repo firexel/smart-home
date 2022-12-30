@@ -97,6 +97,10 @@ class ConnectorTreeBuilder(
         holder.disconnect(this)
     }
 
+    override fun geo(lat: String, lon: String, timezone: String): Geo {
+        return LocalCalculatedGeo(lat, lon, timezone)
+    }
+
     data class EndpointKey(
         val devId: String,
         val endId: String,

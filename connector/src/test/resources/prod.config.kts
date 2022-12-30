@@ -3,7 +3,7 @@ import script.definition.Synthetic
 import script.definition.TreeBuilder
 import script.definition.Units
 import kotlin.math.abs
-import kotlin.math.min
+import kotlin.math.roundToInt
 
 config {
     println("Applying config ---- ")
@@ -11,6 +11,7 @@ config {
     configureMasterBedroomLights()
     configureStreetLights()
     configureStreetTemp()
+    configureClimateRegulation()
 }
 
 /**
@@ -60,22 +61,14 @@ fun TreeBuilder.configureStreetLights() {
     /* Shortcuts */
     val projectors = input("wb:r2", "k1_in", Boolean::class)
     val facade = input("wb:r5", "k1_in", Boolean::class)
+    val geo = geo("57.547071", "34.6289729", "Europe/Moscow")
 
     val clock = clock(Clock.Interval.MINUTE)
 
     val onTime = map {
         val time = snapshot(clock.time)
-
-        val start = time
-            .withHour(8)
-            .withMinute(0)
-            .withSecond(0)
-            .withNano(0)
-
-        val end = start
-            .withHour(17)
-            .withMinute(30)
-
+        val start = geo.todaySunriseTime
+        val end = geo.todaySunsetTime
         time.isAfter(end) || time.isBefore(start)
     }
     projectors receiveFrom onTime
@@ -119,20 +112,40 @@ fun TreeBuilder.configureStreetTemp() {
         Units.CELSIUS
     ).input
 
-    synthetic("target_coolant_temp", Float::class,
-        Synthetic.ExternalAccess.READ, Units.CELSIUS
-    ).input receiveFrom map {
-        val t = snapshot(quorum)
-        val k = 0.97 // heat curve type
-        val a = -0.1 * k - 0.06
-        val b = 6.04 * k + 1.98
-        val c = -5.06 * k + 18.06
-        val x = -0.2 * t + 5
-        val target = a*x*x + b*x + c
-        when {
-            target > 70 -> 70
-            target < 20 -> 20
-            else -> target
-        }.toFloat()
+    with(
+        synthetic(
+            "target_coolant_temp", Float::class,
+            Synthetic.ExternalAccess.READ, Units.CELSIUS
+        )
+    ) {
+        input receiveFrom map {
+            val t = snapshot(quorum)
+            val k = 0.97 // heat curve type
+            val a = -0.1 * k - 0.06
+            val b = 6.04 * k + 1.98
+            val c = -5.06 * k + 18.06
+            val x = -0.2 * t + 5
+            val target = a * x * x + b * x + c
+            when {
+                target > 70 -> 70
+                target < 20 -> 20
+                else -> target
+            }.toFloat()
+        }
+
+        map { snapshot(output).roundToInt() } transmitTo
+                input("wb:ebusmodbus_10", "temp_boiler_setp_in", Int::class)
     }
+}
+
+/**
+ * Setup all needed to control temperatures in the building
+ */
+fun TreeBuilder.configureClimateRegulation() {
+    synthetic(
+        "office_temp_setpoint", Float::class,
+        access = Synthetic.ExternalAccess.READ_WRITE,
+        units = Units.CELSIUS,
+        persistence = Synthetic.Persistence.Stored(24f)
+    )
 }

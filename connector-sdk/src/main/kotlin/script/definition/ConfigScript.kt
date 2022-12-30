@@ -54,6 +54,12 @@ interface TreeBuilder {
     fun timer(tickInterval: Long = 1000L, stopAfter: Long): Timer
     fun clock(tickInterval: Clock.Interval): Clock
     fun <R, T> monitor(windowWidthMs: Long, aggregator: (List<R>) -> T?): Monitor<R, T>
+    fun geo(lat: String, lon: String, timezone: String): Geo
+}
+
+interface Geo {
+    val todaySunriseTime: LocalDateTime
+    val todaySunsetTime: LocalDateTime
 }
 
 interface Monitor<R, T> : Node {

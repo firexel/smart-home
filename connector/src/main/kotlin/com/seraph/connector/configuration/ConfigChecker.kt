@@ -37,6 +37,15 @@ class ConfigChecker(
         // do nothing
     }
 
+    override fun geo(lat: String, lon: String, timezone: String): Geo {
+        return object : Geo {
+            override val todaySunriseTime: LocalDateTime
+                get() = LocalDateTime.now()
+            override val todaySunsetTime: LocalDateTime
+                get() = LocalDateTime.now()
+        }
+    }
+
     override fun <T : Any> input(devId: String, endId: String, type: KClass<T>): Node.Consumer<T> {
         checkEndpointMatching(devId, endId, type, Endpoint.Direction.INPUT)
         return mockConsumer()
