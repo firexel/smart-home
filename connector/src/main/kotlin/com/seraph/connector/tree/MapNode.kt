@@ -2,19 +2,11 @@ package com.seraph.connector.tree
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import script.definition.MapContext
-import script.definition.Producer
+import script.definition.RuntimeReadContext
 
-class MapNode<T>(private val block: suspend MapContext.() -> T) : Node {
+class MapNode<T>(private val block: suspend RuntimeReadContext.() -> T) : Node {
 
-    private val outputFlow = MutableStateFlow<T?>(null)
-
-    public val output: Node.Producer<T> = object : Node.Producer<T>, Producer<T> {
-        override val parent: Node
-            get() = this@MapNode
-        override val flow: Flow<T?>
-            get() = outputFlow
-    }
+    val output: StateFlowProducerNode<T> = StateFlowProducerNode(this, null)
 
     override suspend fun run(scope: CoroutineScope) {
         RunContext(scope, block).schedule()
@@ -22,19 +14,18 @@ class MapNode<T>(private val block: suspend MapContext.() -> T) : Node {
 
     inner class RunContext(
         private val scope: CoroutineScope,
-        private val block: suspend MapContext.() -> T
-    ) : MapContext {
+        private val block: suspend RuntimeReadContext.() -> T
+    ) : RuntimeReadContext {
 
         private val monitors = mutableMapOf<Node.Producer<*>, Deferred<*>>()
 
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <T> monitor(producer: Producer<T>): T {
-            val p = producer as Node.Producer<T>
+        override suspend fun <T> snapshot(producer: Node.Producer<T>): T {
             val deferred = scope.async {
-                p.flow.filterNotNull().first()
+                producer.flow.filterNotNull().first()
             }
 
-            installMonitor(p, deferred)
+            installMonitor(producer, deferred)
 
             return deferred.await()
         }
@@ -60,7 +51,7 @@ class MapNode<T>(private val block: suspend MapContext.() -> T) : Node {
 
         fun schedule() {
             scope.launch {
-                outputFlow.value = supervisorScope { block() }
+                output.value = supervisorScope { block() }
             }
         }
     }

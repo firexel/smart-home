@@ -18,7 +18,7 @@ internal class MapNodeTest {
     @Test
     fun testBlockGetsProducerValue() = runTest {
         val pA = mockProducer(13)
-        val node = MapNode { monitor(pA) }
+        val node = MapNode { snapshot(pA) }
         val flowResults = mutableListOf<Int?>()
         launch { node.output.flow.toCollection(flowResults) }
         launch { node.run(this) }
@@ -30,7 +30,7 @@ internal class MapNodeTest {
         val pA = mockProducer(12)
         val pB = mockProducer(34)
         val pC = mockProducer(56)
-        val node = MapNode { monitor(pA) + monitor(pB) + monitor(pC) }
+        val node = MapNode { snapshot(pA) + snapshot(pB) + snapshot(pC) }
         val flowResults = mutableListOf<Int?>()
         launch { node.output.flow.toCollection(flowResults) }
         launch { node.run(this) }
@@ -42,7 +42,7 @@ internal class MapNodeTest {
         val pA = mockProducer("A")
         val pB = mockProducer("B")
         val pC = mockProducer("C")
-        val node = MapNode { monitor(pA) + monitor(pB) + monitor(pC) }
+        val node = MapNode { snapshot(pA) + snapshot(pB) + snapshot(pC) }
         val flowResults = mutableListOf<String?>()
         launch { node.output.flow.toCollection(flowResults) }
         launch { node.run(this) }

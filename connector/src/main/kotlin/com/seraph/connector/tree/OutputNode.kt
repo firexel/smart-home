@@ -9,9 +9,11 @@ import com.seraph.smarthome.domain.Endpoint
 import com.seraph.smarthome.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import script.definition.Producer
 import kotlin.reflect.KClass
 
 class OutputNode<T : Any>(
@@ -22,14 +24,7 @@ class OutputNode<T : Any>(
     private val log: Log
 ) : Node {
 
-    private val flow = MutableStateFlow<T?>(null)
-
-    val producer: Node.Producer<T> = object : Node.Producer<T>, Producer<T> {
-        override val parent: Node
-            get() = this@OutputNode
-        override val flow: Flow<T?>
-            get() = this@OutputNode.flow
-    }
+    val producer: StateFlowProducerNode<T> = StateFlowProducerNode(this, null)
 
     override suspend fun run(scope: CoroutineScope) {
         scope.launch {
@@ -53,7 +48,7 @@ class OutputNode<T : Any>(
                 }
                 .collect { value ->
                     @Suppress("UNCHECKED_CAST")
-                    flow.value = value as T
+                    producer.value = value as T
                 }
         }
     }

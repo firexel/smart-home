@@ -61,6 +61,8 @@ class WidgetListInteractor(
             )
         } catch (ex: NetworkTypeMismatchException) {
             WidgetModel.BrokenWidget(widget.id, widget.name, ex.message ?: "")
+        } catch (ex: UnknownNetworkStateException) {
+            WidgetModel.BrokenWidget(widget.id, widget.name, ex.message ?: "")
         }
     }
 

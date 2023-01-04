@@ -1,37 +1,49 @@
-import script.definition.Clock
+import script.definition.Synthetic
 import script.definition.TreeBuilder
 
 config {
     println("Applying config ---- ")
-    configureBlink()
+    configureFilter()
+    configureThermostat()
 }
 
 /**
  * Blink every second
  */
-fun TreeBuilder.configureBlink() {
-    /* Shortcuts */
-    val relay2 = input("wb:wb_mrwm2_75", "k2_in", Boolean::class)
-//    val relayKey1 = output("wb:wb_mrwm2_75", "input_1_out", Boolean::class)
-//
-//    val timer = timer(tickInterval = 1000L, stopAfter = 4000L)
-//
-//    relay2.value = map {
-//        val millis = monitor(timer.millisPassed)
-//        println("relay2.value = map ")
-//        (millis / 1000) % 2 == 0L
-//    }
-//
-//    relayKey1.onChanged {
-//        println("relayKey1.onChanged()")
-//        timer.start()
-//    }
+fun TreeBuilder.configureFilter() {
+    val m = monitor<Boolean, Float>(5_000) {
+        println(it.toString())
+        when (it.size) {
+            0 -> 0f
+            else -> it.count { it }.toFloat() / it.size
+        }
+    }
+    m.input receiveFrom output("wb:wb_mrwm2_75", "input_1_out", Boolean::class)
+    m.output transmitTo synthetic(
+        "push_ratio", Float::class,
+        Synthetic.ExternalAccess.READ,
+        persistence = Synthetic.Persistence.None()
+    ).input
+}
 
-    val clock = clock(Clock.Interval.SECOND)
-    var times = 0
-    clock.time.onChanged { time ->
-        println("Time changed to $time")
-        relay2.value = constant(time.second % 2 == 0 && times < 4)
-        times++
+fun TreeBuilder.configureThermostat() {
+    val thermostat = synthetic(
+        "temp_target", Float::class,
+        Synthetic.ExternalAccess.READ_WRITE,
+        persistence = Synthetic.Persistence.Stored(23f)
+    )
+
+    synthetic(
+        "temp_target", Unit::class,
+        Synthetic.ExternalAccess.READ_WRITE
+    ).output.onChanged {
+        // todo
+    }
+
+    synthetic(
+        "temp_target", Unit::class,
+        Synthetic.ExternalAccess.READ_WRITE
+    ).output.onChanged {
+        // todo
     }
 }

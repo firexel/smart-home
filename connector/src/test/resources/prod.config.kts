@@ -1,11 +1,17 @@
 import script.definition.Clock
+import script.definition.Synthetic
 import script.definition.TreeBuilder
+import script.definition.Units
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 config {
     println("Applying config ---- ")
     configureCandleLight()
     configureMasterBedroomLights()
     configureStreetLights()
+    configureStreetTemp()
+    configureClimateRegulation()
 }
 
 /**
@@ -18,9 +24,9 @@ fun TreeBuilder.configureCandleLight() {
     val candleOn = input("wb:d1", "k1_in", Boolean::class)
     val candlePower = input("wb:d1", "channel_1_in", Int::class)
 
-    candleOn.value = map { monitor(key1) || monitor(key2) }
-    candlePower.value = map {
-        when (monitor(key1) to monitor(key2)) {
+    map { snapshot(key1) || snapshot(key2) } transmitTo candleOn
+    candlePower receiveFrom map {
+        when (snapshot(key1) to snapshot(key2)) {
             false to false -> 0
             false to true -> 15
             true to false -> 50
@@ -42,10 +48,10 @@ fun TreeBuilder.configureMasterBedroomLights() {
     val alexLightOn = input("wb:r1", "k3_in", Boolean::class)
     val spotsPower = input("wb:d1", "channel_2_in", Int::class)
 
-    spotsOn.value = spotsKey
-    spotsPower.value = map { if (monitor(spotsKey)) 100 else 0 }
-    ntshLightOn.value = ntshLightKey
-    alexLightOn.value = alexLightKey
+    spotsOn receiveFrom spotsKey
+    spotsPower receiveFrom map { if (snapshot(spotsKey)) 100 else 0 }
+    ntshLightOn receiveFrom ntshLightKey
+    alexLightOn receiveFrom alexLightKey
 }
 
 /**
@@ -55,24 +61,91 @@ fun TreeBuilder.configureStreetLights() {
     /* Shortcuts */
     val projectors = input("wb:r2", "k1_in", Boolean::class)
     val facade = input("wb:r5", "k1_in", Boolean::class)
+    val geo = geo("57.547071", "34.6289729", "Europe/Moscow")
 
     val clock = clock(Clock.Interval.MINUTE)
 
     val onTime = map {
-        val time = monitor(clock.time)
-
-        val start = time
-            .withHour(8)
-            .withMinute(0)
-            .withSecond(0)
-            .withNano(0)
-
-        val end = start
-            .withHour(17)
-            .withMinute(30)
-
+        val time = snapshot(clock.time)
+        val start = geo.todaySunriseTime
+        val end = geo.todaySunsetTime
         time.isAfter(end) || time.isBefore(start)
     }
-    projectors.value = onTime
-    facade.value = onTime
+    projectors receiveFrom onTime
+    facade receiveFrom onTime
+}
+
+/**
+ * Deduce outside temperature
+ */
+fun TreeBuilder.configureStreetTemp() {
+    /* Shortcuts */
+    val t1 = output("wb:wb_w1", "28_0517c0ddbbff_out", Float::class)
+    val t2 = output("wb:wb_w1", "28_0517c0e102ff_out", Float::class)
+    val t3 = output("wb:wb_w1", "28_0517c0e7e2ff_out", Float::class)
+
+    val quorum = map {
+        val measures = listOf(snapshot(t1), snapshot(t2), snapshot(t3))
+            .filter { it <= 50 && it >= -50 }
+
+        when (measures.size) {
+            0 -> 0f
+            1 -> measures.first()
+            2 -> measures.average().toFloat()
+            else -> {
+                measures
+                    .map { m ->
+                        measures.sumOf { abs(it - m).toDouble() } to m
+                    }
+                    .sortedByDescending { it.first }
+                    .takeLast(measures.size - 1)
+                    .map { it.second }
+                    .average()
+                    .toFloat()
+            }
+        }
+    }
+
+    quorum transmitTo synthetic(
+        "outside_temp", Float::class,
+        Synthetic.ExternalAccess.READ,
+        Units.CELSIUS
+    ).input
+
+    with(
+        synthetic(
+            "target_coolant_temp", Float::class,
+            Synthetic.ExternalAccess.READ, Units.CELSIUS
+        )
+    ) {
+        input receiveFrom map {
+            val t = snapshot(quorum)
+            val k = 0.97 // heat curve type
+            val a = -0.1 * k - 0.06
+            val b = 6.04 * k + 1.98
+            val c = -5.06 * k + 18.06
+            val x = -0.2 * t + 5
+            val target = a * x * x + b * x + c
+            when {
+                target > 70 -> 70
+                target < 20 -> 20
+                else -> target
+            }.toFloat()
+        }
+
+        map { snapshot(output).roundToInt() } transmitTo
+                input("wb:ebusmodbus_10", "temp_boiler_setp_in", Int::class)
+    }
+}
+
+/**
+ * Setup all needed to control temperatures in the building
+ */
+fun TreeBuilder.configureClimateRegulation() {
+    synthetic(
+        "office_temp_setpoint", Float::class,
+        access = Synthetic.ExternalAccess.READ_WRITE,
+        units = Units.CELSIUS,
+        persistence = Synthetic.Persistence.Stored(24f)
+    )
 }

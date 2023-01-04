@@ -1,6 +1,7 @@
 package com.seraph.smarthome.client.view
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
@@ -27,14 +28,12 @@ import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import coil.size.Dimension
 import com.seraph.smarthome.client.app.services
 import com.seraph.smarthome.client.model.WidgetGroupModel
 import com.seraph.smarthome.client.model.WidgetModel
@@ -42,6 +41,8 @@ import com.seraph.smarthome.client.presentation.WidgetListPresenter
 import com.seraph.smarthome.client.presentation.WidgetListPresenterImpl
 import kotlinx.coroutines.launch
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 val p1 = 8.dp
@@ -87,11 +88,12 @@ class FacilityScreen : AppCompatActivity() {
                 .background(Color.White)
                 .fillMaxHeight()
         ) {
+            item { FacilityHeader(model) }
             items(
-                model.groups.size + 1,
-                { if (it == 0) 0 else model.groups[it - 1].hashCode() },
-                { if (it == 0) 0 else 1 },
-                { if (it == 0) FacilityHeader(model) else Group(model.groups[it - 1]) }
+                model.groups.size,
+                { model.groups[it].name.hashCode() },
+                { 1 },
+                { Group(model.groups[it]) }
             )
         }
     }
@@ -227,9 +229,19 @@ class FacilityScreen : AppCompatActivity() {
         }
     }
 
+    private var prevGroupModel: WidgetGroupModel? = null
+
     @Composable
     private fun Group(group: WidgetGroupModel) {
         val typo = MaterialTheme.typography
+        if (group.name == "Кабинет") {
+            if (group == prevGroupModel) {
+                Log.d("ComposeDbg", "Groups are equals")
+            } else {
+                Log.d("ComposeDbg", "Groups are NOT equals")
+            }
+            prevGroupModel = group
+        }
         Text(
             group.name,
             style = typo.h4.copy(fontWeight = FontWeight.SemiBold),
@@ -275,24 +287,33 @@ class FacilityScreen : AppCompatActivity() {
             WidgetModel.CompositeWidget.Category.LIGHT ->
                 Color(0xffeed690) to Color(0xffdca324)
 
+            WidgetModel.CompositeWidget.Category.THERMOSTAT ->
+                Color(0xFFFF9D9D) to Color(0xFF64A2FF)
+
             else -> Color(0xffa4a4a4) to Color(0xff949494)
         }
 
         var dialogShown by remember { mutableStateOf(false) }
 
-        val onLongClick = {
-            if (widget.target != null) {
-                dialogShown = true
+        val onLongClick: (() -> Unit)? = when {
+            widget.target != null -> {
+                { dialogShown = true }
             }
+            else -> null
+        }
+
+        val onClick: (() -> Unit)? = when {
+            widget.toggle != null -> widget.toggle
+            onLongClick != null -> onLongClick
+            else -> null
         }
 
         NamedCard(
             name = widget.name,
             bg = bg,
-            onClick = widget.toggle,
+            onClick = onClick,
             onLongClick = onLongClick
         ) {
-
             CompositeWidgetState(widget)
         }
 
@@ -501,6 +522,7 @@ class FacilityScreen : AppCompatActivity() {
         Slider(
             value = sliderState,
             valueRange = target.min..target.max,
+            steps = (abs(target.min - target.max) / 0.1f).roundToInt() - 1,
             onValueChange = {
                 sliderState = it
             },

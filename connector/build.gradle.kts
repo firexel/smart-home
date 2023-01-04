@@ -33,6 +33,9 @@ val ktor_version: String by rootProject.extra
 val kotlin_argparser_version: String by rootProject.extra
 
 dependencies {
+    implementation("org.xerial:sqlite-jdbc:3.39.4.0")
+    implementation("org.ktorm:ktorm-core:3.5.0")
+    implementation("org.ktorm:ktorm-support-sqlite:3.5.0")
     implementation("org.jetbrains.kotlin:kotlin-scripting-common")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host")
@@ -43,6 +46,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.2.10")
     implementation("com.xenomachina:kotlin-argparser:$kotlin_argparser_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version")
+    implementation("com.luckycatlabs:SunriseSunsetCalculator:1.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")

@@ -135,6 +135,15 @@ private void configureDockerImageAssemblyIn(def root, def project) {
             }
 
             with(root) {
+                def loginTask = tasks.find { it.name == "dockerLogin$machine" }
+                if (loginTask == null) {
+                   loginTask =  task(type: Exec, "dockerLogin$machine") {
+                       environment envs
+                       ignoreExitValue false
+                       workingDir machineDir
+                       commandLine selectDockerExecutable(), 'login', '-u', 'fireserafim', '-p', 'Serafim@d1'
+                   }
+                }
                 def upTask = tasks.find { it.name == "upOn$machine" }
                 if (upTask == null) {
                     upTask = task(type: Exec, "upOn$machine") {
@@ -147,7 +156,8 @@ private void configureDockerImageAssemblyIn(def root, def project) {
                         commandLine selectDockerExecutable(), 'compose', '-f', localComposePath, 'up', '--build', '--remove-orphans', '--detach'
                     }
                 }
-                upTask.dependsOn buildImageTask
+                loginTask.dependsOn buildImageTask
+                upTask.dependsOn loginTask
             }
         }
     }

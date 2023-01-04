@@ -1,11 +1,8 @@
 package com.seraph.smarthome.wirenboard
 
 import com.seraph.smarthome.device.DeviceDriver
-import com.seraph.smarthome.domain.Converters
-import com.seraph.smarthome.domain.Endpoint
+import com.seraph.smarthome.domain.*
 import com.seraph.smarthome.domain.Endpoint.DataKind
-import com.seraph.smarthome.domain.Types
-import com.seraph.smarthome.domain.Units
 import com.seraph.smarthome.transport.Broker
 import com.seraph.smarthome.transport.Topic
 import com.seraph.smarthome.util.Log
@@ -98,7 +95,11 @@ class WirenboardDeviceDriver(
 
         return {
             wbBroker.subscribe(control.readTopic) { _, d ->
-                out.set(reader(d))
+                try {
+                    out.set(reader(d))
+                } catch (ex:Serializer.TypeMismatchException) {
+                    log.w("Type mismatch because of '${ex.message}'. Update skipped.")
+                }
             }
         }
     }
